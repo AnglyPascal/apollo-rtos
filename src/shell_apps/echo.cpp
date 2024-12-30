@@ -1,0 +1,24 @@
+#include "memory.h"
+#include "serial.h"
+#include "shell.h"
+#include "types.h"
+#include "char_buffer.h"
+
+namespace shell
+{
+
+namespace
+{
+
+void echo(void *param)
+{
+  auto buf = (char_buffer<64> *)param;
+  serial::printf(">> %s\n", buf->str + 5);
+  delete buf;
+}
+
+} // namespace
+
+cmd_t echo_cmd = {"echo", 3, 80, echo};
+
+} // namespace shell
