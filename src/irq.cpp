@@ -1,5 +1,5 @@
 #include "hardware.h"
-#include "nvic.h"
+#include "irq.h"
 
 /* NVIC SETUP FUNCTIONS */
 

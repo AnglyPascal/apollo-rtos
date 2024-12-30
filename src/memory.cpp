@@ -34,11 +34,9 @@ uint8_t *sbrk(size_t sz)
 }
 
 // FIXME: use a freelist
-uint8_t *alloc_stack(uint32_t sz)
+uint8_t *alloc_stack(size_t sz)
 {
   memtop -= sz;
-  /* auto stack_ptr = sbrk(sz); */
-  /* return (uint8_t *)stack_ptr + sz; */
   return memtop;
 }
 

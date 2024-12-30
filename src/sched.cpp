@@ -1,9 +1,9 @@
 #include "sched.h"
 #include "allocator.h"
 #include "hardware.h"
+#include "irq.h"
 #include "lib.h"
 #include "memory.h"
-#include "nvic.h"
 #include "serial.h"
 #include "timer.h"
 #include "types.h"
@@ -113,8 +113,8 @@ proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
 
   proc.stk_ptr = (stack_t *)(proc.stack - sizeof(stack_t));
 
-  printf("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc.stack,
-         proc.stk_ptr);
+  /* printf("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc.stack, */
+  /*        proc.stk_ptr); */
 
   if (proc.stack == nullptr) {
     // FIXME: panic

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "timer.h"
 #include "types.h"
 
 #include <cstdint>

@@ -1,7 +1,7 @@
 #include "hardware.h"
 #include "lib.h"
 #include "memory.h"
-#include "nvic.h"
+#include "irq.h"
 #include "sched.h"
 #include "serial.h"
 #include "waitlist.h"

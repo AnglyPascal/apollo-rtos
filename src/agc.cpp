@@ -1,7 +1,7 @@
 #include "flash.h"
 #include "hardware.h"
+#include "irq.h"
 #include "lib.h"
-#include "nvic.h"
 #include "sched.h"
 #include "serial.h"
 #include "shell.h"

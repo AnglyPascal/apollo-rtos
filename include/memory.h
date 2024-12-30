@@ -12,7 +12,7 @@ constexpr size_t roundup(size_t sz, size_t align)
 uint8_t *sbrk(size_t sz);
 
 /* allocate space for a stack using sbrk */
-uint8_t *alloc_stack(uint32_t sz);
+uint8_t *alloc_stack(size_t sz);
 
 /* copy n bytes from src to dest (non-overlapping) */
 void *_memcpy(void *dest, const void *src, uint32_t n);

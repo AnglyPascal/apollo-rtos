@@ -1,6 +1,5 @@
 #pragma once
 
-#include "serial.h"
 #include "types.h"
 
 template <size_t len>
@@ -10,7 +9,6 @@ struct char_buffer {
 
   void push(char c)
   {
-    /* printf("\r\n%u\r\n", sz); */
     if (c == '\0' || sz == len) {
       str[sz] = '\0';
       return;

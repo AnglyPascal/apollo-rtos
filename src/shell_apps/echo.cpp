@@ -1,8 +1,8 @@
+#include "char_buffer.h"
 #include "memory.h"
 #include "serial.h"
 #include "shell.h"
 #include "types.h"
-#include "char_buffer.h"
 
 namespace shell
 {

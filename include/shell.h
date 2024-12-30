@@ -17,15 +17,8 @@ struct cmd_t {
   runnable_t func;
 };
 
-void proc(void *);
-
 void init();
 
 cmd_t *match_cmd(string cmd);
-
-inline void *default_parse(string)
-{
-  return nullptr;
-}
 
 } // namespace shell

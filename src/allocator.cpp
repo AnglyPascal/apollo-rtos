@@ -1,5 +1,6 @@
 #include "allocator.h"
 #include "serial.h"
+#include "memory.h"
 #include "types.h"
 
 uint8_t *allocator::alloc(size_t sz)

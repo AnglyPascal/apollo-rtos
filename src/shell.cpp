@@ -45,6 +45,7 @@ void shell_listener(char c)
   if (c != '\r' && c != '\n')
     return buf->push(c);
 
+  printf("\r\n");
   sched::reg_proc("shell", 8, 256, proc, buf);
   buf = new char_buffer<args_len>{};
   printf("%x, %d\r\n", buf, buf->sz);

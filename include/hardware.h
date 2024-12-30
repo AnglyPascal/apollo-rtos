@@ -28,7 +28,7 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define GET_FIELD(r, field) _GET_FIELD(r, field)
 #define _GET_FIELD(r, pos, wd) ((r >> pos) & _MASK0(wd))
 
-/* #define FIELD(field, val) _FIELD(field, val) */
+#define FIELD(field, val) _FIELD(field, val)
 #define _FIELD(pos, wd, val) (((val) & _MASK0(wd)) << pos)
 
 #define MASK(field) _MASK(field)
@@ -38,11 +38,6 @@ argument to be a macro that expands the a 'position, width' pair. */
 
 #define __BIT(pos) pos
 #define __FIELD(pos, wd) pos, wd
-
-constexpr uint32_t FIELD(uint32_t pos, uint32_t wd, uint32_t val)
-{
-  return (val & _MASK0(wd)) << pos;
-}
 
 /* Device pins */
 #define PAD19 0

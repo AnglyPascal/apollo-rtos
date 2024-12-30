@@ -1,7 +1,7 @@
 #include "serial.h"
 #include "hardware.h"
 #include "lib.h"
-#include "nvic.h"
+#include "irq.h"
 
 namespace serial
 {
