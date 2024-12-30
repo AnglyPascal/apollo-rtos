@@ -7,7 +7,7 @@
 namespace shell
 {
 
-void proc(void *param)
+void *proc(void *param)
 {
   auto buf = (char_buffer<args_len> *)param;
 
@@ -19,14 +19,13 @@ void proc(void *param)
 
   if (cmd_ptr == nullptr) {
     printf("\r\n!!! WRONG COMMAND\r\n");
-    /* printf("\r\n!!! wrong command, \"%x\"\r\n", (uint32_t)buf); */
-    delete buf;
-    return;
+    return buf;
   }
 
   auto [cmd_name, priority, stk_sz, func] = *cmd_ptr;
   printf("\r\n");
   sched::reg_proc(cmd_name, priority, stk_sz, func, buf);
+  return nullptr;
 }
 
 namespace

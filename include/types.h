@@ -4,7 +4,7 @@
 #include <limits>
 
 using size_t = std::size_t;
-using runnable_t = void (*)(void *);
+using runnable_t = void *(*)(void *);
 
 template <typename T>
 constexpr T _max = std::numeric_limits<T>::max();

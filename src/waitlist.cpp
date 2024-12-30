@@ -14,7 +14,7 @@ namespace
 
 struct waitlist_t {
   time_t remaining;
-  runnable_t func;
+  void (*func)(void*);
   void *param;
 };
 
@@ -24,7 +24,7 @@ constexpr uint8_t N_WAITLIST = 8;
 waitlist_t list[N_WAITLIST];
 uint8_t list_end = 0;
 
-void reg(time_t interval, runnable_t func, void *param)
+void reg(time_t interval, void (*func)(void*), void *param)
 {
   interval = roundup(interval, update_interval);
 

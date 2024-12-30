@@ -19,6 +19,9 @@ void *malloc(size_t sz)
 
 void free(void *ptr)
 {
+  if (ptr == nullptr)
+    return;
+
   printf("free: %x\n", ptr);
   pool.dealloc((uint8_t *)ptr);
 }

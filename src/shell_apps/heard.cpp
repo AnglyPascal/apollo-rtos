@@ -8,10 +8,11 @@ namespace shell
 namespace
 {
 
-void heart(void *param)
+void *heart(void *param)
 {
   /* auto str = (const char *)param; */
   /* serial::printf("heart: %s\n", str); */
+  return param;
 }
 
 } // namespace

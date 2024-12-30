@@ -9,11 +9,12 @@ namespace shell
 namespace
 {
 
-void trace(void *)
+void *trace(void *param)
 {
   printf("\r\n");
   sched::trace();
   heap::trace();
+  return param;
 }
 
 } // namespace

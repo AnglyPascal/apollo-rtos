@@ -30,15 +30,16 @@ namespace sched
 
 namespace
 {
-void proc1(void *)
+void *proc1(void *param)
 {
   int n = 5;
   while (n-- > 0) {
     /* serial::puts("\t\t\t1\r\n"); */
   }
+  return param;
 }
 
-void proc2(void *)
+void *proc2(void *param)
 {
   int n = 3;
   while (n-- > 0) {
@@ -57,6 +58,8 @@ void proc2(void *)
     /* printf("\r\n"); */
     sched::sleep(50);
   }
+
+  return param;
 }
 } // namespace
 

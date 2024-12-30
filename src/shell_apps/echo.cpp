@@ -10,11 +10,11 @@ namespace shell
 namespace
 {
 
-void echo(void *param)
+void *echo(void *param)
 {
   auto buf = (char_buffer<64> *)param;
   serial::printf(">> %s\n", buf->str + 5);
-  delete buf;
+  return param;
 }
 
 } // namespace

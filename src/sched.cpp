@@ -79,10 +79,11 @@ namespace
 allocator pool;
 } // namespace
 
-void end_proc()
+void end_proc(void *param)
 {
   printf("\t\t\tending %s\r\n", cpu.curr_proc->name.str);
   cpu.curr_proc->state = state_t::EMPTY;
+  heap::free(param);
   /* pool.dealloc(cpu.curr_proc->stack); */
   decr_priority(0);
 }
@@ -227,7 +228,7 @@ void print_procs()
   printf("\r\n");
 }
 
-void idle_task(void *)
+void *idle_task(void *param)
 {
   change_proc();
 
@@ -247,7 +248,7 @@ void idle_task(void *)
 }
 
 /* enter thread mode with specified stack (see mpx.s) */
-extern "C" void __run(void (*task)(void *), stack_t **stk_ptr);
+extern "C" void __run(void *(*task)(void *), stack_t **stk_ptr);
 
 void setup_procs(void);
 
