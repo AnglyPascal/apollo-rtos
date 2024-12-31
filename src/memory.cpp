@@ -13,13 +13,13 @@ static uint8_t *memtop = __stack_limit;
 constexpr uint32_t BLANK_WORD = 0xdeadbeef;
 } // namespace
 
-uint8_t *sbrk(size_t sz)
+uint8_t *alloc_heap(size_t sz)
 {
   membot = (uint8_t *)roundup((size_t)membot, 8);
-  sz = roundup(sz, 8);
+  /* sz = roundup(sz, 8); */
 
   if (sz > (size_t)(memtop - membot)) {
-    // FIXME panic ...
+    return nullptr;
   }
 
   auto ptr = membot;
@@ -30,13 +30,24 @@ uint8_t *sbrk(size_t sz)
     *p = BLANK_WORD;
   }
 
+  printf("alloc heap: %x\n", ptr);
   return ptr;
 }
 
-// FIXME: use a freelist
 uint8_t *alloc_stack(size_t sz)
 {
+  /* sz = roundup(sz, 16); */
+
+  if (sz > (size_t)(memtop - membot))
+    return nullptr;
+
   memtop -= sz;
+
+  for (uint32_t *p = (uint32_t *)memtop; p < (uint32_t *)(memtop + sz); p++) {
+    *p = BLANK_WORD;
+  }
+
+  printf("alloc stack: %x\n", memtop);
   return memtop;
 }
 

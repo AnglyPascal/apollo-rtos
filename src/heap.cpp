@@ -7,13 +7,12 @@ namespace heap
 
 namespace
 {
-allocator pool;
+allocator pool{alloc_heap, 8};
 }
 
 void *malloc(size_t sz)
 {
   auto ptr = pool.alloc(sz);
-  printf("malloc: %x\n", ptr);
   return ptr;
 }
 
@@ -22,7 +21,6 @@ void free(void *ptr)
   if (ptr == nullptr)
     return;
 
-  printf("free: %x\n", ptr);
   pool.dealloc((uint8_t *)ptr);
 }
 

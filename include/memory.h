@@ -9,7 +9,7 @@ constexpr size_t roundup(size_t sz, size_t align)
 }
 
 /* allocate space at the bottom of the heap */
-uint8_t *sbrk(size_t sz);
+uint8_t *alloc_heap(size_t sz);
 
 /* allocate space for a stack using sbrk */
 uint8_t *alloc_stack(size_t sz);

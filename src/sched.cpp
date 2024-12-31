@@ -76,7 +76,7 @@ struct {
 
 namespace
 {
-allocator pool;
+allocator pool{alloc_stack, 16};
 } // namespace
 
 void end_proc(void *param)
@@ -84,7 +84,7 @@ void end_proc(void *param)
   printf("\t\t\tending %s\r\n", cpu.curr_proc->name.str);
   cpu.curr_proc->state = state_t::EMPTY;
   heap::free(param);
-  /* pool.dealloc(cpu.curr_proc->stack); */
+  pool.dealloc(cpu.curr_proc->stack);
   decr_priority(0);
 }
 
@@ -106,13 +106,11 @@ proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
   proc.state = state_t::RUNNABLE;
 
   proc.stk_sz = stk_sz;
-  /* proc.stack = pool.alloc(stk_sz); */
-  proc.stack = alloc_stack(stk_sz) + stk_sz;
+  proc.stack = pool.alloc(stk_sz);
 
   // TODO: maybe abstract out the fact that effective stack size is stk_sz -
   // sizeof(stack_t)
-
-  proc.stk_ptr = (stack_t *)(proc.stack - sizeof(stack_t));
+  proc.stk_ptr = (stack_t *)(proc.stack + stk_sz - sizeof(stack_t));
 
   /* printf("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc.stack, */
   /*        proc.stk_ptr); */
@@ -177,8 +175,8 @@ void *invoke(void *curr_stk, time_t millis)
 
 void incr_priority(proc_t *proc, priority_t priority)
 {
-  /* printf("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str, proc->priority, */
-  /*        priority); */
+  /* printf("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str, proc->priority,
+   * priority); */
 
   proc->priority = priority;
   if (cpu.hi_proc == nullptr || cpu.hi_proc->priority < priority) {
@@ -245,6 +243,7 @@ void *idle_task(void *param)
 
     change_proc();
   }
+  return param;
 }
 
 /* enter thread mode with specified stack (see mpx.s) */

@@ -36,7 +36,6 @@ char_buffer<args_len> *buf;
 void init()
 {
   buf = new char_buffer<args_len>{};
-  printf("%x, %d\r\n", buf, buf->sz);
 }
 
 void shell_listener(char c)
@@ -47,7 +46,6 @@ void shell_listener(char c)
   printf("\r\n");
   sched::reg_proc("shell", 8, 256, proc, buf);
   buf = new char_buffer<args_len>{};
-  printf("%x, %d\r\n", buf, buf->sz);
 }
 
 } // namespace shell
