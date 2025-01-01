@@ -3,7 +3,7 @@
 %h -x
 %h c++-header
 %cpp -std=c++17
-%hpp
+%h -std=c++17
 -isystem/usr/arm-none-eabi/include/c++/14.2.0
 -isystem/usr/arm-none-eabi/include/c++/14.2.0/arm-none-eabi
 -isystem/usr/arm-none-eabi/include/c++/14.2.0/backward

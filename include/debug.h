@@ -14,7 +14,7 @@ enum debug_t {
 
 constexpr auto DEBUG_LEV =
 #ifndef NDEBUG
-    DEBUG;
+    WARN;
 #else
     ERROR;
 #endif
@@ -26,3 +26,12 @@ void debug(Args... args)
     printf(args...);
   }
 }
+
+inline void assert(bool c)
+{
+  if constexpr (DEBUG_LEV >= DEBUG) {
+    if (!c)
+      debug<FATAL>("assertion failed in %s, in %s:%s\n", __func__, __FILE__);
+  }
+}
+

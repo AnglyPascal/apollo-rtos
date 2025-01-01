@@ -24,11 +24,14 @@ include_directories(include)
 
 set(ARCH "-mcpu=cortex-m0 -mthumb")
 set(OPT "-O -g -Wall")
+set(STACK_USAGE "-fstack-usage -fdump-tree-optimized-graph")
 set(EMBED "-ffreestanding -nostartfiles")
 set(EMBED_CXX "-fno-exceptions -fno-unwind-tables -fno-rtti -std=c++17")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARCH} ${OPT} ${EMBED}")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${ARCH} ${OPT} ${EMBED} ${EMBED_CXX}")
+set(ALL_FLAGS "${ARCH} ${OPT} ${STACK_USAGE}")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ALL_FLAGS} ${EMBED}")
+set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} ${ALL_FLAGS} ${EMBED} ${EMBED_CXX}")
 SET(CMAKE_ASM_FLAGS "${CFLAGS} ${ARCH}")
 set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKSCRIPT} -lgcc -lm")
 

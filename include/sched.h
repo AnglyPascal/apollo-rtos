@@ -1,11 +1,9 @@
 #pragma once
 
+#include "procs.h"
 #include "types.h"
 
 #include <cstdint>
-
-using pid_t = uint8_t;
-using priority_t = int32_t;
 
 namespace sched
 {
@@ -13,9 +11,8 @@ namespace sched
 void decr_priority(priority_t priority);
 
 inline constexpr time_t invoke_interval = 512;
-void *invoke(void *old_stack, time_t millis);
+uint8_t *invoke(uint8_t *old_stack, time_t millis);
 
-struct proc_t;
 proc_t *reg_proc(string name, priority_t priority, uint32_t stack_sz,
                  runnable_t func, void *param);
 
@@ -24,7 +21,7 @@ void init();
 void sleep(time_t period);
 void sleep(time_t period, void (*alarm)(void *), void *param);
 
-extern "C" void *cxt_switch(void *stk_ptr);
+extern "C" uint8_t *cxt_switch(uint8_t *stk_ptr);
 
 void trace();
 

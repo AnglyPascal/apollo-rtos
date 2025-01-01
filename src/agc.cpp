@@ -14,7 +14,7 @@ extern "C" uint8_t __data_start[], __data_end[], __bss_start[], __bss_end[],
 
 void waitlist1(void *)
 {
-  printf("1: %d \r\r\n", timer::now());
+  /* printf("1: %d \r\r\n", timer::now()); */
   led_dot();
   waitlist::reg(640, waitlist1);
 }
@@ -22,7 +22,7 @@ void waitlist1(void *)
 void waitlist2(void *)
 {
   led_off();
-  printf("2: %d \r\r\n", timer::now());
+  /* printf("2: %d \r\r\n", timer::now()); */
   waitlist::reg(800, waitlist2);
 }
 
@@ -64,8 +64,8 @@ void *proc2(void *param)
 
 void setup_procs(void)
 {
-  sched::reg_proc("proc1", 7, 512, proc1, nullptr);
-  sched::reg_proc("proc2", 10, 512, proc2, nullptr);
+  sched::reg_proc("proc1", 7, 64, proc1, nullptr);
+  sched::reg_proc("proc2", 10, 128, proc2, nullptr);
 }
 
 } // namespace sched
@@ -91,8 +91,8 @@ extern "C" void __start(void)
   debug<TRACE>("\tend:        %x\r\n", (uint32_t)__end);
   debug<TRACE>("\tstack:      %x\r\n", (uint32_t)__stack);
 
-  /* waitlist::reg(640, waitlist1); */
-  /* waitlist::reg(800, waitlist2); */
+  waitlist::reg(640, waitlist1);
+  waitlist::reg(800, waitlist2);
 
   timer::init();
   shell::init();
