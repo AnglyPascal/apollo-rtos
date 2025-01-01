@@ -43,8 +43,6 @@ extern "C" void *timer1_handler(void *old_stk)
 {
   void *curr;
 
-  /* /1* printf("."); *1/ */
-
   asm volatile("mrs %[sp], msp" : [sp] "=r"(curr));
   asm volatile("msr msp, %[stk]" : : [stk] "r"(stack_end));
 
@@ -56,7 +54,6 @@ extern "C" void *timer1_handler(void *old_stk)
   disable_irq(TIMER1_IRQ);
   if ((millis & (waitlist::update_interval - 1)) == 0) {
     waitlist::run();
-    /* _memset(stack, 0xFFFFFFFF, timer_stack_sz / 4); */
   }
   enable_irq(TIMER1_IRQ);
 

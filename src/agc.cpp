@@ -1,3 +1,4 @@
+#include "debug.h"
 #include "flash.h"
 #include "hardware.h"
 #include "irq.h"
@@ -50,12 +51,10 @@ void *proc2(void *param)
   while (1) {
     int m = 10;
     while (m-- > 0) {
-      /* printf("."); */
       n = 100000000;
       while (n-- > 0)
         ;
     }
-    /* printf("\r\n"); */
     sched::sleep(50);
   }
 
@@ -84,13 +83,13 @@ extern "C" void __start(void)
   /* flash::erase(ptr); */
   /* flash::write(ptr, &val, 1); */
 
-  printf("\tdata_start: %x\r\n", (uint32_t)__data_start);
-  printf("\tdata_end:   %x\r\n", (uint32_t)__data_end);
-  printf("\tbss_start:  %x\r\n", (uint32_t)__bss_start);
-  printf("\tbss_end:    %x\r\n", (uint32_t)__bss_end);
-  printf("\tetext:      %x\r\n", (uint32_t)__etext);
-  printf("\tend:        %x\r\n", (uint32_t)__end);
-  printf("\tstack:      %x\r\n", (uint32_t)__stack);
+  debug<TRACE>("\tdata_start: %x\r\n", (uint32_t)__data_start);
+  debug<TRACE>("\tdata_end:   %x\r\n", (uint32_t)__data_end);
+  debug<TRACE>("\tbss_start:  %x\r\n", (uint32_t)__bss_start);
+  debug<TRACE>("\tbss_end:    %x\r\n", (uint32_t)__bss_end);
+  debug<TRACE>("\tetext:      %x\r\n", (uint32_t)__etext);
+  debug<TRACE>("\tend:        %x\r\n", (uint32_t)__end);
+  debug<TRACE>("\tstack:      %x\r\n", (uint32_t)__stack);
 
   /* waitlist::reg(640, waitlist1); */
   /* waitlist::reg(800, waitlist2); */
@@ -106,6 +105,6 @@ extern "C" void spin(void);
 
 extern "C" void hardfault_handler(void)
 {
-  serial::printf("!!WTF!!\n");
+  debug<FATAL>("!!WTF!!\n");
   spin();
 }

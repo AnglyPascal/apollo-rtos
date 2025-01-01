@@ -7,7 +7,7 @@
 #include <cstdint>
 
 /* do_print -- the device-independent guts of printf */
-void do_printf(void (*putch)(char), const char *fmt, va_list args);
+void do_printf(void (*putch)(char), const char *fmt, ...);
 
 /* /1* sprintf -- print to string buffer.  Note danger of overflow! *1/ */
 /* int sprintf(char *buf, const char *fmt, ...); */

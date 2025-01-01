@@ -1,5 +1,6 @@
 #include "sched.h"
 #include "allocator.h"
+#include "debug.h"
 #include "hardware.h"
 #include "irq.h"
 #include "lib.h"
@@ -81,7 +82,7 @@ allocator pool{alloc_stack, 16};
 
 void end_proc(void *param)
 {
-  printf("\t\t\tending %s\r\n", cpu.curr_proc->name.str);
+  debug<TRACE>("\t\t\tending %s\r\n", cpu.curr_proc->name.str);
   cpu.curr_proc->state = state_t::EMPTY;
   heap::free(param);
   pool.dealloc(cpu.curr_proc->stack);
@@ -108,12 +109,14 @@ proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
   proc.stk_sz = stk_sz;
   proc.stack = pool.alloc(stk_sz);
 
+  // FIXME: set a minimum stack size
+
   // TODO: maybe abstract out the fact that effective stack size is stk_sz -
   // sizeof(stack_t)
   proc.stk_ptr = (stack_t *)(proc.stack + stk_sz - sizeof(stack_t));
 
-  /* printf("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc.stack, */
-  /*        proc.stk_ptr); */
+  debug<TRACE>("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc.stack,
+               proc.stk_ptr);
 
   if (proc.stack == nullptr) {
     // FIXME: panic
@@ -148,8 +151,8 @@ extern "C" void *cxt_switch(void *stk_ptr)
     return stk_ptr;
   }
 
-  /* printf("\t\t\t\t\"%s\" -> \"%s\"\r\n", cpu.curr_proc->name.str, */
-  /*        cpu.hi_proc->name.str); */
+  debug<TRACE>("\t\t\t\t\"%s\" -> \"%s\"\r\n", cpu.curr_proc->name.str,
+               cpu.hi_proc->name.str);
 
   if (cpu.curr_proc->state == state_t::RUNNING)
     cpu.curr_proc->state = state_t::RUNNABLE;
@@ -175,8 +178,8 @@ void *invoke(void *curr_stk, time_t millis)
 
 void incr_priority(proc_t *proc, priority_t priority)
 {
-  /* printf("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str, proc->priority,
-   * priority); */
+  debug<TRACE>("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str,
+               proc->priority, priority);
 
   proc->priority = priority;
   if (cpu.hi_proc == nullptr || cpu.hi_proc->priority < priority) {
@@ -186,8 +189,9 @@ void incr_priority(proc_t *proc, priority_t priority)
 
 void decr_priority(priority_t priority)
 {
-  /* printf("\t\t\tdecr prio, %s: %d -> %d\r\n", cpu.curr_proc->name.str, */
-  /*        cpu.curr_proc->priority, priority); */
+  debug<TRACE>("\t\t\tdecr prio, %s: %d -> %d\r\n", cpu.curr_proc->name.str,
+               cpu.curr_proc->priority, priority);
+
   if (cpu.curr_proc->priority < priority) {
     // FIXME: panic
     return;

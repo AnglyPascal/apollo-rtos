@@ -33,5 +33,5 @@ void allocator::dealloc(uint8_t *ptr)
 
 void allocator::trace()
 {
-  serial::printf("alloc trace: \n");
+  printf("alloc trace: \n");
 }

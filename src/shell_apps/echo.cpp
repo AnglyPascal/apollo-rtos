@@ -19,6 +19,6 @@ void *echo(void *param)
 
 } // namespace
 
-cmd_t echo_cmd = {"echo", 3, 80, echo};
+cmd_t echo_cmd = {"echo", 3, 256, echo};
 
 } // namespace shell

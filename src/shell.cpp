@@ -18,12 +18,11 @@ void *proc(void *param)
   auto cmd_ptr = match_cmd(cmd);
 
   if (cmd_ptr == nullptr) {
-    printf("\r\n!!! WRONG COMMAND\r\n");
+    printf(">> WRONG COMMAND\r\n");
     return buf;
   }
 
   auto [cmd_name, priority, stk_sz, func] = *cmd_ptr;
-  printf("\r\n");
   sched::reg_proc(cmd_name, priority, stk_sz, func, buf);
   return nullptr;
 }

@@ -1,4 +1,5 @@
 #include "waitlist.h"
+#include "debug.h"
 #include "hardware.h"
 #include "lib.h"
 #include "memory.h"
@@ -14,7 +15,7 @@ namespace
 
 struct waitlist_t {
   time_t remaining;
-  void (*func)(void*);
+  void (*func)(void *);
   void *param;
 };
 
@@ -24,13 +25,13 @@ constexpr uint8_t N_WAITLIST = 8;
 waitlist_t list[N_WAITLIST];
 uint8_t list_end = 0;
 
-void reg(time_t interval, void (*func)(void*), void *param)
+void reg(time_t interval, void (*func)(void *), void *param)
 {
   interval = roundup(interval, update_interval);
 
   if (list_end == N_WAITLIST) {
     // panic
-    printf("no available space for more waitlists\n");
+    debug<FATAL>("no available space for more waitlists\n");
   }
 
   uint8_t i = 0;

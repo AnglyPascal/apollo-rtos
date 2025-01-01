@@ -71,8 +71,11 @@ void xtoa(uint32_t n, char *p)
 
 char int_buff[11];
 
-void do_printf(void (*putc)(char), const char *fmt, va_list args)
+void do_printf(void (*putc)(char), const char *fmt, ...)
 {
+  va_list args;
+  va_start(args, fmt);
+
   while (*fmt != '\0') {
     if (*fmt == '%') {
       auto c = *(++fmt);
@@ -133,6 +136,8 @@ void do_printf(void (*putc)(char), const char *fmt, va_list args)
     }
     fmt++;
   }
+
+  va_end(args);
 }
 
 namespace serial

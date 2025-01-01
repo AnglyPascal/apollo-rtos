@@ -121,12 +121,12 @@ void getline(const char *prompt, char *buf, int nbuf)
   }
 }
 
-void printf(const char *fmt, ...)
-{
-  va_list args;
-  va_start(args, fmt);
-  do_printf(putc, fmt, args);
-  va_end(args);
-}
+/* void printf(const char *fmt, ...) */
+/* { */
+/*   va_list args; */
+/*   va_start(args, fmt); */
+/*   do_printf(putc, fmt, args); */
+/*   va_end(args); */
+/* } */
 
 } // namespace serial

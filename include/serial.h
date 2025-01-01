@@ -1,5 +1,6 @@
 #pragma once
 
+#include "lib.h"
 #include "types.h"
 
 namespace serial
@@ -10,7 +11,12 @@ int getc(void);
 void putc(char ch);
 void puts(const char *s);
 void getline(const char *prompt, char *buf, int nbuf);
-void printf(const char *fmt, ...);
+
+template <typename... Args>
+void printf(Args... args)
+{
+  do_printf(putc, args...);
+}
 
 } // namespace serial
 

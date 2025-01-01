@@ -1,7 +1,7 @@
 #include "memory.h"
+#include "debug.h"
 #include "hardware.h"
 #include "sched.h"
-#include "serial.h"
 
 extern "C" uint8_t __stack_limit[], __end[];
 
@@ -30,7 +30,7 @@ uint8_t *alloc_heap(size_t sz)
     *p = BLANK_WORD;
   }
 
-  printf("alloc heap: %x\n", ptr);
+  debug<TRACE>("alloc heap: %x\n", ptr);
   return ptr;
 }
 
@@ -47,7 +47,7 @@ uint8_t *alloc_stack(size_t sz)
     *p = BLANK_WORD;
   }
 
-  printf("alloc stack: %x\n", memtop);
+  debug<TRACE>("alloc stack: %x\n", memtop);
   return memtop;
 }
 
