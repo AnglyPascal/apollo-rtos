@@ -34,7 +34,7 @@ argument to be a macro that expands the a 'position, width' pair. */
 #define MASK(field) _MASK(field)
 #define _MASK(pos, wd) (_MASK0(wd) << pos)
 
-#define _MASK0(wd) (~((-2) << (wd - 1)))
+#define _MASK0(wd) (~((-2u) << (wd - 1)))
 
 #define __BIT(pos) pos
 #define __FIELD(pos, wd) pos, wd
@@ -121,7 +121,7 @@ struct scb_t {
   uint32_t CPUID; // 0x00
   uint32_t ICSR;  // 0x04
 #define SCB_ICSR_PENDSVSET __BIT(28)
-#define SCB_ICSR_VECTACTIVE __FIELD(0, 8)
+#define SCB_ICSR_VECTACTIVE __FIELD(0u, 8u)
   _PADDING(8);
   uint32_t SCR; // 0x10
 #define SCB_SCR_SLEEPONEXIT __BIT(1)
@@ -839,8 +839,6 @@ typedef uint32_t image[NIMG];
 
 /* A few assembler macros for single instructions. */
 #define pause() asm volatile("wfe")
-#define intr_disable() asm volatile("cpsid i")
-#define intr_enable() asm volatile("cpsie i")
 #define get_primask()                                                          \
   ({                                                                           \
     uint32_t x;                                                                \

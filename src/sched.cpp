@@ -1,10 +1,7 @@
 #include "sched.h"
 #include "allocator.h"
 #include "debug.h"
-#include "hardware.h"
 #include "irq.h"
-#include "lib.h"
-#include "memory.h"
 #include "proc_stack.h"
 #include "procs.h"
 #include "serial.h"
@@ -176,8 +173,6 @@ void default_alarm(void *ptr)
   proc->state = state_t::RUNNABLE;
   incr_priority(proc, -proc->priority);
 }
-
-proc_t *default_alarm_param;
 
 void sleep(time_t period)
 {

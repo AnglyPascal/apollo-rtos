@@ -7,7 +7,7 @@ namespace heap
 
 namespace
 {
-allocator pool{alloc_heap, 8};
+allocator<alloc_heap, 8> pool;
 }
 
 void *malloc(size_t sz)

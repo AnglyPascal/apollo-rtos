@@ -1,7 +1,7 @@
 #include "hardware.h"
+#include "irq.h"
 #include "lib.h"
 #include "memory.h"
-#include "irq.h"
 #include "sched.h"
 #include "serial.h"
 #include "waitlist.h"
@@ -29,7 +29,7 @@ void init()
   enable_irq(TIMER1_IRQ);
 }
 
-time_t millis = 0;
+time_t MILLIS = 0;
 
 namespace
 {
@@ -47,12 +47,12 @@ extern "C" void *timer1_handler(void *old_stk)
   asm volatile("msr msp, %[stk]" : : [stk] "r"(stack_end));
 
   if (TIMER1.COMPARE[0]) {
-    millis += TICK;
+    MILLIS += TICK;
     TIMER1.COMPARE[0] = 0;
   }
 
   disable_irq(TIMER1_IRQ);
-  if ((millis & (waitlist::update_interval - 1)) == 0) {
+  if ((MILLIS & (waitlist::update_interval - 1)) == 0) {
     waitlist::run();
   }
   enable_irq(TIMER1_IRQ);
@@ -62,11 +62,6 @@ extern "C" void *timer1_handler(void *old_stk)
   // FIXME: turned off schedule invoker
   /* return sched::invoke(old_stack, millis); */
   return old_stk;
-}
-
-time_t now()
-{
-  return millis;
 }
 
 } // namespace timer

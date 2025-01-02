@@ -16,7 +16,6 @@ constexpr uint32_t BLANK_WORD = 0xdeadbeef;
 uint8_t *alloc_heap(size_t sz)
 {
   membot = (uint8_t *)roundup((size_t)membot, 8);
-  /* sz = roundup(sz, 8); */
 
   if (sz > (size_t)(memtop - membot)) {
     return nullptr;
@@ -36,8 +35,6 @@ uint8_t *alloc_heap(size_t sz)
 
 uint8_t *alloc_stack(size_t sz)
 {
-  /* sz = roundup(sz, 16); */
-
   if (sz > (size_t)(memtop - membot))
     return nullptr;
 

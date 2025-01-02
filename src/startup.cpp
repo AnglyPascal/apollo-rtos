@@ -2,6 +2,7 @@
 /* Copyright (c) 2018 J. M. Spivey */
 
 #include "hardware.h"
+#include "irq.h"
 #include "memory.h"
 
 /* init -- main program, creates application processes */

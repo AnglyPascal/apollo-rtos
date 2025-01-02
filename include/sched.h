@@ -8,6 +8,7 @@
 namespace sched
 {
 
+void incr_priority(proc_t *proc, priority_t priority);
 void decr_priority(priority_t priority);
 
 inline constexpr time_t invoke_interval = 512;
@@ -24,8 +25,6 @@ void sleep(time_t period, void (*alarm)(void *), void *param);
 extern "C" uint8_t *cxt_switch(uint8_t *stk_ptr);
 
 void trace();
-
-void incr_priority(proc_t *, priority_t);
 
 } // namespace sched
 

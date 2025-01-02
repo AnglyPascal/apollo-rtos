@@ -39,13 +39,15 @@ class stack_t
   // magic return address for exceptions
   static constexpr uint32_t lr_intr_magic = 0xfffffff9; // not 0xfffffffd
 
-  allocator pool{alloc_stack, 16};
+  static constexpr uint32_t alignment = 16;
+  allocator<alloc_stack, alignment> pool;
 
 public:
   // FIXME: set a minimum stack size
   inline void acquire(proc_t *proc, size_t stk_sz, runnable_t func, void *param,
                       void (*ret)(void *))
   {
+    stk_sz = roundup(stk_sz, alignment);
     proc->stack = pool.alloc(stk_sz + sizeof(context_t));
 
     if (proc->stack == nullptr) {
@@ -53,7 +55,7 @@ public:
       return;
     }
 
-    auto stk_ptr = (context_t *)(proc->stack + stk_sz - sizeof(context_t));
+    auto stk_ptr = (context_t *)(proc->stack + stk_sz);
 
     // setup initial stack frame
     *stk_ptr = {0};

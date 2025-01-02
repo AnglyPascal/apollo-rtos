@@ -34,18 +34,16 @@ namespace
 void *proc1(void *param)
 {
   int n = 5;
-  while (n-- > 0) {
-    /* serial::puts("\t\t\t1\r\n"); */
-  }
+  while (n-- > 0)
+    ;
   return param;
 }
 
 void *proc2(void *param)
 {
   int n = 3;
-  while (n-- > 0) {
-    /* serial::puts("\t\t\t2\r\n"); */
-  }
+  while (n-- > 0)
+    ;
   sched::decr_priority(5);
 
   while (1) {
@@ -64,8 +62,8 @@ void *proc2(void *param)
 
 void setup_procs(void)
 {
-  sched::reg_proc("proc1", 7, 64, proc1, nullptr);
-  sched::reg_proc("proc2", 10, 128, proc2, nullptr);
+  sched::reg_proc("proc1", 7, 0, proc1, nullptr);
+  sched::reg_proc("proc2", 10, 64, proc2, nullptr);
 }
 
 } // namespace sched

@@ -3,11 +3,14 @@
 #include <cstdint>
 #include <limits>
 
+// arm gcc specific attributes
+#define __always_inline__ __attribute__((always_inline))
+#define __noinline__ __attribute__((noinline))
+
 using size_t = std::size_t;
 using runnable_t = void *(*)(void *);
 
 using priority_t = int32_t;
-
 
 template <typename T>
 constexpr T _max = std::numeric_limits<T>::max();

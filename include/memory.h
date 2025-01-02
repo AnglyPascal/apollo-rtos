@@ -28,7 +28,7 @@ int _memcmp(const void *pp, const void *qq, int n);
 
 namespace heap
 {
-void *malloc(size_t sz);
+void *malloc(size_t sz) __attribute__((malloc));
 void free(void *);
 void trace();
 } // namespace heap
