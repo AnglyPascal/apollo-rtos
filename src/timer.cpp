@@ -39,8 +39,13 @@ uint8_t *stk_end = stk + timer_stk_sz;
 uint8_t *prev_stk;
 } // namespace
 
+// NOTE: the reason is, O2+ uses 24 stack bytes, O1- uses 16, which could be
+// overriding some of the stacks.
+//
+// stack depth needs to be at least
+// >> debug_depth + stack needed by timer + by uart + by cxt swtch
 __extern_C__
-__attribute__((optimize("O1"))) // NOTE: works for now
+__attribute__((optimize("O3"))) // NOTE: works for now
 void *timer_body(void *old_stk)
 {
   asm volatile("mrs %[stk], msp" : [stk] "=r"(prev_stk));

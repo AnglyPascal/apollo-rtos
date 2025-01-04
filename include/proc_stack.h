@@ -41,6 +41,7 @@ class stack_t
 
   // minimum stack depth to allow for a printf to execute in debug mode
   static constexpr size_t debug_depth = (size_t)ASSERT_EN * 128;
+  static constexpr size_t timer_depth = 32;
 
   static constexpr uint32_t alignment = 16;
 
@@ -52,7 +53,7 @@ public:
                       void (*ret)(void *))
   {
     stk_sz = roundup(stk_sz, alignment);
-    stk_sz += debug_depth;
+    stk_sz += debug_depth + timer_depth;
 
     proc->stack = pool.alloc(stk_sz + sizeof(context_t));
 
