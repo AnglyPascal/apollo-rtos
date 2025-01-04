@@ -40,6 +40,7 @@ uint8_t *prev_stk;
 } // namespace
 
 __extern_C__
+__attribute__((optimize("O1"))) // NOTE: works for now
 void *timer_body(void *old_stk)
 {
   asm volatile("mrs %[stk], msp" : [stk] "=r"(prev_stk));
