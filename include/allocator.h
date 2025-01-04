@@ -48,8 +48,8 @@ public:
     head.next = chunk;
   }
 
-  __noinline__ 
-   void trace()
+  __noinline__
+  void trace()
   {
     printf("alloc trace: \n");
   }

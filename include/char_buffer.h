@@ -59,4 +59,3 @@ struct char_buffer {
     sz = 0;
   }
 };
-

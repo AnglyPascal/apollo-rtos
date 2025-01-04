@@ -60,7 +60,8 @@ void change_proc()
     reschedule();
 }
 
-extern "C" uint8_t *cxt_switch(uint8_t *stk_ptr)
+__extern_C__
+uint8_t *cxt_switch(uint8_t *stk_ptr)
 {
   if (cpu.hi_proc->state != state_t::RUNNABLE) {
     debug<FATAL>("!! cpu.hi_proc is not runnable\r\n");
@@ -148,7 +149,8 @@ void *idle_task(void *param)
 }
 
 /* enter thread mode with specified stack (see mpx.s) */
-extern "C" void __run(void *(*task)(void *), uint8_t **stk_ptr);
+__extern_C__
+void __run(void *(*task)(void *), uint8_t **stk_ptr);
 
 void setup_procs(void);
 

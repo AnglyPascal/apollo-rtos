@@ -91,7 +91,6 @@ pendsv_handler:
     bl cxt_switch               @ Choose a new process
     irestore                    @ Restore state for that process
     
-    /*
 @@@ timer1_handler 
     .global timer1_handler
     .thumb_func
@@ -99,4 +98,3 @@ timer1_handler:
     isave
     bl timer_body
     irestore
-    */

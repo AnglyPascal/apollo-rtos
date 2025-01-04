@@ -39,7 +39,8 @@ uint8_t *stk_end = stk + timer_stk_sz;
 uint8_t *prev_stk;
 } // namespace
 
-extern "C" void *timer1_handler(void *old_stk)
+__extern_C__
+void *timer_body(void *old_stk)
 {
   asm volatile("mrs %[stk], msp" : [stk] "=r"(prev_stk));
 

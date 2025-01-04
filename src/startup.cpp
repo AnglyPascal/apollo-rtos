@@ -8,21 +8,25 @@
 /* init -- main program, creates application processes */
 void init(void);
 
-extern "C" void default_start(void)
+__extern_C__
+void default_start(void)
 {
   /* init(); */
   while (1)
     pause(); /* Halt if init() returns */
 }
 
-extern "C" void __start(void) __attribute((weak, alias("default_start")));
+__extern_C__
+void __start(void) __attribute((weak, alias("default_start")));
 
 /* Addresses set by the linker */
-extern "C" uint8_t __data_start[], __data_end[], __bss_start[], __bss_end[],
-    __etext[], __stack[];
+__extern_C__
+uint8_t __data_start[],
+    __data_end[], __bss_start[], __bss_end[], __etext[], __stack[];
 
 /* __reset -- the system starts here */
-extern "C" void __reset(void)
+__extern_C__
+void __reset(void)
 {
   /* Activate the crystal clock */
   CLOCK.HFCLKSTARTED = 0;
@@ -61,7 +65,8 @@ void delay_loop(uint32_t usecs)
 }
 
 /* spin -- show Seven Stars of Death */
-extern "C" void spin(void)
+__extern_C__
+void spin(void)
 {
   intr_disable();
 
@@ -74,4 +79,5 @@ extern "C" void spin(void)
   }
 }
 
-extern "C" void default_handler(void) __attribute((weak, alias("spin")));
+__extern_C__
+void default_handler(void) __attribute((weak, alias("spin")));

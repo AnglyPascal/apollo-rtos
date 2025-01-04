@@ -23,7 +23,7 @@ set(OUTPUT_FILE "bare-metal")
 include_directories(include)
 
 set(ARCH "-mcpu=cortex-m0 -mthumb")
-set(OPT "-O3 -g -Wall")
+set(OPT "-O -g -Wall")
 set(STACK_USAGE "-fstack-usage -fdump-tree-optimized-graph")
 set(EMBED "-ffreestanding -nostartfiles")
 set(EMBED_CXX "-fno-exceptions -fno-unwind-tables -fno-rtti -std=c++17")

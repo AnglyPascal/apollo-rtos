@@ -847,4 +847,3 @@ typedef uint32_t image[NIMG];
   })
 #define set_primask(x) asm volatile("msr primask, %0" : : "r"(x))
 #define nop() asm volatile("nop")
-

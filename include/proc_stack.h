@@ -80,4 +80,3 @@ public:
     pool.dealloc(proc->stack);
   }
 };
-

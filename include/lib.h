@@ -20,4 +20,3 @@ uint32_t xtou(char *p);
 
 /* prandom -- pseudo-random number in range [1..2^31-1) */
 uint32_t prandom(void);
-

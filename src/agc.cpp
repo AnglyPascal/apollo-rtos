@@ -9,8 +9,10 @@
 #include "timer.h"
 #include "waitlist.h"
 
-extern "C" uint8_t __data_start[], __data_end[], __bss_start[], __bss_end[],
-    __end[], __etext[], __stack[], __stack_limit;
+__extern_C__
+uint8_t __data_start[],
+    __data_end[], __bss_start[], __bss_end[], __end[], __etext[], __stack[],
+    __stack_limit;
 
 void waitlist1(void *)
 {
@@ -68,7 +70,8 @@ void setup_procs(void)
 
 } // namespace sched
 
-extern "C" void __start(void)
+__extern_C__
+void __start(void)
 {
   led_init();
   serial::init();
@@ -99,9 +102,11 @@ extern "C" void __start(void)
     ;
 }
 
-extern "C" void spin(void);
+__extern_C__
+void spin(void);
 
-extern "C" void hardfault_handler(void)
+__extern_C__
+void hardfault_handler(void)
 {
   debug<FATAL>("!!WTF!!\n");
   spin();

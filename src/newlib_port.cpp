@@ -1,7 +1,8 @@
 #include "serial.h"
 #include "types.h"
 
-extern "C" int _write(int file, const void *ptr, size_t len)
+__extern_C__
+int _write(int file, const void *ptr, size_t len)
 {
   serial::puts((const char *)ptr, len);
 

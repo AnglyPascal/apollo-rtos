@@ -22,9 +22,9 @@ void init();
 void sleep(time_t period);
 void sleep(time_t period, void (*alarm)(void *), void *param);
 
-extern "C" uint8_t *cxt_switch(uint8_t *stk_ptr);
+__extern_C__
+uint8_t *cxt_switch(uint8_t *stk_ptr);
 
 void trace();
 
 } // namespace sched
-

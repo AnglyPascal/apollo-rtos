@@ -139,4 +139,3 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
 
   va_end(args);
 }
-

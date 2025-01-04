@@ -3,7 +3,9 @@
 #include "hardware.h"
 #include "sched.h"
 
-extern "C" uint8_t __stack_limit[], __end[];
+__extern_C__
+uint8_t __stack_limit[],
+    __end[];
 
 namespace
 {

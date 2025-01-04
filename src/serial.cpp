@@ -48,7 +48,8 @@ int getc(void)
 
 void listener(char c);
 
-extern "C" void uart_handler(void)
+__extern_C__
+void uart_handler(void)
 {
   /* intr_disable(); */
 
@@ -132,4 +133,3 @@ void getline(const char *prompt, char *buf, int nbuf)
 }
 
 } // namespace serial
-

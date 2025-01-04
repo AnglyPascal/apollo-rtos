@@ -6,6 +6,7 @@
 // arm gcc specific attributes
 #define __always_inline__ __attribute__((always_inline))
 #define __noinline__ __attribute__((noinline))
+#define __extern_C__ extern "C"
 
 using size_t = std::size_t;
 using runnable_t = void *(*)(void *);
@@ -256,4 +257,3 @@ public:
     return iterator{arr + len};
   }
 };
-
