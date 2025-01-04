@@ -27,6 +27,7 @@ set(OPT "-O -g -Wall")
 set(STACK_USAGE "-fstack-usage -fdump-tree-optimized-graph")
 set(EMBED "-ffreestanding -nostartfiles")
 set(EMBED_CXX "-fno-exceptions -fno-unwind-tables -fno-rtti -std=c++17")
+set(NEWLIB "--specs=nano.specs --specs=nosys.specs")
 
 set(ALL_FLAGS "${ARCH} ${OPT} ${STACK_USAGE}")
 

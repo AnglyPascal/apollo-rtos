@@ -87,6 +87,13 @@ void puts(const char *s)
     putc(*s++);
 }
 
+/* puts -- send a string character by character */
+void puts(const char *s, size_t len)
+{
+  while (len-- > 0 && *s != '\0')
+    putc(*s++);
+}
+
 /* getline -- input a line of text into buf with line editing */
 void getline(const char *prompt, char *buf, int nbuf)
 {
@@ -121,12 +128,5 @@ void getline(const char *prompt, char *buf, int nbuf)
   }
 }
 
-/* void printf(const char *fmt, ...) */
-/* { */
-/*   va_list args; */
-/*   va_start(args, fmt); */
-/*   do_printf(putc, fmt, args); */
-/*   va_end(args); */
-/* } */
-
 } // namespace serial
+

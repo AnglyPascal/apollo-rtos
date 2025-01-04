@@ -39,33 +39,24 @@ void itoa(int32_t n, char *p)
 {
   if (n < 0) {
     *p++ = '-';
-    utoa(-n, p);
-  } else {
-    utoa(n, p);
+    n = -n;
   }
+  utoa(n, p);
 }
 
 void xtoa(uint32_t n, char *p)
 {
-  auto s = p;
-  do {
-    auto c = '0' + (n & 15);
-    *p++ = c > '9' ? 'A' + (c - '9' - 1) : c;
-    n >>= 4;
-  } while (n > 0);
+  const char *hex = "0123456789abcdef";
 
-  while (p < s + 8) {
-    *p++ = '0';
-  }
-
-  *p++ = 'x';
   *p++ = '0';
-  *p-- = '\0';
+  *p++ = 'x';
 
-  while (s < p) {
-    auto c = *s;
-    *s++ = *p;
-    *p-- = c;
+  auto s = p;
+  p += 8;
+
+  while (p > s) {
+    *--p = hex[n & 15];
+    n >>= 4;
   }
 }
 
@@ -99,6 +90,15 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         uint32_t n = va_arg(args, uint32_t);
         auto p = int_buff;
         utoa(n, p);
+        while (*p != '\0')
+          putc(*p++);
+        break;
+      }
+
+      case 'p': {
+        uint32_t n = va_arg(args, uint32_t);
+        auto p = int_buff;
+        xtoa(n, p);
         while (*p != '\0')
           putc(*p++);
         break;
@@ -140,7 +140,3 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
   va_end(args);
 }
 
-namespace serial
-{
-
-} // namespace serial

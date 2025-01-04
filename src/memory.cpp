@@ -7,8 +7,8 @@ extern "C" uint8_t __stack_limit[], __end[];
 
 namespace
 {
-static uint8_t *membot = __end;
-static uint8_t *memtop = __stack_limit;
+uint8_t *membot = __end;
+uint8_t *memtop = __stack_limit;
 
 constexpr uint32_t BLANK_WORD = 0xdeadbeef;
 } // namespace

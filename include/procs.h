@@ -88,7 +88,7 @@ public:
       state = "empty";
 
     printf("\t%d. %s : %s\r\n", pid, proc->name.str, state);
-    printf("\t\tstack: %x, sz: %d, stk_ptr: %x\r\n", proc->stack, proc->stk_sz,
+    printf("\t\tstack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack, proc->stk_sz,
            proc->stk_ptr);
   }
 };

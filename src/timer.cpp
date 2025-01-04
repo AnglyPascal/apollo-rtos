@@ -33,34 +33,35 @@ time_t MILLIS = 0;
 
 namespace
 {
-constexpr size_t timer_stack_sz = 512;
-uint8_t stack[timer_stack_sz];
-void *stack_end = stack + timer_stack_sz;
+constexpr size_t timer_stk_sz = 512;
+uint8_t stk[timer_stk_sz];
+uint8_t *stk_end = stk + timer_stk_sz;
+uint8_t *prev_stk;
 } // namespace
 
-/* extern "C" void *timer_body(void *old_stk) */
 extern "C" void *timer1_handler(void *old_stk)
 {
-  void *curr;
-
-  asm volatile("mrs %[sp], msp" : [sp] "=r"(curr));
-  asm volatile("msr msp, %[stk]" : : [stk] "r"(stack_end));
+  asm volatile("mrs %[stk], msp" : [stk] "=r"(prev_stk));
 
   if (TIMER1.COMPARE[0]) {
     MILLIS += TICK;
     TIMER1.COMPARE[0] = 0;
   }
 
-  disable_irq(TIMER1_IRQ);
   if ((MILLIS & (waitlist::update_interval - 1)) == 0) {
-    waitlist::run();
-  }
-  enable_irq(TIMER1_IRQ);
+    disable_irq(TIMER1_IRQ);
 
-  asm volatile("msr msp, %[stk]" : : [stk] "r"(curr));
+    // setup temporary stk to run waitlist tasks
+    asm volatile("msr msp, %[stk]" : : [stk] "r"(stk_end));
+    waitlist::run();
+
+    enable_irq(TIMER1_IRQ);
+  }
+
+  asm volatile("msr msp, %[stk]" : : [stk] "r"(prev_stk));
 
   // FIXME: turned off schedule invoker
-  /* return sched::invoke(old_stack, millis); */
+  /* return sched::invoke(old_stk, millis); */
   return old_stk;
 }
 

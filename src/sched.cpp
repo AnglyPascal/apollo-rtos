@@ -17,7 +17,7 @@ procs_t<N_PROCS> procs;
 
 constexpr priority_t IDLE_PRIORITY = 1;
 
-struct {
+volatile struct {
   proc_t *hi_proc = nullptr;
   proc_t *curr_proc = nullptr;
   time_t last_checked;
@@ -101,7 +101,7 @@ uint8_t *invoke(uint8_t *curr_stk, time_t millis)
 
 void incr_priority(proc_t *proc, priority_t priority)
 {
-  assert(cpu.curr_proc->priority < priority);
+  assert(proc->priority < priority);
   debug<TRACE>("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str,
                proc->priority, priority);
 

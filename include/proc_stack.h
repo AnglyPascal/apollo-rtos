@@ -6,6 +6,8 @@
 #include "procs.h"
 #include "types.h"
 
+static constexpr size_t debug_depth = (size_t)ASSERT_EN * 128;
+
 class stack_t
 {
   // stack layout context for interrupt frames
@@ -48,6 +50,8 @@ public:
                       void (*ret)(void *))
   {
     stk_sz = roundup(stk_sz, alignment);
+    stk_sz += debug_depth;
+
     proc->stack = pool.alloc(stk_sz + sizeof(context_t));
 
     if (proc->stack == nullptr) {

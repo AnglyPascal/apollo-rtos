@@ -12,26 +12,24 @@ enum debug_t {
   TRACE,
 };
 
-constexpr auto DEBUG_LEV =
-#ifndef NDEBUG
-    WARN;
-#else
-    ERROR;
-#endif
+constexpr auto DEBUG_LEV = DEBUG;
+constexpr auto ASSERT_EN = DEBUG_LEV >= DEBUG;
 
 template <debug_t level, typename... Args>
 void debug(Args... args)
 {
-  if constexpr (level < DEBUG_LEV) {
+  if constexpr (level <= DEBUG_LEV) {
     printf(args...);
   }
 }
 
-inline void assert(bool c)
+inline void __assert(bool ex, const char *src, const char *func,
+                     const char *file, int line)
 {
-  if constexpr (DEBUG_LEV >= DEBUG) {
-    if (!c)
-      debug<FATAL>("assertion failed in %s, in %s:%s\n", __func__, __FILE__);
-  }
+  if constexpr (ASSERT_EN)
+    if (!ex)
+      debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\n", src, func,
+                   file, line);
 }
 
+#define assert(EX) __assert((EX), #EX, __func__, __FILE__, __LINE__)

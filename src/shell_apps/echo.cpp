@@ -13,12 +13,12 @@ namespace
 void *echo(void *param)
 {
   auto buf = (char_buffer<64> *)param;
-  serial::printf(">> %s\n", buf->str + 5);
+  printf(">> %s\n", buf->str + 5);
   return param;
 }
 
 } // namespace
 
-cmd_t echo_cmd = {"echo", 3, 256, echo};
+cmd_t echo_cmd = {"echo", 3, 128, echo};
 
 } // namespace shell
