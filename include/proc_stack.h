@@ -6,8 +6,6 @@
 #include "procs.h"
 #include "types.h"
 
-static constexpr size_t debug_depth = (size_t)ASSERT_EN * 128;
-
 class stack_t
 {
   // stack layout context for interrupt frames
@@ -41,7 +39,11 @@ class stack_t
   // magic return address for exceptions
   static constexpr uint32_t lr_intr_magic = 0xfffffff9; // not 0xfffffffd
 
+  // minimum stack depth to allow for a printf to execute in debug mode
+  static constexpr size_t debug_depth = (size_t)ASSERT_EN * 128;
+
   static constexpr uint32_t alignment = 16;
+
   allocator<alloc_stack, alignment> pool;
 
 public:

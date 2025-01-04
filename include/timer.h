@@ -7,7 +7,7 @@ namespace timer
 
 void init();
 
-extern time_t MILLIS;
+extern volatile time_t MILLIS;
 
 __always_inline__
 inline time_t now()

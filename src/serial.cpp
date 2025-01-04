@@ -6,11 +6,14 @@
 namespace serial
 {
 
+namespace
+{
 /* Pins to use for serial communication */
 constexpr auto TX = USB_TX;
 constexpr auto RX = USB_RX;
 
-int txinit; /* UART ready to transmit first char */
+volatile int txinit; /* UART ready to transmit first char */
+} // namespace
 
 /* init -- set up UART connection to host */
 void init(void)

@@ -81,13 +81,13 @@ extern "C" void __start(void)
   /* flash::erase(ptr); */
   /* flash::write(ptr, &val, 1); */
 
-  debug<TRACE>("\tdata_start: %x\r\n", (uint32_t)__data_start);
-  debug<TRACE>("\tdata_end:   %x\r\n", (uint32_t)__data_end);
-  debug<TRACE>("\tbss_start:  %x\r\n", (uint32_t)__bss_start);
-  debug<TRACE>("\tbss_end:    %x\r\n", (uint32_t)__bss_end);
-  debug<TRACE>("\tetext:      %x\r\n", (uint32_t)__etext);
-  debug<TRACE>("\tend:        %x\r\n", (uint32_t)__end);
-  debug<TRACE>("\tstack:      %x\r\n", (uint32_t)__stack);
+  debug<DEBUG>("\tdata_start: %x\r\n", (uint32_t)__data_start);
+  debug<DEBUG>("\tdata_end:   %x\r\n", (uint32_t)__data_end);
+  debug<DEBUG>("\tbss_start:  %x\r\n", (uint32_t)__bss_start);
+  debug<DEBUG>("\tbss_end:    %x\r\n", (uint32_t)__bss_end);
+  debug<DEBUG>("\tetext:      %x\r\n", (uint32_t)__etext);
+  debug<DEBUG>("\tend:        %x\r\n", (uint32_t)__end);
+  debug<DEBUG>("\tstack:      %x\r\n", (uint32_t)__stack);
 
   waitlist::reg(640, waitlist1);
   waitlist::reg(800, waitlist2);

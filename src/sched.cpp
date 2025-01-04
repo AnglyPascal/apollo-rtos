@@ -12,20 +12,19 @@
 namespace sched
 {
 
+namespace
+{
+constexpr priority_t IDLE_PRIORITY = 1;
+
 constexpr size_t N_PROCS = 16;
 procs_t<N_PROCS> procs;
-
-constexpr priority_t IDLE_PRIORITY = 1;
+stack_t stack;
 
 volatile struct {
   proc_t *hi_proc = nullptr;
   proc_t *curr_proc = nullptr;
   time_t last_checked;
 } cpu;
-
-namespace
-{
-stack_t stack;
 } // namespace
 
 void end_proc(void *param)

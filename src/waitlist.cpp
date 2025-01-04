@@ -21,7 +21,7 @@ struct waitlist_t {
 
 constexpr uint8_t N_WAITLIST = 16;
 waitlist_t waitlist[N_WAITLIST];
-uint8_t list_sz = 0;
+volatile uint8_t list_sz = 0;
 
 inline void swap(waitlist_t &lhs, waitlist_t &rhs)
 {

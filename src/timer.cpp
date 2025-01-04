@@ -29,7 +29,7 @@ void init()
   enable_irq(TIMER1_IRQ);
 }
 
-time_t MILLIS = 0;
+volatile time_t MILLIS = 0;
 
 namespace
 {
