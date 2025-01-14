@@ -21,6 +21,6 @@ void *trace(void *param)
 
 } // namespace
 
-cmd_t trace_cmd = {"trace", 3, 128, trace};
+cmd_t trace_cmd = {"trace", 4, 128, trace};
 
 } // namespace shell

@@ -19,9 +19,9 @@ namespace
  * has the row bits set.  Copying blank and then setting (actually, clearing)
  * column bits for each row results in an image that displays properly. */
 constexpr image_t blank = IMAGE(0, 0, 0, 0, 0, //
-                                0, 1, 0, 0, 0, //
-                                0, 0, 1, 0, 0, //
-                                0, 0, 0, 1, 0, //
+                                0, 0, 0, 0, 0, //
+                                0, 0, 0, 0, 0, //
+                                0, 0, 0, 0, 0, //
                                 0, 0, 0, 0, 0);
 
 void image_clear(image_t img)
