@@ -3,6 +3,8 @@
 #include "lib.h"
 #include "types.h"
 
+#define CTRL(x) ((x) & 0x1f)
+
 namespace serial
 {
 

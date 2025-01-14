@@ -13,7 +13,7 @@ namespace
 constexpr auto TX = USB_TX;
 constexpr auto RX = USB_RX;
 
-#define NBUF 64 /* Buffer size */
+static constexpr size_t NBUF = 64; /* Buffer size */
 
 static volatile int txidle;       /* Whether UART is idle */
 static volatile int bufcnt = 0;   /* Number of chars in buffer */
@@ -62,6 +62,8 @@ char buf_get(void)
   return ch;
 }
 
+/** FIXME: works for now, but what about processes that are asleep?
+ *  not a good implementation */
 namespace
 {
 class listeners_t

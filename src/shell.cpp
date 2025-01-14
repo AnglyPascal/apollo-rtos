@@ -17,7 +17,6 @@ void *proc(void *param)
   auto [cmd, args] = buf->split(idx + 1);
 
   auto cmd_ptr = match_cmd(cmd);
-
   if (cmd_ptr == nullptr) {
     printf(">> WRONG COMMAND\r\n");
     return buf;
