@@ -36,7 +36,6 @@ namespace
 constexpr size_t timer_stk_sz = 512;
 uint8_t stk[timer_stk_sz];
 uint8_t *stk_end = stk + timer_stk_sz;
-uint8_t *prev_stk;
 } // namespace
 
 // NOTE: the reason is, O2+ uses 24 stack bytes, O1- uses 16, which could be
@@ -45,11 +44,9 @@ uint8_t *prev_stk;
 // stack depth needs to be at least
 // >> debug_depth + stack needed by timer + by uart + by cxt swtch
 __extern_C__
-__attribute__((optimize("O3"))) // NOTE: works for now
-void *timer_body(void *old_stk)
+/* __attribute__((optimize("O3"))) // NOTE: works for now */
+void timer1_handler(void)
 {
-  asm volatile("mrs %[stk], msp" : [stk] "=r"(prev_stk));
-
   if (TIMER1.COMPARE[0]) {
     MILLIS += TICK;
     TIMER1.COMPARE[0] = 0;
@@ -58,18 +55,13 @@ void *timer_body(void *old_stk)
   if ((MILLIS & (waitlist::update_interval - 1)) == 0) {
     disable_irq(TIMER1_IRQ);
 
-    // setup temporary stk to run waitlist tasks
-    asm volatile("msr msp, %[stk]" : : [stk] "r"(stk_end));
+    auto prev_stk = (uint8_t *)get_msp();
+    set_msp(stk_end); // setup temporary stk to run waitlist tasks
     waitlist::run();
+    set_msp(prev_stk);
 
     enable_irq(TIMER1_IRQ);
   }
-
-  asm volatile("msr msp, %[stk]" : : [stk] "r"(prev_stk));
-
-  // FIXME: turned off schedule invoker
-  /* return sched::invoke(old_stk, millis); */
-  return old_stk;
 }
 
 } // namespace timer

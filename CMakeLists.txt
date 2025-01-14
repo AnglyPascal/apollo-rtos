@@ -57,7 +57,7 @@ add_custom_command(
   TARGET qemu
   POST_BUILD
   COMMAND qemu-system-arm -M microbit -device loader,file=${OUTPUT_FILE}.hex
-          -serial stdio
+          -serial stdio -monitor telnet::45454,server,nowait -nographic
   COMMENT "Running QEMU...")
 
 add_custom_target(qemu-gdb COMMENT "run qemu")

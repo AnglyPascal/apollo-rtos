@@ -12,7 +12,14 @@ namespace
 constexpr auto TX = USB_TX;
 constexpr auto RX = USB_RX;
 
-volatile int txinit; /* UART ready to transmit first char */
+#define NBUF 64 /* Buffer size */
+
+static volatile int txidle;       /* Whether UART is idle */
+static volatile int bufcnt = 0;   /* Number of chars in buffer */
+static unsigned bufin = 0;        /* Index of first free slot */
+static unsigned bufout = 0;       /* Index of first occupied slot */
+static volatile char txbuf[NBUF]; /* The buffer */
+
 } // namespace
 
 /* init -- set up UART connection to host */
@@ -30,19 +37,27 @@ void init(void)
   UART.STARTTX = 1;
   UART.STARTRX = 1;
   UART.RXDRDY = 0;
-  txinit = 1;
+  UART.TXDRDY = 0;
 
   UART.INTENSET = BIT(UART_INT_RXDRDY) | BIT(UART_INT_TXDRDY);
   enable_irq(UART_IRQ);
+  txidle = 1;
 }
 
-/* wait for input character and return it */
-int getc(void)
+/* buf_put -- add character to buffer */
+void buf_put(char ch)
 {
-  while (!UART.RXDRDY)
-    ;
-  char ch = UART.RXD;
-  UART.RXDRDY = 0;
+  txbuf[bufin] = ch;
+  bufcnt++;
+  bufin = (bufin + 1) % NBUF;
+}
+
+/* buf_get -- fetch character from buffer */
+char buf_get(void)
+{
+  char ch = txbuf[bufout];
+  bufcnt--;
+  bufout = (bufout + 1) % NBUF;
   return ch;
 }
 
@@ -51,8 +66,6 @@ void listener(char c);
 __extern_C__
 void uart_handler(void)
 {
-  /* intr_disable(); */
-
   if (UART.RXDRDY) {
     char ch = UART.RXD;
     putc(ch);
@@ -61,34 +74,31 @@ void uart_handler(void)
   }
 
   if (UART.TXDRDY) {
-    txinit = 1;
     UART.TXDRDY = 0;
+    if (bufcnt == 0)
+      txidle = 1;
+    else
+      UART.TXD = buf_get();
   }
 
   clear_pending(UART_IRQ);
   enable_irq(UART_IRQ);
-
-  /* intr_enable(); */
 }
 
 /* putc -- send output character */
 void putc(char ch)
 {
-  if (!txinit) {
-    while (!UART.TXDRDY)
-      ;
-  }
-  // FIXME: what's the correct way of doing IO?
-  txinit = 0;
-  UART.TXDRDY = 0;
-  UART.TXD = ch;
-}
+  while (bufcnt == NBUF)
+    pause();
 
-/* puts -- send a string character by character */
-void puts(const char *s)
-{
-  while (*s != '\0')
-    putc(*s++);
+  intr_disable();
+  if (txidle) {
+    UART.TXD = ch;
+    txidle = 0;
+  } else {
+    buf_put(ch);
+  }
+  intr_enable();
 }
 
 /* puts -- send a string character by character */
@@ -96,40 +106,6 @@ void puts(const char *s, size_t len)
 {
   while (len-- > 0 && *s != '\0')
     putc(*s++);
-}
-
-/* getline -- input a line of text into buf with line editing */
-void getline(const char *prompt, char *buf, int nbuf)
-{
-  char *p = buf;
-
-  puts(prompt);
-
-  while (1) {
-    char x = getc();
-
-    switch (x) {
-    case '\b':
-    case 0177:
-      if (p > buf) {
-        p--;
-        puts("\b \b");
-      }
-      break;
-
-    case '\r':
-      *p = '\0';
-      puts("\r\n");
-      return;
-
-    default:
-      /* Ignore other non-printing characters */
-      if (x >= 040 && x < 0177 && p < &buf[nbuf]) {
-        *p++ = x;
-        putc(x);
-      }
-    }
-  }
 }
 
 } // namespace serial

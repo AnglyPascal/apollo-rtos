@@ -64,7 +64,7 @@ __extern_C__
 uint8_t *cxt_switch(uint8_t *stk_ptr)
 {
   if (cpu.hi_proc->state != state_t::RUNNABLE) {
-    debug<FATAL>("!! cpu.hi_proc is not runnable\r\n");
+    debug<TRACE>("!! cpu.hi_proc is not runnable\r\n"); // FIXME
     return stk_ptr;
   }
 

@@ -71,18 +71,6 @@ __run:
     bx r4
     .endm
 
-/*
-@@@ svc_handler -- handler for SVC interrupt (system call)
-    .global svc_handler
-    .thumb_func
-svc_handler:
-    isave                       @ Complete saving of state
-    @@ Argument in r0 is sp of old process
-    bl system_call              @ Perform system call
-    @@ Result in r0 is sp of new process
-    irestore                    @ Restore manually saved state
-*/
-
 @@@ pendsv_handler -- handler for PendSV interupt (context switch)
     .global pendsv_handler
     .thumb_func
@@ -90,11 +78,4 @@ pendsv_handler:
     isave                       @ Complete saving of process state
     bl cxt_switch               @ Choose a new process
     irestore                    @ Restore state for that process
-    
-@@@ timer1_handler 
-    .global timer1_handler
-    .thumb_func
-timer1_handler:
-    isave
-    bl timer_body
-    irestore
+

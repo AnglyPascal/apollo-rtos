@@ -16,7 +16,6 @@ uint8_t __data_start[],
 
 void waitlist1(void *)
 {
-  /* printf("1: %d \r\r\n", timer::now()); */
   led_dot();
   waitlist::reg(640, waitlist1);
 }
@@ -24,7 +23,6 @@ void waitlist1(void *)
 void waitlist2(void *)
 {
   led_off();
-  /* printf("2: %d \r\r\n", timer::now()); */
   waitlist::reg(800, waitlist2);
 }
 
@@ -70,6 +68,17 @@ void setup_procs(void)
 
 } // namespace sched
 
+inline void debug_addr()
+{
+  debug<DEBUG>("\tdata_start: %x\r\n", (uint32_t)__data_start);
+  debug<DEBUG>("\tdata_end:   %x\r\n", (uint32_t)__data_end);
+  debug<DEBUG>("\tbss_start:  %x\r\n", (uint32_t)__bss_start);
+  debug<DEBUG>("\tbss_end:    %x\r\n", (uint32_t)__bss_end);
+  debug<DEBUG>("\tetext:      %x\r\n", (uint32_t)__etext);
+  debug<DEBUG>("\tend:        %x\r\n", (uint32_t)__end);
+  debug<DEBUG>("\tstack:      %x\r\n", (uint32_t)__stack);
+}
+
 __extern_C__
 void __start(void)
 {
@@ -84,13 +93,7 @@ void __start(void)
   /* flash::erase(ptr); */
   /* flash::write(ptr, &val, 1); */
 
-  debug<DEBUG>("\tdata_start: %x\r\n", (uint32_t)__data_start);
-  debug<DEBUG>("\tdata_end:   %x\r\n", (uint32_t)__data_end);
-  debug<DEBUG>("\tbss_start:  %x\r\n", (uint32_t)__bss_start);
-  debug<DEBUG>("\tbss_end:    %x\r\n", (uint32_t)__bss_end);
-  debug<DEBUG>("\tetext:      %x\r\n", (uint32_t)__etext);
-  debug<DEBUG>("\tend:        %x\r\n", (uint32_t)__end);
-  debug<DEBUG>("\tstack:      %x\r\n", (uint32_t)__stack);
+  debug_addr();
 
   waitlist::reg(640, waitlist1);
   waitlist::reg(800, waitlist2);
@@ -108,6 +111,12 @@ void spin(void);
 __extern_C__
 void hardfault_handler(void)
 {
-  debug<FATAL>("!!WTF!!\n");
+  volatile uint32_t *fault_stack = (uint32_t *)get_msp();
+  uint32_t pc = fault_stack[6]; // Program Counter
+  uint32_t lr = fault_stack[5]; // Link Register
+
+  debug<FATAL>("\r\n!!WTF!!\r\n");
+  debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr);
+
   spin();
 }

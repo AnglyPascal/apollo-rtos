@@ -847,3 +847,15 @@ typedef uint32_t image[NIMG];
   })
 #define set_primask(x) asm volatile("msr primask, %0" : : "r"(x))
 #define nop() asm volatile("nop")
+
+inline uint32_t get_msp(void)
+{
+  uint32_t msp;
+  asm volatile("mrs %[stk], msp" : [stk] "=r"(msp));
+  return msp;
+}
+
+inline void set_msp(void *stk_ptr)
+{
+  asm volatile("msr msp, %[stk]" : : [stk] "r"(stk_ptr));
+}
