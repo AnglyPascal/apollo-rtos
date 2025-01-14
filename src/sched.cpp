@@ -48,7 +48,7 @@ proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
   stack.acquire(proc, stk_sz, func, param, end_proc);
   incr_priority(proc, priority);
 
-  debug<TRACE>("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc->stack,
+  debug<DEBUG>("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc->stack,
                proc->stk_ptr);
   return proc;
 }
@@ -63,11 +63,7 @@ void change_proc()
 __extern_C__
 uint8_t *cxt_switch(uint8_t *stk_ptr)
 {
-  if (cpu.hi_proc->state != state_t::RUNNABLE) {
-    debug<TRACE>("!! cpu.hi_proc is not runnable\r\n"); // FIXME
-    return stk_ptr;
-  }
-
+  assert((cpu.hi_proc->state == state_t::RUNNABLE));
   debug<TRACE>("\t\t\t\t\"%s\" -> \"%s\"\r\n", cpu.curr_proc->name.str,
                cpu.hi_proc->name.str);
 

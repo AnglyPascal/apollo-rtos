@@ -28,7 +28,7 @@ inline void __assert(bool ex, const char *src, const char *func,
 {
   if constexpr (ASSERT_EN)
     if (!ex)
-      debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\n", src, func,
+      debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
                    file, line);
 }
 

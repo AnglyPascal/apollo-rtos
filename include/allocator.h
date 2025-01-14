@@ -51,6 +51,6 @@ public:
   __noinline__
   void trace()
   {
-    printf("alloc trace: \n");
+    printf("alloc trace: \t\n");
   }
 };
