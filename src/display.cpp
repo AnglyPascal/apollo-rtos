@@ -8,6 +8,7 @@
 /* A simple driver for the micro:bit LEDs with the same interface on
 V1 and V2. */
 
+void delay_loop(uint32_t);
 namespace display
 {
 
@@ -18,9 +19,9 @@ namespace
  * has the row bits set.  Copying blank and then setting (actually, clearing)
  * column bits for each row results in an image that displays properly. */
 constexpr image_t blank = IMAGE(0, 0, 0, 0, 0, //
-                                0, 0, 0, 0, 0, //
-                                0, 0, 0, 0, 0, //
-                                0, 0, 0, 0, 0, //
+                                0, 1, 0, 0, 0, //
+                                0, 0, 1, 0, 0, //
+                                0, 0, 0, 1, 0, //
                                 0, 0, 0, 0, 0);
 
 void image_clear(image_t img)
@@ -70,16 +71,19 @@ image_t image;
 } // namespace
 
 /* device driver for LED display */
-void *task(void *param)
+void *task(void *)
 {
-  int n = 0;
+  GPIO.DIR = LED_MASK;
+  image_clear(image);
 
   while (1) {
     /* Carefully change LED bits and leave other bits alone */
-    GPIO.OUTCLR = 0xfff0;
-    GPIO.OUTSET = image[n++];
-    if (n == 3)
-      n = 0;
+    int n = 0;
+    while (n < 3) {
+      GPIO.OUT = image[n++];
+      delay_loop(5000);
+    }
+    sched::sleep(10);
   }
 
   return nullptr;
@@ -94,10 +98,12 @@ void show(const image_t img)
 /* start display driver task */
 void init(void)
 {
-  GPIO.DIRSET = LED_MASK;
-  image_clear(image);
+  sched::reg_proc("display", 2, 128, task, nullptr);
+}
 
-  sched::reg_proc("display", 2, 64, task, nullptr);
+void reset()
+{
+  show(blank);
 }
 
 } // namespace display

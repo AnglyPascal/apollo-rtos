@@ -65,6 +65,7 @@ void setup_procs(void)
 {
   sched::reg_proc("proc1", 7, 0, proc1, nullptr);
   sched::reg_proc("proc2", 10, 64, proc2, nullptr);
+  display::init();
 }
 
 } // namespace sched
@@ -79,6 +80,9 @@ inline void debug_addr()
   debug<DEBUG>("\tend:        %x\r\n", (uint32_t)__end);
   debug<DEBUG>("\tstack:      %x\r\n", (uint32_t)__stack);
 }
+
+__extern_C__
+void spin(void);
 
 __extern_C__
 void __start(void)
@@ -103,12 +107,9 @@ void __start(void)
   shell::init();
   /* display::init(); */
   sched::init();
-  /* while (1) */
-  /*   ; */
-}
 
-__extern_C__
-void spin(void);
+  spin();
+}
 
 __extern_C__
 void hardfault_handler(void)

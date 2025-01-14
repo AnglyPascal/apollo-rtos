@@ -3,6 +3,7 @@
 #include "sched.h"
 #include "serial.h"
 #include "types.h"
+#include "waitlist.h"
 
 namespace shell
 {
@@ -43,7 +44,7 @@ void shell_listener(char c)
     return buf->push(c);
 
   printf("\r\n");
-  sched::reg_proc("shell", 8, 256, proc, buf);
+  sched::reg_proc("shell", _max<priority_t>, 256, proc, buf);
   buf = new char_buffer<args_len>{};
 }
 

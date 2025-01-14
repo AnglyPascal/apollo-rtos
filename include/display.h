@@ -31,4 +31,6 @@ void init();
 
 void image_set(int x, int y, image_t img);
 
+void reset();
+
 } // namespace display

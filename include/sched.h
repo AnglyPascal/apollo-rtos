@@ -14,6 +14,8 @@ void decr_priority(priority_t priority);
 inline constexpr time_t invoke_interval = 512;
 uint8_t *invoke(uint8_t *old_stack, time_t millis);
 
+void change_proc();
+
 proc_t *reg_proc(string name, priority_t priority, uint32_t stack_sz,
                  runnable_t func, void *param);
 

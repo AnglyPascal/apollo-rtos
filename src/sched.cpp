@@ -56,7 +56,6 @@ proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
   return proc;
 }
 
-__noinline__
 void change_proc()
 {
   cpu.last_checked = timer::now();
@@ -120,41 +119,17 @@ void decr_priority(priority_t priority)
   cpu.curr_proc->priority = priority;
 
   proc_t *max_proc = procs.max_priority();
-  if (max_proc == cpu.curr_proc) {
-    return;
-  }
-
   cpu.hi_proc = max_proc;
   change_proc();
 }
 
-void *idle_task(void *param)
+__attribute__((optimize("O1"))) // O1 doesn't work
+void *idle_task(void *)
 {
-  change_proc();
-
-  volatile bool keep_spinning = true;
-  bool go = false;
-  while (keep_spinning) {
-    /* (void)timer::now(); */
-    /* printf("."); */
-
-    /* FIXME:
-     * - why does it not work without the following block of code 
-     * - why are there two sleep waitlist tasks
-     * */
-
-    bool prev = go;
-    go = (timer::now() & 1023) == 0;
-
-    if (!prev && go) {
-      led_dot();
-    } else if (prev && !go) {
-      led_off();
-    }
-
+  while (true) {
     change_proc();
   }
-  return param;
+  return nullptr;
 }
 
 /* enter thread mode with specified stack (see mpx.s) */

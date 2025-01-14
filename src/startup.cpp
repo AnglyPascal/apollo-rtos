@@ -55,12 +55,11 @@ volatile spi_t *const SPI[] = {&SPI0, &SPI1};
 void delay_loop(uint32_t usecs)
 {
   uint32_t t = usecs << 1;
-  while (t > 0) {
+  while (t-- > 0) {
     /* 500nsec per iteration at 16MHz */
     nop();
     nop();
     nop();
-    t--;
   }
 }
 

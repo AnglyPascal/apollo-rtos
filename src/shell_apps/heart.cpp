@@ -1,4 +1,6 @@
+#include "char_buffer.h"
 #include "display.h"
+#include "lib.h"
 #include "serial.h"
 #include "shell.h"
 #include "types.h"
@@ -23,15 +25,24 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
 
 void *heart(void *param)
 {
-  while (1) {
+  auto buf = (char_buffer<64> *)param;
+  auto str = buf->str + 6;
+
+  auto n = (*str == '\0') ? 100 : atoi(str);
+
+  while (n-- > 0) {
+    display::show(big_heart);
+    sched::sleep(500);
+    display::show(small_heart);
+    sched::sleep(100);
     display::show(big_heart);
     sched::sleep(100);
     display::show(small_heart);
-    sched::sleep(10);
-    display::show(big_heart);
-    sched::sleep(10);
-    display::show(small_heart);
+    sched::sleep(100);
+
+    display::reset();
   }
+
   return param;
 }
 
