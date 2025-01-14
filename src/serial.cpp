@@ -1,4 +1,5 @@
 #include "serial.h"
+#include "debug.h"
 #include "hardware.h"
 #include "irq.h"
 #include "lib.h"
@@ -61,7 +62,44 @@ char buf_get(void)
   return ch;
 }
 
-void listener(char c);
+namespace
+{
+class listeners_t
+{
+  listener_t stack[16] = {nullptr};
+  size_t idx = 0;
+
+public:
+  void push(listener_t listener)
+  {
+    stack[idx++] = listener;
+  }
+
+  void pop()
+  {
+    assert(idx > 0);
+    idx--;
+  }
+
+  void operator()(char c)
+  {
+    assert(idx > 0);
+    stack[idx - 1](c);
+  }
+};
+
+listeners_t listeners;
+} // namespace
+
+void register_listener(listener_t listener)
+{
+  listeners.push(listener);
+}
+
+void unregister_listener()
+{
+  listeners.pop();
+}
 
 __extern_C__
 void uart_handler(void)
@@ -70,8 +108,7 @@ void uart_handler(void)
 
   if (UART.RXDRDY) {
     char ch = UART.RXD;
-    putc(ch);
-    listener(ch);
+    listeners(ch);
     UART.RXDRDY = 0;
   }
 
@@ -108,6 +145,11 @@ void puts(const char *s, size_t len)
 {
   while (len-- > 0 && *s != '\0')
     putc(*s++);
+}
+
+void clear_screen()
+{
+  printf("\033[2J\033[H");
 }
 
 } // namespace serial

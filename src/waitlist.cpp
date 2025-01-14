@@ -27,6 +27,7 @@ volatile uint8_t list_sz = 0;
 
 inline void swap(waitlist_t &lhs, waitlist_t &rhs)
 {
+  std::swap(lhs.name, rhs.name);
   std::swap(lhs.remaining, rhs.remaining);
   std::swap(lhs.func, rhs.func);
   std::swap(lhs.param, rhs.param);

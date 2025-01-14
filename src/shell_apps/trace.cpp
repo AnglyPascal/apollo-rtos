@@ -10,12 +10,31 @@ namespace shell
 namespace
 {
 
+volatile bool exit = false;
+
+bool trace_listener(char c)
+{
+  if (c == 'q') {
+    exit = true;
+    return true;
+  }
+  return false;
+}
+
 void *trace(void *param)
 {
-  printf("\r\n");
-  sched::trace();
-  /* heap::trace(); */
-  waitlist::trace();
+  serial::register_listener(trace_listener);
+
+  while (!exit) {
+    serial::clear_screen();
+    sched::trace();
+    waitlist::trace();
+    sched::sleep(1000);
+  }
+  serial::clear_screen();
+  exit = false;
+
+  serial::unregister_listener();
   return param;
 }
 

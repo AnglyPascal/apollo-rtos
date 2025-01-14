@@ -33,29 +33,26 @@ namespace
 char_buffer<args_len> *buf;
 }
 
-void init()
+bool shell_listener(char c)
 {
-  buf = new char_buffer<args_len>{};
-}
+  serial::putc(c);
 
-void shell_listener(char c)
-{
-  if (c != '\r' && c != '\n')
-    return buf->push(c);
+  if (c != '\r' && c != '\n') {
+    buf->push(c);
+    return true;
+  }
 
   printf("\r\n");
   sched::reg_proc("shell", _max<priority_t>, 256, proc, buf);
   buf = new char_buffer<args_len>{};
+  return true;
+}
+
+void init()
+{
+  buf = new char_buffer<args_len>{};
+  serial::register_listener(shell_listener);
 }
 
 } // namespace shell
 
-namespace serial
-{
-
-void listener(char c)
-{
-  shell::shell_listener(c);
-}
-
-} // namespace serial

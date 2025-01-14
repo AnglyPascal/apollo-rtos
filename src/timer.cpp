@@ -11,7 +11,8 @@ namespace timer
 
 constexpr time_t TICK = 1;
 
-void init()
+__always_inline__
+inline void timer1_init()
 {
   /* We use Timer 1 because its 16-bit mode is adequate for a clock with up to
    * 1us resolution and 1ms period, leaving the 32-bit Timer 0 for other
@@ -27,6 +28,11 @@ void init()
   TIMER1.START = 1;
 
   enable_irq(TIMER1_IRQ);
+}
+
+void init()
+{
+  timer1_init();
 }
 
 volatile time_t MILLIS = 0;

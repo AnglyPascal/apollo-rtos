@@ -100,6 +100,7 @@ void __start(void)
 
   debug_addr();
 
+
   waitlist::reg("waitlist1", 640, waitlist1);
   waitlist::reg("waitlist2", 800, waitlist2);
 

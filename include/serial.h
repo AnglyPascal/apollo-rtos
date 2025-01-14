@@ -19,12 +19,13 @@ void printf(Args... args)
   do_printf(putc, args...);
 }
 
+void clear_screen();
+
+using listener_t = bool (*)(char);
+
+void register_listener(listener_t);
+void unregister_listener();
+
 } // namespace serial
 
-/* #define STDIN_FILENO 0  /1* standard input file descriptor *1/ */
-/* #define STDOUT_FILENO 1 /1* standard output file descriptor *1/ */
-/* #define STDERR_FILENO 2 /1* standard error file descriptor *1/ */
-
-/* #include <cstdio> */
-/* using std::printf; */
 using serial::printf;
