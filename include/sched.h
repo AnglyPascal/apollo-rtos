@@ -8,6 +8,8 @@
 namespace sched
 {
 
+extern volatile time_t last_checked;
+
 void incr_priority(proc_t *proc, priority_t priority);
 void decr_priority(priority_t priority);
 
@@ -28,5 +30,11 @@ __extern_C__
 uint8_t *cxt_switch(uint8_t *stk_ptr);
 
 void trace();
+
+__always_inline__
+inline time_t _last_checked()
+{
+  return last_checked;
+}
 
 } // namespace sched

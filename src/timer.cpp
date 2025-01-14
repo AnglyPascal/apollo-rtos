@@ -38,13 +38,10 @@ uint8_t stk[timer_stk_sz];
 uint8_t *stk_end = stk + timer_stk_sz;
 } // namespace
 
-// NOTE: the reason is, O2+ uses 24 stack bytes, O1- uses 16, which could be
-// overriding some of the stacks.
-//
-// stack depth needs to be at least
-// >> debug_depth + stack needed by timer + by uart + by cxt swtch
 __extern_C__
-/* __attribute__((optimize("O3"))) // NOTE: works for now */
+void pendsv_handler(void);
+
+__extern_C__
 void timer1_handler(void)
 {
   if (TIMER1.COMPARE[0]) {
@@ -62,6 +59,28 @@ void timer1_handler(void)
 
     enable_irq(TIMER1_IRQ);
   }
+
+  if (MILLIS - sched::_last_checked() > 2043) {
+    debug<FATAL>("scheduler invoked\r\n");
+    pendsv_handler();
+  }
 }
+
+/** Scheduler invoker inside timer1_handler:
+ *
+ * when timer1_handler calls pensdsv_handler, the current process stack
+ * contains
+ *   - the hardare saved registers
+ *   - whatever timer1_handlers pushed on the stack
+ * and the lr register points to the exit from timer1_handler code
+ *
+ * So when pendsv_handler calls isave, it stores the manually stored registers
+ * on top of the stack contents.
+ *
+ * Now when this process is resumed, the exit code of timer1_handler pops
+ * whatever it pushed to the stack before exiting from the timer1_handler inside
+ * that original process. That's why the original process sees its desired
+ * registers when it finally resumes.
+ */
 
 } // namespace timer

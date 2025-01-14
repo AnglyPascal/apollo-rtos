@@ -26,9 +26,11 @@ stack_t stack;
 volatile struct {
   proc_t *hi_proc = nullptr;
   proc_t *curr_proc = nullptr;
-  time_t last_checked;
+  /* time_t last_checked; */
 } cpu;
 } // namespace
+
+volatile time_t last_checked = 0;
 
 void end_proc(void *param)
 {
@@ -58,7 +60,7 @@ proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
 
 void change_proc()
 {
-  cpu.last_checked = timer::now();
+  last_checked = timer::now();
   if (cpu.hi_proc != cpu.curr_proc)
     reschedule();
 }
@@ -88,10 +90,10 @@ uint8_t *cxt_switch(uint8_t *stk_ptr)
 uint8_t *invoke(uint8_t *curr_stk, time_t millis)
 {
   if ((millis & ((invoke_interval >> 1) - 1)) ||
-      millis <= cpu.last_checked + invoke_interval)
+      millis <= last_checked + invoke_interval)
     return curr_stk;
 
-  cpu.last_checked = timer::now();
+  last_checked = timer::now();
   if (cpu.hi_proc == cpu.curr_proc)
     return curr_stk;
 
@@ -124,10 +126,11 @@ void decr_priority(priority_t priority)
 }
 
 __attribute__((optimize("O1"))) // O1 doesn't work
-void *idle_task(void *)
+void *
+idle_task(void *)
 {
   while (true) {
-    change_proc();
+    change_proc(); // NOTE: comment to test invoker
   }
   return nullptr;
 }
@@ -147,7 +150,7 @@ void init()
 
   cpu.curr_proc = idle_proc;
   setup_procs();
-  cpu.last_checked = timer::now();
+  last_checked = timer::now();
 
   __run(idle_task, &idle_proc->stk_ptr);
 }
