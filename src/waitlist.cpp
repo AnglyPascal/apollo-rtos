@@ -1,6 +1,7 @@
 #include "waitlist.h"
 #include "debug.h"
 #include "hardware.h"
+#include "irq.h"
 #include "lib.h"
 #include "memory.h"
 #include "serial.h"
@@ -14,6 +15,7 @@ namespace
 {
 
 struct waitlist_t {
+  string name;
   time_t remaining;
   void (*func)(void *);
   void *param;
@@ -32,7 +34,7 @@ inline void swap(waitlist_t &lhs, waitlist_t &rhs)
 
 } // namespace
 
-void reg(time_t interval, void (*func)(void *), void *param)
+void reg(string name, time_t interval, void (*func)(void *), void *param)
 {
   if (list_sz == N_WAITLIST) {
     debug<FATAL>("!! NO SPACE IN WAITLIST\r\n");
@@ -54,12 +56,14 @@ void reg(time_t interval, void (*func)(void *), void *param)
     swap(waitlist[i], waitlist[j++]);
   }
 
-  waitlist[i] = {interval - prev, func, param};
+  waitlist[i] = {name, interval - prev, func, param};
   list_sz++;
 }
 
 void run()
 {
+  intr_guard guard;
+
   if (list_sz == 0)
     return;
 
@@ -79,6 +83,15 @@ void run()
 
     list_sz--;
     func(param);
+  }
+}
+
+void trace()
+{
+  printf("waitlist:\r\n");
+  for (size_t i = 0; i < list_sz; i++) {
+    auto &task = waitlist[i];
+    printf("\t%s\r\n\t\tinterval: %u\r\n", task.name.str, task.remaining);
   }
 }
 

@@ -2,6 +2,7 @@
 #include "serial.h"
 #include "shell.h"
 #include "types.h"
+#include "waitlist.h"
 
 namespace shell
 {
@@ -13,7 +14,8 @@ void *trace(void *param)
 {
   printf("\r\n");
   sched::trace();
-  heap::trace();
+  /* heap::trace(); */
+  waitlist::trace();
   return param;
 }
 

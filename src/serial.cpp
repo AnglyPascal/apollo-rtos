@@ -66,6 +66,8 @@ void listener(char c);
 __extern_C__
 void uart_handler(void)
 {
+  /* intr_guard guard; */
+
   if (UART.RXDRDY) {
     char ch = UART.RXD;
     putc(ch);

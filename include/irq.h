@@ -55,5 +55,35 @@ inline uint32_t active_irq()
   return GET_FIELD(SCB.ICSR, SCB_ICSR_VECTACTIVE) - 16;
 }
 
-#define intr_disable() asm volatile("cpsid i")
-#define intr_enable() asm volatile("cpsie i")
+namespace
+{
+static volatile uint32_t intr_sem = 0;
+}
+
+__always_inline__
+inline void intr_disable()
+{
+  if (intr_sem++ == 0)
+    asm volatile("cpsid i");
+}
+
+__always_inline__
+inline void intr_enable()
+{
+  if (--intr_sem == 0)
+    asm volatile("cpsie i");
+}
+
+class intr_guard
+{
+public:
+  intr_guard() noexcept
+  {
+    intr_disable();
+  }
+
+  ~intr_guard() noexcept
+  {
+    intr_enable();
+  }
+};

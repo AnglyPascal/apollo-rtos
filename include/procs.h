@@ -1,6 +1,7 @@
 #pragma once
 
 #include "debug.h"
+#include "irq.h"
 #include "serial.h"
 #include "types.h"
 
@@ -31,6 +32,8 @@ class procs_t
 public:
   inline proc_t *alloc()
   {
+    intr_guard guard;
+
     uint8_t pid = 0;
     while (pid < N_PROCS && procs[pid].state != state_t::EMPTY)
       pid++;
@@ -45,6 +48,7 @@ public:
 
   inline void dealloc(proc_t *proc)
   {
+    intr_guard guard;
     proc->state = state_t::EMPTY;
   }
 

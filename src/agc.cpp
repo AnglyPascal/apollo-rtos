@@ -1,4 +1,5 @@
 #include "debug.h"
+#include "display.h"
 #include "flash.h"
 #include "hardware.h"
 #include "irq.h"
@@ -16,14 +17,14 @@ uint8_t __data_start[],
 
 void waitlist1(void *)
 {
-  led_dot();
-  waitlist::reg(640, waitlist1);
+  /* led_dot(); */
+  waitlist::reg("waitlist1", 640, waitlist1);
 }
 
 void waitlist2(void *)
 {
-  led_off();
-  waitlist::reg(800, waitlist2);
+  /* led_off(); */
+  waitlist::reg("waitlist2", 800, waitlist2);
 }
 
 namespace sched
@@ -95,14 +96,15 @@ void __start(void)
 
   debug_addr();
 
-  waitlist::reg(640, waitlist1);
-  waitlist::reg(800, waitlist2);
+  waitlist::reg("waitlist1", 640, waitlist1);
+  waitlist::reg("waitlist2", 800, waitlist2);
 
   timer::init();
   shell::init();
+  /* display::init(); */
   sched::init();
-  while (1)
-    ;
+  /* while (1) */
+  /*   ; */
 }
 
 __extern_C__
@@ -111,11 +113,12 @@ void spin(void);
 __extern_C__
 void hardfault_handler(void)
 {
+  debug<FATAL>("\r\n!!WTF!!\r\n");
+
   volatile uint32_t *fault_stack = (uint32_t *)get_msp();
   uint32_t pc = fault_stack[6]; // Program Counter
   uint32_t lr = fault_stack[5]; // Link Register
 
-  debug<FATAL>("\r\n!!WTF!!\r\n");
   debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr);
 
   spin();

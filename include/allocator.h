@@ -1,5 +1,6 @@
 #pragma once
 
+#include "irq.h"
 #include "memory.h"
 #include "serial.h"
 #include "types.h"
@@ -22,11 +23,12 @@ public:
 
   uint8_t *alloc(size_t sz)
   {
+    intr_guard guard;
+
     sz = roundup(sz, alignment);
     auto chnk_sz = header_sz + sz;
 
     auto ptr = &head;
-
     while (ptr->next != nullptr) {
       auto chunk = ptr->next;
       ptr->next = chunk->next;
@@ -43,6 +45,8 @@ public:
 
   void dealloc(uint8_t *ptr)
   {
+    intr_guard guard;
+
     auto chunk = (chunk_t *)(ptr - header_sz);
     chunk->next = head.next;
     head.next = chunk;

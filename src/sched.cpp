@@ -1,6 +1,7 @@
 #include "sched.h"
 #include "allocator.h"
 #include "debug.h"
+#include "display.h"
 #include "irq.h"
 #include "proc_stack.h"
 #include "procs.h"
@@ -8,6 +9,8 @@
 #include "timer.h"
 #include "types.h"
 #include "waitlist.h"
+
+void delay_loop(uint32_t);
 
 namespace sched
 {
@@ -48,11 +51,12 @@ proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
   stack.acquire(proc, stk_sz, func, param, end_proc);
   incr_priority(proc, priority);
 
-  debug<DEBUG>("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc->stack,
+  debug<TRACE>("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc->stack,
                proc->stk_ptr);
   return proc;
 }
 
+__noinline__
 void change_proc()
 {
   cpu.last_checked = timer::now();
@@ -63,19 +67,19 @@ void change_proc()
 __extern_C__
 uint8_t *cxt_switch(uint8_t *stk_ptr)
 {
-  assert((cpu.hi_proc->state == state_t::RUNNABLE));
+  assert(cpu.hi_proc->state == state_t::RUNNABLE);
+  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr);
+
   debug<TRACE>("\t\t\t\t\"%s\" -> \"%s\"\r\n", cpu.curr_proc->name.str,
                cpu.hi_proc->name.str);
 
   if (cpu.curr_proc->priority == 0) {
-    stack.release(cpu.curr_proc);
-    procs.dealloc(cpu.curr_proc);
+    stack.release((proc_t *)cpu.curr_proc);
+    procs.dealloc((proc_t *)cpu.curr_proc);
   } else {
     cpu.curr_proc->state = state_t::RUNNABLE;
     cpu.curr_proc->stk_ptr = stk_ptr;
   }
-
-  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr);
 
   cpu.hi_proc->state = state_t::RUNNING;
   cpu.curr_proc = cpu.hi_proc;
@@ -128,8 +132,17 @@ void *idle_task(void *param)
 {
   change_proc();
 
+  volatile bool keep_spinning = true;
   bool go = false;
-  while (1) {
+  while (keep_spinning) {
+    /* (void)timer::now(); */
+    /* printf("."); */
+
+    /* FIXME:
+     * - why does it not work without the following block of code 
+     * - why are there two sleep waitlist tasks
+     * */
+
     bool prev = go;
     go = (timer::now() & 1023) == 0;
 
@@ -177,7 +190,7 @@ void sleep(time_t period)
 
   auto proc = cpu.curr_proc;
   proc->state = state_t::ASLEEP;
-  waitlist::reg(period, default_alarm, proc);
+  waitlist::reg("sleep", period, default_alarm, (void *)proc);
 
   enable_irq(TIMER1_IRQ);
 

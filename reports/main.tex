@@ -1,0 +1,86 @@
+\documentclass[oxford, 11pt]{ahsan}
+
+\usepackage[backend=biber,style=numeric,citestyle=numeric]{biblatex} 
+\addbibresource{references.bib} 
+
+% \doublespacing
+
+\title{Project report}
+
+\begin{document}
+
+\maketitle
+
+The report should be considered to be a technical document designed to be readable by a
+computer scientist who is not a specialist in the topic, say one of your colleagues.
+The sort of structure that would suit many programming projects is as follows:  
+\begin{enumerate}
+    \item Abstract: a brief description of what you did; about 200 words.  
+    \item Contents.  
+    \item Chapters 1, 2, etc. Areas to cover: Introduction, Explanation of the Problem
+        or Context, Description of the Method, Account of the Work (several chapters,
+        the main body of the dissertation), Conclusions.  
+    \item A bibliography and list of reference
+\end{enumerate}
+
+\section{Overview of the Executive}
+
+The \indef{Executive} in the Apollo Guidance Computer is a multiprocessing preemptive
+real-time operating system. It has a few features that set it apart from modern RTOS's,
+and made it such a visionary piece of technology of its time. 
+
+In this section, we'll give a brief overview of the features of the Executive.
+
+\begin{itemize}
+    \item Cooperative and preemptive
+    \item Process construction:
+        \item What we'd call process descriptors, were called Core Set. 
+        \item Could ask for dyanmic storage at the point of process creation.
+        \item Priority based scheduing
+    \item Context switching: using the \texttt{NEWJOB} register
+    \item Process sleep and wakeup
+    \item Waitlist to do most of the real time operations
+
+    \item Restart and recovery
+\end{itemize}
+
+
+\section{Reinventing the wheels}
+
+The current implementation differs from the original design of the Executive in quite a
+few ways.
+
+\begin{itemize}
+    \item Processes are allocated dynamically
+    \item Dynamic memory management
+    \item 
+\end{itemize}
+
+
+\section{Scratch}
+
+\subsection{Progress}
+
+\begin{itemize}
+    \item waitlist
+    \item process switching
+    \item timer interrupts
+    \item debug mechanism
+\end{itemize}
+
+
+\subsection{Log}
+
+\begin{itemize}
+    \item Currently, working on designing the restart mechanism.
+\end{itemize}
+
+\subsection{To-Do}
+
+\begin{itemize}
+    \item Abstract out the setup functions, so that different applications can be
+        written independently.
+    \item Write a few examples to demonstrate.
+\end{itemize}
+
+\end{document}

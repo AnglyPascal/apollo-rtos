@@ -12,6 +12,7 @@ set(CMAKE_C_COMPILER "arm-none-eabi-gcc")
 set(CMAKE_CXX_COMPILER "arm-none-eabi-g++")
 set(CMAKE_ASM_COMPILER "arm-none-eabi-as")
 set(CMAKE_OBJCOPY "arm-none-eabi-objcopy")
+set(CMAKE_OBJDUMP "arm-none-eabi-objdump")
 
 file(GLOB LINKSCRIPT "src/device.ld")
 file(GLOB CXX_SRC "src/*.cpp")
@@ -45,6 +46,12 @@ add_custom_command(
   COMMAND ${CMAKE_OBJCOPY} -O ihex ${OUTPUT_FILE}.elf ${OUTPUT_FILE}.hex
   COMMENT "Converting ELF to hex")
 
+add_custom_command(
+  TARGET bare-metal
+  POST_BUILD
+  COMMAND ${CMAKE_OBJDUMP} -S ${OUTPUT_FILE}.elf > ${OUTPUT_FILE}.S
+  COMMENT "Converting ELF to assembly")
+
 add_custom_target(copy COMMENT "copy hex to microbit")
 add_custom_command(
   TARGET copy
@@ -60,7 +67,7 @@ add_custom_command(
           -serial stdio -monitor telnet::45454,server,nowait -nographic
   COMMENT "Running QEMU...")
 
-add_custom_target(qemu-gdb COMMENT "run qemu")
+add_custom_target(qemu-gdb COMMENT "run qemu with GDB")
 add_custom_command(
   TARGET qemu-gdb
   POST_BUILD
@@ -74,16 +81,3 @@ add_custom_command(
   COMMAND sudo minicom -D /dev/ttyACM0 -b 9600
   COMMENT "Running minicom...")
 
-# string(CONCAT GDBSCRIPT "target remote localhost:2159\n" "file
-# bare-metal.elf") file(WRITE ${CMAKE_BINARY_DIR}/gdbscript ${GDBSCRIPT})
-
-# add_custom_target(drun) add_custom_command( TARGET drun PRE_BUILD COMMAND
-# ${CMAKE_COMMAND} -E cmake_echo_color --cyan "To connect the debugger, run
-# arm-none-eabi-gdb -x gdbscript") add_custom_command( TARGET drun PRE_BUILD
-# COMMAND ${CMAKE_COMMAND} -E cmake_echo_color --cyan "To start execution, type
-# continue in gdb")
-
-# add_custom_command( TARGET drun POST_BUILD COMMAND qemu-system-arm -S -M
-# vexpress-a9 -m 512M -no-reboot -nographic -gdb tcp::2159 -monitor
-# telnet:127.0.0.1:1234,server,nowait -kernel ${UBOOT_PATH}/u-boot -sd
-# sdcard.img -serial mon:stdio COMMENT "Running QEMU with debug server...")
