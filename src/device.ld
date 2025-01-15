@@ -49,6 +49,10 @@ SECTIONS {
     __stack = ORIGIN(RAM) + LENGTH(RAM);
     __stack_limit = __stack - 1024;
 
+    __page_sz = 1024;
+    __nvm_start = (__etext | (__page_sz - 1)) + 1;
+    __nvm_end = ORIGIN(FLASH) + LENGTH(FLASH);
+
     /* Check if data + stack exceeds RAM limit */
     ASSERT((__stack_limit >= __end), "region RAM overlaps with stack")
 }

@@ -1,14 +1,9 @@
 #include "flash.h"
+#include "debug.h"
 #include "hardware.h"
 
 namespace flash
 {
-
-inline void wait()
-{
-  while (!NVMC.READY)
-    ;
-}
 
 inline uint32_t *pg_addr(uint32_t *addr)
 {
@@ -18,10 +13,7 @@ inline uint32_t *pg_addr(uint32_t *addr)
 
 void erase(uint32_t *pg)
 {
-  if ((uint32_t)pg & (FICR.CODEPAGESIZE - 1)) {
-    // FIXME: panic
-    return;
-  }
+  assert(((uint32_t)pg & (FICR.CODEPAGESIZE - 1)) == 0);
 
   NVMC.CONFIG = NVMC_CONFIG_EEN;
   wait();
@@ -33,10 +25,7 @@ void erase(uint32_t *pg)
 
 void write(uint32_t *addr, uint32_t *buffer, size_t sz)
 {
-  if ((uint32_t)addr & (sizeof(uint32_t) - 1)) {
-    // FIXME: panic
-    return;
-  }
+  assert(((uint32_t)addr & (sizeof(uint32_t) - 1)) == 0);
 
   NVMC.CONFIG = NVMC_CONFIG_WEN;
   wait();

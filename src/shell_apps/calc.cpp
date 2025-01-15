@@ -46,7 +46,7 @@ bool listener(char c)
 
 void *calc(void *param)
 {
-  serial::register_listener(listener);
+  serial::listener_guard guard{listener};
   serial::clear_screen();
 
   while (!exit) {
@@ -56,7 +56,6 @@ void *calc(void *param)
   serial::clear_screen();
   exit = false;
 
-  serial::unregister_listener();
   return param;
 }
 

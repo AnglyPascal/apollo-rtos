@@ -28,6 +28,20 @@ using listener_t = bool (*)(char);
 void register_listener(listener_t);
 void unregister_listener();
 
+class listener_guard
+{
+public:
+  listener_guard(listener_t listener)
+  {
+    register_listener(listener);
+  }
+
+  ~listener_guard()
+  {
+    unregister_listener();
+  }
+};
+
 } // namespace serial
 
 using serial::printf;

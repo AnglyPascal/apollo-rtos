@@ -1,8 +1,9 @@
+#include "char_buffer.h"
 #include "memory.h"
+#include "nvm.h"
 #include "serial.h"
 #include "shell.h"
 #include "types.h"
-#include "waitlist.h"
 
 namespace shell
 {
@@ -21,24 +22,27 @@ bool listener(char c)
   return false;
 }
 
-void *trace(void *param)
+void *accel(void *param)
 {
+  nvm_t nvm{256};
+  auto addr = (uint32_t *)*nvm;
   serial::listener_guard guard{listener};
 
   while (!exit) {
     serial::clear_screen();
-    sched::trace();
-    waitlist::trace();
+    nvm.load();
+    printf("x: %d, y: %d, z: %d\r\n", addr[0], addr[1], addr[2]);
     sched::sleep(1000);
   }
-  serial::clear_screen();
+
   exit = false;
+  serial::clear_screen();
 
   return param;
 }
 
 } // namespace
 
-cmd_t trace_cmd = {"trace", 4, 128, trace};
+cmd_t accel_cmd = {"accel", 4, 128, accel};
 
 } // namespace shell

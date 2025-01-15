@@ -3,11 +3,12 @@
 namespace shell
 {
 
-extern cmd_t echo_cmd, trace_cmd, heart_cmd, show_cmd, calc_cmd;
+extern cmd_t echo_cmd, trace_cmd, heart_cmd, show_cmd, calc_cmd, accel_cmd;
 
 namespace
 {
-cmd_t *cmds[] = {&echo_cmd, &trace_cmd, &heart_cmd, &show_cmd, &calc_cmd};
+cmd_t *cmds[] = {&echo_cmd, &trace_cmd, &heart_cmd,
+                 &show_cmd, &calc_cmd,  &accel_cmd};
 }
 
 cmd_t *match_cmd(string cmd_str)
