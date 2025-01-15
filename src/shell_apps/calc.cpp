@@ -12,8 +12,7 @@ namespace
 
 volatile bool exit = false;
 
-// FIXME: will run even when the process is not running,
-// kind of a bummer
+// FIXME: will run even when the process is not running, kind of a bummer
 void calculator(const char *str)
 {
   printf("= %s\r\n", str);

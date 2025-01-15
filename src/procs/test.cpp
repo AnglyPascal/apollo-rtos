@@ -1,17 +1,12 @@
 #include "sched.h"
 
+__extern_C__
+void trigger_reset();
+
 namespace procs
 {
 
-void *proc1(void *param)
-{
-  int n = 5;
-  while (n-- > 0)
-    ;
-  return param;
-}
-
-void *proc2(void *param)
+void *test_proc(void *param)
 {
   int n = 3;
   while (n-- > 0)
@@ -25,6 +20,7 @@ void *proc2(void *param)
       while (n-- > 0)
         ;
     }
+
     sched::sleep(50);
   }
 

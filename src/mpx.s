@@ -1,5 +1,5 @@
-@@@ mpx-m0.s
 @@@ Copyright (c) 2018 J. M. Spivey        
+@@@ Inspired by Mike's work
 
 @@@ Hardware multiplexing for the ARM Cortex-M0
 
@@ -45,7 +45,7 @@ __run:
 @@@ process.  On Cortex-M0, it will always be 0xfffffff9, but on other
 @@@ chips it encodes info about the hardware-saved frame layout.
 
-@@@ isave -- save context for system call
+@@@ save context for system call
     .macro isave
     push {r4-r7, lr}
     mov r4, r8                  @ Copy from high to low
@@ -56,7 +56,7 @@ __run:
     mrs r0, msp
     .endm                       @ Return new thread sp
 
-@@@ irestore -- restore context after system call
+@@@ restore context after system call
     .macro irestore             @ Expect process sp in r0
 
     msr msp, r0
@@ -71,11 +71,19 @@ __run:
     bx r4
     .endm
 
-@@@ pendsv_handler -- handler for PendSV interupt (context switch)
+@@@ handler for PendSV interupt (context switch)
     .global pendsv_handler
     .thumb_func
 pendsv_handler:
     isave                       @ Complete saving of process state
     bl cxt_switch               @ Choose a new process
     irestore                    @ Restore state for that process
+
+@@@ trigger a soft reset by setting the SYSRESETREQ bit of the AIRCR register
+    .global trigger_reset
+    .thumb_func
+trigger_reset:
+    ldr r0, =0xE000ED0C       @ Load the address of AIRCR into r0
+    ldr r1, =0x05FA0004       @ Load the VECTKEY (0x5FA << 16) | SYSRESETREQ bit
+    str r1, [r0]              @ Write the value directly to AIRCR
 

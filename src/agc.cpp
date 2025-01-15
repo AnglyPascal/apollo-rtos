@@ -46,18 +46,13 @@ __extern_C__
 void spin(void);
 
 __extern_C__
+void trigger_reset(void);
+
+__extern_C__
 void __start(void)
 {
   led_init();
   serial::init();
-
-  /* auto addr = 0x2000; */
-  /* uint32_t val = 0xBEEFDEAD; */
-
-  /* auto ptr = (uint32_t *)addr; */
-  /* printf("%x, %x\r\n", ptr, *ptr); */
-  /* flash::erase(ptr); */
-  /* flash::write(ptr, &val, 1); */
 
   debug_addr();
 
@@ -82,5 +77,6 @@ void hardfault_handler(void)
 
   debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr);
 
-  spin();
+  /* spin(); */
+  trigger_reset();
 }
