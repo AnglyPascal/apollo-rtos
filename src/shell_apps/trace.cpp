@@ -12,7 +12,7 @@ namespace
 
 volatile bool exit = false;
 
-bool trace_listener(char c)
+bool listener(char c)
 {
   if (c == 'q') {
     exit = true;
@@ -23,7 +23,7 @@ bool trace_listener(char c)
 
 void *trace(void *param)
 {
-  serial::register_listener(trace_listener);
+  serial::register_listener(listener);
 
   while (!exit) {
     serial::clear_screen();

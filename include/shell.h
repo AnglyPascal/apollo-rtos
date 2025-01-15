@@ -1,5 +1,6 @@
 #pragma once
 
+#include "char_buffer.h"
 #include "sched.h"
 #include "types.h"
 
@@ -7,6 +8,7 @@ namespace shell
 {
 
 constexpr size_t args_len = 64;
+using buffer = char_buffer<args_len>;
 
 struct cmd_t {
   string cmd;

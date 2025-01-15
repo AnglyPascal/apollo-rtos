@@ -25,7 +25,7 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
 
 void *heart(void *param)
 {
-  auto buf = (char_buffer<64> *)param;
+  auto buf = (buffer *)param;
   auto str = buf->str + 6;
 
   auto n = (*str == '\0') ? 100 : atoi(str);

@@ -1,7 +1,5 @@
 #include "sched.h"
-#include "allocator.h"
 #include "debug.h"
-#include "display.h"
 #include "irq.h"
 #include "proc_stack.h"
 #include "procs.h"
@@ -9,8 +7,6 @@
 #include "timer.h"
 #include "types.h"
 #include "waitlist.h"
-
-void delay_loop(uint32_t);
 
 namespace sched
 {
@@ -26,7 +22,6 @@ stack_t stack;
 volatile struct {
   proc_t *hi_proc = nullptr;
   proc_t *curr_proc = nullptr;
-  /* time_t last_checked; */
 } cpu;
 } // namespace
 
@@ -74,11 +69,14 @@ uint8_t *cxt_switch(uint8_t *stk_ptr)
   debug<TRACE>("\t\t\t\t\"%s\" -> \"%s\"\r\n", cpu.curr_proc->name.str,
                cpu.hi_proc->name.str);
 
+  intr_guard guard;
+
   if (cpu.curr_proc->priority == 0) {
     stack.release((proc_t *)cpu.curr_proc);
     procs.dealloc((proc_t *)cpu.curr_proc);
   } else {
-    cpu.curr_proc->state = state_t::RUNNABLE;
+    if (cpu.curr_proc->state != state_t::ASLEEP)
+      cpu.curr_proc->state = state_t::RUNNABLE;
     cpu.curr_proc->stk_ptr = stk_ptr;
   }
 
@@ -87,24 +85,13 @@ uint8_t *cxt_switch(uint8_t *stk_ptr)
   return cpu.hi_proc->stk_ptr;
 }
 
-uint8_t *invoke(uint8_t *curr_stk, time_t millis)
-{
-  if ((millis & ((invoke_interval >> 1) - 1)) ||
-      millis <= last_checked + invoke_interval)
-    return curr_stk;
-
-  last_checked = timer::now();
-  if (cpu.hi_proc == cpu.curr_proc)
-    return curr_stk;
-
-  return cxt_switch(curr_stk);
-}
-
 void incr_priority(proc_t *proc, priority_t priority)
 {
   assert(proc->priority < priority);
   debug<TRACE>("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str,
                proc->priority, priority);
+
+  intr_guard guard;
 
   proc->priority = priority;
   if (cpu.hi_proc == nullptr || cpu.hi_proc->priority < priority) {
@@ -118,14 +105,18 @@ void decr_priority(priority_t priority)
   debug<TRACE>("\t\t\tdecr prio, %s: %d -> %d\r\n", cpu.curr_proc->name.str,
                cpu.curr_proc->priority, priority);
 
-  cpu.curr_proc->priority = priority;
+  {
+    intr_guard guard;
 
-  proc_t *max_proc = procs.max_priority();
-  cpu.hi_proc = max_proc;
+    cpu.curr_proc->priority = priority;
+    proc_t *max_proc = procs.max_priority();
+    cpu.hi_proc = max_proc;
+  }
+
   change_proc();
 }
 
-__attribute__((optimize("O1"))) // O1 doesn't work
+__attribute__((optimize("O1"))) // O2 doesn't work
 void *
 idle_task(void *)
 {
@@ -135,7 +126,7 @@ idle_task(void *)
   return nullptr;
 }
 
-/* enter thread mode with specified stack (see mpx.s) */
+/* enter idle_task with specified stack (see mpx.s) */
 __extern_C__
 void __run(void *(*task)(void *), uint8_t **stk_ptr);
 
@@ -164,13 +155,13 @@ void default_alarm(void *ptr)
 
 void sleep(time_t period)
 {
-  disable_irq(TIMER1_IRQ);
-
   auto proc = cpu.curr_proc;
-  proc->state = state_t::ASLEEP;
-  waitlist::reg("sleep", period, default_alarm, (void *)proc);
 
-  enable_irq(TIMER1_IRQ);
+  {
+    intr_guard guard;
+    proc->state = state_t::ASLEEP;
+    waitlist::reg("sleep", period, default_alarm, (void *)proc);
+  }
 
   decr_priority(-proc->priority);
 }

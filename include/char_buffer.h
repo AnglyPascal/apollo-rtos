@@ -16,6 +16,12 @@ struct char_buffer {
     str[sz++] = c;
   }
 
+  void pop()
+  {
+    if (sz > 0)
+      str[--sz] = '\0';
+  }
+
   char_buffer<len> &operator+=(char c)
   {
     push(c);

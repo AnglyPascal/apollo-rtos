@@ -1,8 +1,6 @@
 #include "waitlist.h"
 #include "debug.h"
-#include "hardware.h"
 #include "irq.h"
-#include "lib.h"
 #include "memory.h"
 #include "serial.h"
 

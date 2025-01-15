@@ -3,6 +3,27 @@
 #include "hardware.h"
 #include "types.h"
 
+/* Interrupts */
+#define SVC_IRQ -5
+#define PENDSV_IRQ -2
+#define RADIO_IRQ 1
+#define UART_IRQ 2
+#define I2C0_IRQ 3
+#define SPI0_IRQ 3
+#define I2C1_IRQ 4
+#define SPI1_IRQ 4
+#define GPIOTE_IRQ 6
+#define ADC_IRQ 7
+#define TIMER0_IRQ 8
+#define TIMER1_IRQ 9
+#define TIMER2_IRQ 10
+#define RTC0_IRQ 11
+#define TEMP_IRQ 12
+#define RNG_IRQ 13
+#define RTC1_IRQ 17
+
+#define N_INTERRUPTS 32
+
 /* NVIC SETUP FUNCTIONS */
 
 /* On Cortex-M0, only the top two bits of each interrupt priority are

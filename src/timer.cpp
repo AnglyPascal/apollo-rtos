@@ -1,9 +1,7 @@
 #include "hardware.h"
 #include "irq.h"
-#include "lib.h"
-#include "memory.h"
 #include "sched.h"
-#include "serial.h"
+#include "debug.h"
 #include "waitlist.h"
 
 namespace timer
@@ -66,7 +64,7 @@ void timer1_handler(void)
     enable_irq(TIMER1_IRQ);
   }
 
-  if (MILLIS - sched::_last_checked() > 2043) {
+  if (MILLIS - sched::last_checked > sched::invoke_interval) {
     debug<FATAL>("scheduler invoked\r\n");
     pendsv_handler();
   }

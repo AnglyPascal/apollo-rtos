@@ -1,4 +1,3 @@
-#include "char_buffer.h"
 #include "display.h"
 #include "lib.h"
 #include "serial.h"
@@ -146,7 +145,7 @@ const image_t alph[] = {
 
 void *show(void *param)
 {
-  auto buf = (char_buffer<64> *)param;
+  auto buf = (buffer *)param;
   auto str = buf->str + 5;
 
   while (*str != '\0') {

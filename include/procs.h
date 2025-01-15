@@ -14,6 +14,16 @@ enum class state_t : uint8_t {
   ASLEEP,
 };
 
+namespace
+{
+const char *states[] = {
+    "[empty]",
+    "[runnable]",
+    "[running]",
+    "[asleep]",
+};
+}
+
 struct proc_t {
   state_t state;
   string name;
@@ -80,18 +90,8 @@ public:
   inline void proc_trace(proc_t *proc)
   {
     auto pid = proc - procs;
-
-    const char *state;
-    if (proc->state == state_t::ASLEEP)
-      state = "asleep";
-    else if (proc->state == state_t::RUNNABLE)
-      state = "runnable";
-    else if (proc->state == state_t::RUNNING)
-      state = "running";
-    else
-      state = "empty";
-
-    printf("\t%d. %s : %s\r\n", pid, proc->name.str, state);
+    auto state = states[static_cast<size_t>(proc->state)];
+    printf("\t%d. %s : %d, %s\r\n", pid, proc->name.str, proc->priority, state);
     printf("\t\tstack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack, proc->stk_sz,
            proc->stk_ptr);
   }

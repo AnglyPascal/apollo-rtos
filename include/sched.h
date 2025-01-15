@@ -1,20 +1,17 @@
 #pragma once
 
-#include "procs.h"
 #include "types.h"
-
 #include <cstdint>
+
+struct proc_t;
 
 namespace sched
 {
 
-extern volatile time_t last_checked;
-
 void incr_priority(proc_t *proc, priority_t priority);
 void decr_priority(priority_t priority);
 
-inline constexpr time_t invoke_interval = 512;
-uint8_t *invoke(uint8_t *old_stack, time_t millis);
+inline constexpr time_t invoke_interval = 2048;
 
 void change_proc();
 
@@ -26,15 +23,8 @@ void init();
 void sleep(time_t period);
 void sleep(time_t period, void (*alarm)(void *), void *param);
 
-__extern_C__
-uint8_t *cxt_switch(uint8_t *stk_ptr);
-
 void trace();
 
-__always_inline__
-inline time_t _last_checked()
-{
-  return last_checked;
-}
+extern volatile time_t last_checked;
 
 } // namespace sched

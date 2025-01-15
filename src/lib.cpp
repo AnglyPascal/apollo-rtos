@@ -1,8 +1,5 @@
 #include "lib.h"
-#include "hardware.h"
 #include "types.h"
-
-#include "serial.h"
 
 int32_t atoi(const char *p)
 {

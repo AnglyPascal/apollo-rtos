@@ -1,5 +1,4 @@
 #include "shell.h"
-#include "char_buffer.h"
 #include "sched.h"
 #include "serial.h"
 #include "types.h"
@@ -10,7 +9,7 @@ namespace shell
 
 void *proc(void *param)
 {
-  auto buf = (char_buffer<args_len> *)param;
+  auto buf = (buffer *)param;
 
   auto idx = buf->find(' ');
   buf->replace(idx, '\0');
@@ -29,11 +28,16 @@ void *proc(void *param)
 
 namespace
 {
-char_buffer<args_len> *buf;
-}
+buffer *buf;
 
-bool shell_listener(char c)
+bool listener(char c)
 {
+  if (c == 0177) {
+    printf("\b \b");
+    buf->pop();
+    return true;
+  }
+
   serial::putc(c);
 
   if (c != '\r' && c != '\n') {
@@ -43,14 +47,15 @@ bool shell_listener(char c)
 
   printf("\r\n");
   sched::reg_proc("shell", _max<priority_t>, 256, proc, buf);
-  buf = new char_buffer<args_len>{};
+  buf = new buffer{};
   return true;
 }
+} // namespace
 
 void init()
 {
-  buf = new char_buffer<args_len>{};
-  serial::register_listener(shell_listener);
+  buf = new buffer{};
+  serial::register_listener(listener);
 }
 
 } // namespace shell

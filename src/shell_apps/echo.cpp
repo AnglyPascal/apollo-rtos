@@ -12,7 +12,7 @@ namespace
 
 void *echo(void *param)
 {
-  auto buf = (char_buffer<64> *)param;
+  auto buf = (buffer *)param;
   printf(">> %s\n", buf->str + 5);
   return param;
 }

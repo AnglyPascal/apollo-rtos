@@ -2,7 +2,6 @@
 #include "debug.h"
 #include "hardware.h"
 #include "irq.h"
-#include "lib.h"
 
 namespace serial
 {

@@ -1,4 +1,3 @@
-#include "char_buffer.h"
 #include "memory.h"
 #include "serial.h"
 #include "shell.h"
@@ -20,9 +19,9 @@ void calculator(const char *str)
   printf("= %s\r\n", str);
 }
 
-char_buffer<64> buf;
+buffer buf{};
 
-bool calc_listener(char c)
+bool listener(char c)
 {
   serial::putc(c);
 
@@ -47,7 +46,7 @@ bool calc_listener(char c)
 
 void *calc(void *param)
 {
-  serial::register_listener(calc_listener);
+  serial::register_listener(listener);
   serial::clear_screen();
 
   while (!exit) {

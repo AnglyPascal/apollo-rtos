@@ -1,7 +1,5 @@
 #include "memory.h"
 #include "debug.h"
-#include "hardware.h"
-#include "sched.h"
 
 __extern_C__
 uint8_t __stack_limit[],
