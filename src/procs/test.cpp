@@ -1,3 +1,4 @@
+#include "circular_buffer.h"
 #include "sched.h"
 
 __extern_C__
@@ -11,6 +12,21 @@ void *test_proc(void *param)
   int n = 3;
   while (n-- > 0)
     ;
+
+  circular_buffer<int, 10> buf;
+  buf.enqueue(10);
+  buf.enqueue(5);
+  buf.enqueue(1);
+  for (auto i : buf) {
+    debug<DEBUG>("%d, ", i);
+  }
+  debug<DEBUG>("\r\n");
+  buf.dequeue();
+  for (auto i : buf) {
+    debug<DEBUG>("%d, ", i);
+  }
+  debug<DEBUG>("\r\n");
+
   sched::decr_priority(5);
 
   while (1) {

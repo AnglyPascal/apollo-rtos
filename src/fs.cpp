@@ -1,6 +1,7 @@
 #include "fs.h"
 #include "debug.h"
 #include "hardware.h"
+#include "timer.h"
 
 __extern_C__
 uint8_t __nvm_start[],

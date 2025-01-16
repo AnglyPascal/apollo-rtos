@@ -62,57 +62,6 @@ struct pair {
   T2 second;
 };
 
-template <size_t len>
-class buffer
-{
-  char arr[len];
-  int sz = 0;
-
-public:
-  bool ready = false;
-
-public:
-  void push(char c)
-  {
-    if (sz == len)
-      return;
-
-    if (c == '\n' || c == '\r') {
-      ready = true;
-      c = '\0';
-    }
-
-    arr[sz++] = c;
-  }
-
-  bool check_suffix(const char *str) const
-  {
-    int i = 0;
-    while (i < sz && *str != '\0' && arr[i] == *str)
-      i++;
-    return *str == '\0';
-  }
-
-  pair<string, string> parse()
-  {
-    auto cmd = arr;
-    while (*cmd != ' ') {
-      if (*cmd == '\0')
-        return {arr, cmd};
-      cmd++;
-    }
-    *cmd++ = '\0';
-    return {arr, cmd};
-  }
-
-  void reset()
-  {
-    sz = 0;
-    arr[0] = '\0';
-    ready = false;
-  }
-};
-
 template <typename T>
 struct node {
   T *val = nullptr;
@@ -268,4 +217,9 @@ template <typename T>
 constexpr T min(T t, T s)
 {
   return t < s ? t : s;
+}
+
+inline void *operator new(size_t, void *where)
+{
+  return where;
 }

@@ -1,4 +1,5 @@
 #include "char_buffer.h"
+#include "circular_buffer.h"
 #include "fs.h"
 #include "memory.h"
 #include "nvm.h"
@@ -18,6 +19,9 @@ struct accel_t {
   int z;
 };
 
+constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
+using buffer = circular_buffer<accel_t, len>;
+
 volatile bool exit = false;
 
 bool listener(char c)
@@ -34,13 +38,18 @@ fd_t accel_fd = 5;
 void *accel(void *param)
 {
   auto file = fs::open(accel_fd, sizeof(accel_t), O_CREATE);
-  auto val = (accel_t *)**file;
+  auto val = (buffer *)**file;
   serial::listener_guard guard{listener};
 
   while (!exit) {
     serial::clear_screen();
     file->load();
-    printf("x: %d, y: %d, z: %d\r\n", val->x, val->y, val->z);
+
+    if (!val->empty()) {
+      auto [x, y, z] = val->back();
+      printf("x: %d, y: %d, z: %d\r\n", x, y, z);
+    }
+
     sched::sleep(1000);
   }
 
