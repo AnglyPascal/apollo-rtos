@@ -257,3 +257,15 @@ public:
     return iterator{arr + len};
   }
 };
+
+template <typename T>
+constexpr T max(T t, T s)
+{
+  return t > s ? t : s;
+}
+
+template <typename T>
+constexpr T min(T t, T s)
+{
+  return t < s ? t : s;
+}

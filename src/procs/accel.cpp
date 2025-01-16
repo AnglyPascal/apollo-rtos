@@ -1,25 +1,37 @@
+#include "fs.h"
 #include "nvm.h"
 #include "sched.h"
+#include "serial.h"
 #include "waitlist.h"
 
 namespace procs
 {
 
+namespace
+{
+struct accel_t {
+  int x;
+  int y;
+  int z;
+};
+} // namespace
+
+fd_t accel_fd = 5;
+
 void *accel(void *param)
 {
-  nvm_t nvm{256};
-  uint32_t *addr = (uint32_t *)*nvm;
+  auto file = fs::open(accel_fd, sizeof(accel_t), O_WRITE | O_CREATE);
+  accel_t *val = (accel_t *)**file;
 
   int n = 0;
   while (1) {
     n++;
-    for (int i = 0; i < 256; i++) {
-      addr[i] = n;
-    }
-    nvm.store();
+    *val = {n, n, n};
+    file->store();
     sched::sleep(1000);
   }
 
+  fs::close(file);
   return param;
 }
 

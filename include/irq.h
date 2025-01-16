@@ -88,23 +88,26 @@ inline void intr_enable()
   asm volatile("cpsie i");
 }
 
-namespace
-{
-static volatile uint32_t intr_sem = 0;
-}
-
 class intr_guard
 {
+  static volatile uint32_t intr_sem;
+
 public:
   intr_guard() noexcept
   {
-    if (intr_sem++ == 0)
+    auto sem = intr_sem;
+    if (sem++ == 0)
       intr_disable();
+    intr_sem = sem;
   }
 
   ~intr_guard() noexcept
   {
-    if (--intr_sem == 0)
+    auto sem = intr_sem;
+    if (--sem == 0)
       intr_enable();
+    intr_sem = sem;
   }
 };
+
+inline volatile uint32_t intr_guard::intr_sem = 0;

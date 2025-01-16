@@ -1,43 +1,58 @@
 #include "nvm.h"
-#include "flash.h"
+#include "debug.h"
+#include "hardware.h"
 #include "memory.h"
 
-__extern_C__
-uint8_t __nvm_start[],
-    __nvm_end[];
-
-void *nvm_t::operator*()
+/** If CPU is halted during write/erase operations, why do we need to busy wait?
+ */
+__always_inline__
+inline void wait()
 {
-  return ram_addr;
+  while (!NVMC.READY)
+    ;
 }
 
-nvm_t::nvm_t(uint32_t *addr, size_t len) : nvm_addr(addr), len(len)
+void nvm_t::load() const
 {
-  ram_addr = (uint32_t *)heap::malloc(len);
+  for (size_t i = 0; i < sz / sizeof(uint32_t); i++) {
+    rt_addr[i] = pg_addr[i];
+    wait();
+  }
 }
 
-nvm_t::nvm_t(size_t len) : len(len)
+void nvm_t::erase() const
 {
-  nvm_addr = (uint32_t *)__nvm_start;
-  ram_addr = (uint32_t *)heap::malloc(len * sizeof(uint32_t));
+  NVMC.CONFIG = NVMC_CONFIG_EEN;
+  wait();
+  NVMC.ERASEPAGE = pg_addr;
+  wait();
+  NVMC.CONFIG = NVMC_CONFIG_REN;
+  wait();
+}
+
+void nvm_t::store() const
+{
+  erase();
+
+  NVMC.CONFIG = NVMC_CONFIG_WEN;
+  wait();
+
+  for (size_t i = 0; i < sz / sizeof(uint32_t); i++) {
+    pg_addr[i] = rt_addr[i];
+    wait();
+  }
+
+  NVMC.CONFIG = NVMC_CONFIG_REN;
+  wait();
 }
 
 nvm_t::~nvm_t()
 {
-  heap::free(ram_addr);
+  heap::free(rt_addr);
 }
 
-void nvm_t::store()
+void *nvm_t::operator*() const
 {
-  flash::erase(nvm_addr);
-  flash::write(nvm_addr, ram_addr, len);
-}
-
-void nvm_t::load()
-{
-  for (size_t i = 0; i < len; i++) {
-    ram_addr[i] = nvm_addr[i];
-    flash::wait();
-  }
+  return rt_addr;
 }
 

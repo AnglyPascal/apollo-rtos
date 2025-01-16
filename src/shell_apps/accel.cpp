@@ -1,4 +1,5 @@
 #include "char_buffer.h"
+#include "fs.h"
 #include "memory.h"
 #include "nvm.h"
 #include "serial.h"
@@ -11,6 +12,12 @@ namespace shell
 namespace
 {
 
+struct accel_t {
+  int x;
+  int y;
+  int z;
+};
+
 volatile bool exit = false;
 
 bool listener(char c)
@@ -22,21 +29,24 @@ bool listener(char c)
   return false;
 }
 
+fd_t accel_fd = 5;
+
 void *accel(void *param)
 {
-  nvm_t nvm{256};
-  auto addr = (uint32_t *)*nvm;
+  auto file = fs::open(accel_fd, sizeof(accel_t), O_CREATE);
+  auto val = (accel_t *)**file;
   serial::listener_guard guard{listener};
 
   while (!exit) {
     serial::clear_screen();
-    nvm.load();
-    printf("x: %d, y: %d, z: %d\r\n", addr[0], addr[1], addr[2]);
+    file->load();
+    printf("x: %d, y: %d, z: %d\r\n", val->x, val->y, val->z);
     sched::sleep(1000);
   }
 
   exit = false;
   serial::clear_screen();
+  fs::close(file);
 
   return param;
 }

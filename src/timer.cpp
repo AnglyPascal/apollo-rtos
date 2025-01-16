@@ -64,8 +64,10 @@ void timer1_handler(void)
     enable_irq(TIMER1_IRQ);
   }
 
+  // FIXME: there's a bug here
   if (MILLIS - sched::last_checked > sched::invoke_interval) {
     debug<FATAL>("scheduler invoked\r\n");
+    sched::last_checked = MILLIS;
     pendsv_handler();
   }
 }

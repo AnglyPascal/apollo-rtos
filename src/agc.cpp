@@ -1,6 +1,6 @@
 #include "debug.h"
 #include "display.h"
-#include "flash.h"
+#include "fs.h"
 #include "hardware.h"
 #include "irq.h"
 #include "lib.h"
@@ -13,7 +13,7 @@
 __extern_C__
 uint8_t __data_start[],
     __data_end[], __bss_start[], __bss_end[], __end[], __etext[], __stack[],
-    __stack_limit, __nvm_start[], __nvm_end[];
+    __stack_limit, __nvm_end[], __nvm_start[];
 
 void waitlist1(void *)
 {
@@ -53,6 +53,7 @@ void __start(void)
 {
   led_init();
   serial::init();
+  fs::mount();
 
   debug_addr();
 
@@ -77,6 +78,6 @@ void hardfault_handler(void)
 
   debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr);
 
-  /* spin(); */
-  trigger_reset();
+  spin();
+  /* trigger_reset(); */
 }
