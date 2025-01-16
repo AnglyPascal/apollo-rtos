@@ -27,6 +27,15 @@ static_assert(sizeof(tbl) <= pg_sz);
 uint32_t *tbl_addr = (uint32_t *)__nvm_end;
 nvm_t *tbl_pg;
 
+struct open_file_t {
+  fd_t fd;
+  file_t *file;
+  uint32_t refcnt;
+};
+
+constexpr size_t N_OPEN_FILES = 16;
+open_file_t fd_tbl[N_OPEN_FILES] = {{null_fd, nullptr, 0}};
+
 } // namespace
 
 constexpr uint32_t *off_to_pg_addr(size_t off)
@@ -166,6 +175,21 @@ void remove(fd_t fd)
   insert(tbl.inodes[free_head_fd], inode);
 }
 
+open_file_t *find_slot(fd_t fd)
+{
+  size_t free_slot = N_OPEN_FILES;
+  for (size_t i = 0; i < N_OPEN_FILES; i++) {
+    auto &slot = fd_tbl[i];
+    if (slot.fd == fd)
+      return &slot;
+    if (slot.fd == null_fd)
+      free_slot = i;
+  }
+  if (free_slot == N_OPEN_FILES)
+    return nullptr;
+  return &fd_tbl[free_slot];
+}
+
 file_t *open(fd_t fd, size_t sz, uint32_t flags)
 {
   assert(sz > 0 && fd >= 0 && fd < NFILES);
@@ -189,7 +213,17 @@ file_t *open(fd_t fd, size_t sz, uint32_t flags)
     inode.sz = sz;
   }
 
-  auto file = new file_t{fd, write_en};
+  auto slot = find_slot(fd);
+
+  file_t *file;
+  if (slot->fd == fd) {
+    file = slot->file;
+  } else {
+    slot->fd = fd;
+    slot->file = file = new file_t{fd, write_en};
+  }
+  slot->refcnt++;
+
   if (new_file) {
     file->erase();
   }
@@ -200,7 +234,14 @@ file_t *open(fd_t fd, size_t sz, uint32_t flags)
 
 void close(file_t *file)
 {
-  delete file;
+  auto fd = file->inode->fd;
+  auto slot = find_slot(fd);
+
+  if (--slot->refcnt == 0) {
+    slot->fd = null_fd;
+    slot->file = nullptr;
+    delete file;
+  }
 }
 
 void fstat(fd_t fd) {}

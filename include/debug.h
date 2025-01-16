@@ -33,7 +33,7 @@ inline void __assert(bool ex, const char *src, const char *func,
     if (!ex) {
       debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
                    file, line);
-      spin();
+      asm("udf #0");
     }
 }
 

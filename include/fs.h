@@ -24,26 +24,7 @@ struct inode_t {
   }
 };
 
-class file_t
-{
-  inode_t *const inode;
-  void *const addr;
-
-  nvm_t pg1;
-  nvm_t pg2;
-
-  const bool write_en;
-
-public:
-  file_t(fd_t fd, bool write_en);
-
-  void *operator*();
-  void store() const;
-  void load() const;
-  void erase() const;
-
-  ~file_t();
-};
+class file_t;
 
 #define O_CREATE 0x00000001
 #define O_WRITE 0x00000002
@@ -57,3 +38,27 @@ file_t *open(fd_t fd, size_t sz, uint32_t flags);
 void close(file_t *file);
 
 } // namespace fs
+
+class file_t
+{
+  inode_t *const inode;
+  void *const addr;
+
+  nvm_t pg1;
+  nvm_t pg2;
+
+  const bool write_en;
+
+  friend file_t *fs::open(fd_t fd, size_t sz, uint32_t flags);
+  friend void fs::close(file_t *file);
+
+public:
+  file_t(fd_t fd, bool write_en);
+
+  void *operator*();
+  void store() const;
+  void load() const;
+  void erase() const;
+
+  ~file_t();
+};

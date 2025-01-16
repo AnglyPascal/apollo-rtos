@@ -43,7 +43,6 @@ void *accel(void *param)
 
   while (!exit) {
     serial::clear_screen();
-    file->load();
 
     if (!val->empty()) {
       auto [x, y, z] = val->back();

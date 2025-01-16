@@ -32,7 +32,7 @@ void *accel(void *param)
     n++;
     val->enqueue(n, n, n);
 
-    if ((n & 3) == 0)
+    if ((n & 31) == 0)
       file->store();
 
     sched::sleep(1000);
