@@ -1,3 +1,4 @@
+#include "fs.h"
 #include "memory.h"
 #include "serial.h"
 #include "shell.h"
@@ -29,6 +30,7 @@ void *trace(void *param)
     serial::clear_screen();
     sched::trace();
     waitlist::trace();
+    fs::trace();
     sched::sleep(1000);
   }
   serial::clear_screen();

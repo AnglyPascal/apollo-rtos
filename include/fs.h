@@ -4,12 +4,13 @@
 #include "nvm.h"
 #include "types.h"
 
-using fd_t = uint8_t;
+using fn_t = uint8_t;
 
 struct inode_t {
-  fd_t fd;
-  fd_t next;
-  fd_t prev;
+  fn_t fn;
+  fn_t next;
+  fn_t prev;
+
   uint8_t write_en;
   size_t sz;
 
@@ -34,31 +35,33 @@ namespace fs
 
 void mount();
 void store();
-file_t *open(fd_t fd, size_t sz, uint32_t flags);
+file_t *open(fn_t fn, size_t sz, uint32_t flags);
 void close(file_t *file);
+void trace();
 
 } // namespace fs
 
+class fd_t;
+
 class file_t
 {
-  inode_t *const inode;
-  void *const addr;
+public:
+  fn_t fn;
 
-  nvm_t pg1;
-  nvm_t pg2;
+private:
+  fd_t *fd;
+  bool w_en;
 
-  const bool write_en;
-
-  friend file_t *fs::open(fd_t fd, size_t sz, uint32_t flags);
+  friend file_t *fs::open(fn_t fn, size_t sz, uint32_t flags);
   friend void fs::close(file_t *file);
 
 public:
-  file_t(fd_t fd, bool write_en);
+  file_t(fn_t fn, fd_t *fd, bool w_en);
 
+  void load();
+  void store();
+  void erase();
   void *operator*();
-  void store() const;
-  void load() const;
-  void erase() const;
 
   ~file_t();
 };

@@ -33,11 +33,11 @@ bool listener(char c)
   return false;
 }
 
-fd_t accel_fd = 5;
+fn_t accel_fn = 5;
 
 void *accel(void *param)
 {
-  auto file = fs::open(accel_fd, sizeof(accel_t), O_CREATE);
+  auto file = fs::open(accel_fn, sizeof(accel_t), O_CREATE);
   auto val = (buffer *)**file;
   serial::listener_guard guard{listener};
 

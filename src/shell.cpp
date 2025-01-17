@@ -4,6 +4,11 @@
 #include "types.h"
 #include "waitlist.h"
 
+void delay_loop(uint32_t);
+
+__extern_C__
+void trigger_reset();
+
 namespace shell
 {
 
@@ -35,6 +40,12 @@ bool listener(char c)
   if (c == 0177) {
     printf("\b \b");
     buf->pop();
+    return true;
+  }
+
+  if (c == CTRL('d')) {
+    /* serial::clear_screen(); */
+    trigger_reset();
     return true;
   }
 

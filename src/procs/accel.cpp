@@ -20,11 +20,11 @@ constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
 using buffer = circular_buffer<accel_t, len>;
 } // namespace
 
-fd_t accel_fd = 5;
+fn_t accel_fn = 5;
 
 void *accel(void *param)
 {
-  auto file = fs::open(accel_fd, sizeof(buffer), O_WRITE | O_CREATE);
+  auto file = fs::open(accel_fn, sizeof(buffer), O_WRITE | O_CREATE);
   buffer *val = (buffer *)**file;
 
   int n = 0;
