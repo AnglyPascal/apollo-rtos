@@ -13,6 +13,7 @@ void decr_priority(priority_t priority);
 
 inline constexpr time_t invoke_interval = 2048;
 
+bool needs_swap();
 void change_proc();
 
 proc_t *reg_proc(string name, priority_t priority, uint32_t stack_sz,

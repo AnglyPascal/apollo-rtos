@@ -10,11 +10,11 @@ uint8_t __nvm_start[],
 namespace
 {
 
-// can use about 220 nvms of flash memory
+// can use about 220 pages of flash memory
 constexpr size_t NFILES = 110;
 
-constexpr fd_t free_head_fd = NFILES;
-constexpr fd_t files_head_fd = NFILES + 1;
+constexpr fd_t free_fd = NFILES;
+constexpr fd_t files_fd = NFILES + 1;
 constexpr fd_t null_fd = _max<fd_t>;
 
 alignas(uint32_t) struct {
@@ -34,24 +34,24 @@ struct open_file_t {
 };
 
 constexpr size_t N_OPEN_FILES = 16;
-open_file_t fd_tbl[N_OPEN_FILES] = {{null_fd, nullptr, 0}};
+open_file_t open_files[N_OPEN_FILES] = {{null_fd, nullptr, 0}};
 
 } // namespace
 
-constexpr uint32_t *off_to_pg_addr(size_t off)
+inline uint32_t *off2pg(size_t off)
 {
   return (uint32_t *)(__nvm_start + off * pg_sz);
 }
 
 file_t::file_t(fd_t fd, bool write_en)
     : inode{tbl.inodes + fd}, addr{heap::malloc(inode->sz)},
-      pg1{off_to_pg_addr(2 * fd), (uint32_t *)addr, inode->pg1_sz()},
-      pg2{off_to_pg_addr(2 * fd + 1), (uint32_t *)((uint8_t *)addr + pg_sz),
+      pg1{off2pg(2 * fd), (uint32_t *)addr, inode->pg1_sz()},
+      pg2{off2pg(2 * fd + 1), (uint32_t *)((uint8_t *)addr + pg_sz),
           inode->pg2_sz()},
       write_en{write_en}
 {
-  debug<INFO>("%d, %x, %x, %d\r\n", fd, addr, off_to_pg_addr(2 * fd),
-              tbl.inodes[fd].sz);
+  debug<TRACE>("%d, %x, %x, %d\r\n", fd, addr, off2pg(2 * fd),
+               tbl.inodes[fd].sz);
   load();
 }
 
@@ -90,6 +90,7 @@ void file_t::store() const
 
 file_t::~file_t()
 {
+  // FIXME: write access number
   if (write_en && inode->write_en) {
     inode->write_en = false;
   }
@@ -116,11 +117,11 @@ inline void init()
     };
   }
 
-  tbl.inodes[0].prev = free_head_fd;
+  tbl.inodes[0].prev = free_fd;
   tbl.inodes[NFILES - 1].next = null_fd;
 
-  tbl.inodes[free_head_fd] = {free_head_fd, 0, null_fd, true};
-  tbl.inodes[files_head_fd] = {files_head_fd, null_fd, null_fd, true};
+  tbl.inodes[free_fd] = {free_fd, 0, null_fd, true};
+  tbl.inodes[files_fd] = {files_fd, null_fd, null_fd, true};
 
   tbl.is_valid = true;
 }
@@ -158,11 +159,11 @@ inline void insert(inode_t &head, inode_t &inode)
 
 fd_t create()
 {
-  auto fd = tbl.inodes[free_head_fd].next;
+  auto fd = tbl.inodes[free_fd].next;
   auto &inode = tbl.inodes[fd];
 
   extract(inode);
-  insert(tbl.inodes[files_head_fd], inode);
+  insert(tbl.inodes[files_fd], inode);
 
   return fd;
 }
@@ -172,14 +173,14 @@ void remove(fd_t fd)
   auto &inode = tbl.inodes[fd];
 
   extract(inode);
-  insert(tbl.inodes[free_head_fd], inode);
+  insert(tbl.inodes[free_fd], inode);
 }
 
 open_file_t *find_slot(fd_t fd)
 {
   size_t free_slot = N_OPEN_FILES;
   for (size_t i = 0; i < N_OPEN_FILES; i++) {
-    auto &slot = fd_tbl[i];
+    auto &slot = open_files[i];
     if (slot.fd == fd)
       return &slot;
     if (slot.fd == null_fd)
@@ -187,7 +188,7 @@ open_file_t *find_slot(fd_t fd)
   }
   if (free_slot == N_OPEN_FILES)
     return nullptr;
-  return &fd_tbl[free_slot];
+  return &open_files[free_slot];
 }
 
 file_t *open(fd_t fd, size_t sz, uint32_t flags)

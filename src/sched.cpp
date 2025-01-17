@@ -53,10 +53,15 @@ proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
   return proc;
 }
 
+bool needs_swap()
+{
+  return cpu.hi_proc != cpu.curr_proc;
+}
+
 void change_proc()
 {
   last_checked = timer::now();
-  if (cpu.hi_proc != cpu.curr_proc)
+  if (needs_swap())
     reschedule();
 }
 

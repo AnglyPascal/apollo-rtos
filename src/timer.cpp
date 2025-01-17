@@ -1,7 +1,7 @@
+#include "debug.h"
 #include "hardware.h"
 #include "irq.h"
 #include "sched.h"
-#include "debug.h"
 #include "waitlist.h"
 
 namespace timer
@@ -45,6 +45,17 @@ uint8_t *stk_end = stk + timer_stk_sz;
 __extern_C__
 void pendsv_handler(void);
 
+__always_inline__
+inline void sched_invoke()
+{
+  if (MILLIS - sched::last_checked > sched::invoke_interval) {
+    debug<FATAL>("scheduler invoked\r\n");
+    sched::last_checked = MILLIS;
+    if (sched::needs_swap())
+      pendsv_handler();
+  }
+}
+
 __extern_C__
 void timer1_handler(void)
 {
@@ -64,12 +75,7 @@ void timer1_handler(void)
     enable_irq(TIMER1_IRQ);
   }
 
-  // FIXME: there's a bug here
-  if (MILLIS - sched::last_checked > sched::invoke_interval) {
-    debug<FATAL>("scheduler invoked\r\n");
-    sched::last_checked = MILLIS;
-    pendsv_handler();
-  }
+  sched_invoke();
 }
 
 /** Scheduler invoker inside timer1_handler:
