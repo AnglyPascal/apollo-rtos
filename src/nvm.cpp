@@ -46,11 +46,6 @@ void nvm_t::store() const
   wait();
 }
 
-nvm_t::~nvm_t()
-{
-  heap::free(rt_addr);
-}
-
 void *nvm_t::operator*() const
 {
   return rt_addr;

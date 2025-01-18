@@ -38,7 +38,7 @@ fn_t accel_fn = 5;
 void *accel(void *param)
 {
   auto file = fs::open(accel_fn, sizeof(accel_t), O_CREATE);
-  auto val = (buffer *)**file;
+  auto val = (buffer *)*file;
   serial::listener_guard guard{listener};
 
   while (!exit) {
@@ -54,7 +54,6 @@ void *accel(void *param)
 
   exit = false;
   serial::clear_screen();
-  fs::close(file);
 
   return param;
 }

@@ -56,7 +56,10 @@ void reg(string name, time_t interval, void (*func)(void *), void *param)
   }
 
   waitlist[i] = {name, interval - prev, func, param};
-  list_sz++;
+
+  auto lsz = list_sz;
+  lsz++;
+  list_sz = lsz;
 }
 
 void run()
@@ -80,7 +83,10 @@ void run()
       swap(waitlist[i], waitlist[i - 1]);
     }
 
-    list_sz--;
+    auto lsz = list_sz;
+    lsz--;
+    list_sz = lsz;
+
     func(param);
   }
 }

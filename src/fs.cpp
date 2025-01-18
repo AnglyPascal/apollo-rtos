@@ -49,8 +49,8 @@ public:
   inode_t *inode = nullptr;
   void *addr = nullptr;
 
-  nvm_t *pg1 = nullptr;
-  nvm_t *pg2 = nullptr;
+  nvm_t pg1;
+  nvm_t pg2;
 
   uint8_t w_cnt = 0;
   uint8_t r_cnt = 0;
@@ -68,9 +68,9 @@ private:
 
     inode = _inode;
     addr = heap::malloc(inode->sz);
-    pg1 = new nvm_t{off2pg(2 * fn), (uint32_t *)addr, inode->pg1_sz()};
-    pg2 = new nvm_t{off2pg(2 * fn + 1), (uint32_t *)((uint8_t *)addr + pg_sz),
-                    inode->pg2_sz()};
+    pg1 = {off2pg(2 * fn), (uint32_t *)addr, inode->pg1_sz()};
+    pg2 = {off2pg(2 * fn + 1), (uint32_t *)((uint8_t *)addr + pg_sz),
+           inode->pg2_sz()};
     w_cnt = 0;
     r_cnt = 0;
 
@@ -87,7 +87,6 @@ private:
   {
     w_cnt -= w_en;
     r_cnt--;
-
     if (r_cnt == 0)
       close();
   }
@@ -99,37 +98,34 @@ private:
     heap::free(addr);
     addr = nullptr;
 
-    delete pg1;
-    pg1 = nullptr;
-
-    delete pg2;
-    pg2 = nullptr;
+    pg1 = {};
+    pg2 = {};
   }
 
   void load() const
   {
     auto sz = inode->sz;
-    pg1->load();
+    pg1.load();
     if (sz > pg_sz) {
-      pg2->load();
+      pg2.load();
     }
   }
 
   void erase() const
   {
     auto sz = inode->sz;
-    pg1->erase();
+    pg1.erase();
     if (sz > pg_sz) {
-      pg2->erase();
+      pg2.erase();
     }
   }
 
   void store() const
   {
     auto sz = inode->sz;
-    pg1->store();
+    pg1.store();
     if (sz > pg_sz) {
-      pg2->store();
+      pg2.store();
     }
   }
 
@@ -311,32 +307,21 @@ void remove(fn_t fn)
   insert(tbl[free_fn], inode);
 }
 
-file_t *open(fn_t fn, size_t sz, uint32_t flags)
+file_t open(fn_t fn, size_t sz, uint32_t flags)
 {
   assert(sz > 0 && fn >= 0 && fn < NFILES);
 
   auto &inode = tbl[fn];
-
   bool w_en = flags & O_WRITE;
-  if (inode.write_en && w_en) {
-    debug<ERROR>("file %d is already open for write\r\n", fn);
-    return nullptr;
-  }
 
   if (inode.sz == 0) {
-    if ((flags & O_CREATE) == 0) {
-      debug<ERROR>("file %d doesn't exist\r\n", fn);
-      return nullptr;
-    }
+    assert(flags & O_CREATE);
     inode.sz = sz;
+    inode.w_en = w_en;
   }
 
-  return new file_t{fn, fd_tbl.open(&inode), w_en};
-}
-
-void close(file_t *file)
-{
-  delete file;
+  assert((!w_en || inode.w_en));
+  return {fn, fd_tbl.open(&inode), w_en};
 }
 
 void fstat(fn_t fn)

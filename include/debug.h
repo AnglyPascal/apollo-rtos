@@ -37,4 +37,4 @@ inline void __assert(bool ex, const char *src, const char *func,
     }
 }
 
-#define assert(EX) __assert((EX), #EX, __func__, __FILE__, __LINE__)
+#define assert(EX, ...) __assert((EX), #EX, __func__, __FILE__, __LINE__)

@@ -11,7 +11,7 @@ struct inode_t {
   fn_t next;
   fn_t prev;
 
-  uint8_t write_en;
+  uint8_t w_en;
   size_t sz;
 
   size_t pg1_sz() const
@@ -35,8 +35,7 @@ namespace fs
 
 void mount();
 void store();
-file_t *open(fn_t fn, size_t sz, uint32_t flags);
-void close(file_t *file);
+file_t open(fn_t fn, size_t sz, uint32_t flags);
 void trace();
 
 } // namespace fs
@@ -52,8 +51,7 @@ private:
   fd_t *fd;
   bool w_en;
 
-  friend file_t *fs::open(fn_t fn, size_t sz, uint32_t flags);
-  friend void fs::close(file_t *file);
+  friend file_t fs::open(fn_t fn, size_t sz, uint32_t flags);
 
 public:
   file_t(fn_t fn, fd_t *fd, bool w_en);
