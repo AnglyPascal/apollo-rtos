@@ -64,7 +64,7 @@ private:
   void open(inode_t *_inode)
   {
     auto fn = _inode->fn;
-    debug<DEBUG>("%d, %x, %x, %d\r\n", fn, addr, off2pg(2 * fn), tbl[fn].sz);
+    debug<TRACE>("%d, %x, %x, %d\r\n", fn, addr, off2pg(2 * fn), tbl[fn].sz);
 
     inode = _inode;
     addr = heap::malloc(inode->sz);
@@ -312,15 +312,14 @@ file_t open(fn_t fn, size_t sz, uint32_t flags)
   assert(sz > 0 && fn >= 0 && fn < NFILES);
 
   auto &inode = tbl[fn];
-  bool w_en = flags & O_WRITE;
 
   if (inode.sz == 0) {
     assert(flags & O_CREATE);
     inode.sz = sz;
-    inode.w_en = w_en;
+    inode.in_use = true;
   }
 
-  assert((!w_en || inode.w_en));
+  bool w_en = flags & O_WRITE;
   return {fn, fd_tbl.open(&inode), w_en};
 }
 

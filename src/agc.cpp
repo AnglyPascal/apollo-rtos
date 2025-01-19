@@ -51,6 +51,9 @@ void trigger_reset(void);
 __extern_C__
 void __start(void)
 {
+  _memcpy(__data_start, __etext, __data_end - __data_start);
+  _memset(__bss_start, 0, __bss_end - __bss_start);
+
   led_init();
   serial::init();
   fs::mount();

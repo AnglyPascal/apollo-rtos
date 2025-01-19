@@ -34,11 +34,6 @@ void __reset(void)
   while (!CLOCK.HFCLKSTARTED)
     ;
 
-  int data_size = __data_end - __data_start;
-  int bss_size = __bss_end - __bss_start;
-  _memcpy(__data_start, __etext, data_size);
-  _memset(__bss_start, 0, bss_size);
-
   __start();
 }
 

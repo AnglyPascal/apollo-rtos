@@ -11,7 +11,7 @@ struct inode_t {
   fn_t next;
   fn_t prev;
 
-  uint8_t w_en;
+  uint8_t in_use;
   size_t sz;
 
   size_t pg1_sz() const
