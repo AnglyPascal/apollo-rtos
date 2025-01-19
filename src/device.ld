@@ -41,6 +41,11 @@ SECTIONS {
         *(COMMON)
         . = ALIGN(4);
         __bss_end = .;
+    } > RAM
+
+    .recover :
+    {
+        KEEP(*(.recover)) ;
         __end = .;
     } > RAM
 

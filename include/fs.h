@@ -4,6 +4,8 @@
 #include "nvm.h"
 #include "types.h"
 
+/* static constexpr size_t pg_sz = 1024; */
+
 using fn_t = uint8_t;
 
 struct inode_t {
@@ -21,7 +23,7 @@ struct inode_t {
 
   size_t pg2_sz() const
   {
-    return max(sz, pg_sz) - pg_sz;
+    return sz > pg_sz ? sz - pg_sz : 0;
   }
 };
 
@@ -33,7 +35,7 @@ class file_t;
 namespace fs
 {
 
-void mount();
+void mount(bool is_valid);
 void store();
 file_t open(fn_t fn, size_t sz, uint32_t flags);
 void trace();

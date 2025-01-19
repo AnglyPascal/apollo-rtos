@@ -4,8 +4,6 @@
 #include "memory.h"
 #include "types.h"
 
-static constexpr size_t pg_sz = 1024;
-
 // runtime representation of a nvm page
 class nvm_t
 {
@@ -19,8 +17,8 @@ public:
   nvm_t(uint32_t *pg_addr, uint32_t *rt_addr, size_t sz)
       : pg_addr{pg_addr}, rt_addr{rt_addr}, sz{sz}
   {
-    assert(((uint32_t)pg_addr & (sizeof(uint32_t) - 1)) == 0);
-    assert((sz & (sizeof(uint32_t) - 1)) == 0);
+    assert((uint32_t)pg_addr % sizeof(uint32_t) == 0);
+    assert(sz % sizeof(uint32_t) == 0, "%d\r\n", sz);
   }
 
   void load() const;

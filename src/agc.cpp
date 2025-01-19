@@ -4,6 +4,7 @@
 #include "hardware.h"
 #include "irq.h"
 #include "lib.h"
+#include "recover.h"
 #include "sched.h"
 #include "serial.h"
 #include "shell.h"
@@ -56,12 +57,23 @@ void __start(void)
 
   led_init();
   serial::init();
-  fs::mount();
+  fs::mount(is_reset());
 
-  debug_addr();
+  /* debug_addr(); */
 
   waitlist::reg("waitlist1", 640, waitlist1);
   waitlist::reg("waitlist2", 800, waitlist2);
+
+  if (!is_reset()) {
+    set_magic();
+    printf("boot\r\n");
+    waitlist::reg("reset", 1000, [](void *) {
+      fs::store();
+      trigger_reset();
+    });
+  } else {
+    printf("reset\r\n");
+  }
 
   timer::init();
   shell::init();
@@ -73,13 +85,14 @@ void __start(void)
 __extern_C__
 void hardfault_handler(void)
 {
-  debug<FATAL>("\r\n!!WTF!!\r\n");
+  debug<FATAL>("!!WTF!!\r\n");
+  serial::flush();
 
-  volatile uint32_t *fault_stack = (uint32_t *)get_msp();
-  uint32_t pc = fault_stack[6]; // Program Counter
-  uint32_t lr = fault_stack[5]; // Link Register
+  /* volatile uint32_t *fault_stack = (uint32_t *)get_msp(); */
+  /* uint32_t pc = fault_stack[6]; // Program Counter */
+  /* uint32_t lr = fault_stack[5]; // Link Register */
 
-  debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr);
+  /* debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr); */
 
   spin();
   /* trigger_reset(); */

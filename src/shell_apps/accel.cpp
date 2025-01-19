@@ -13,7 +13,7 @@ namespace shell
 namespace
 {
 
-struct accel_t {
+struct alignas(uint32_t) accel_t {
   int x;
   int y;
   int z;
@@ -21,6 +21,8 @@ struct accel_t {
 
 constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
 using buffer = circular_buffer<accel_t, len>;
+
+static_assert(sizeof(buffer) % sizeof(uint32_t) == 0);
 
 volatile bool exit = false;
 
@@ -37,7 +39,7 @@ fn_t accel_fn = 5;
 
 void *accel(void *param)
 {
-  auto file = fs::open(accel_fn, sizeof(accel_t), O_CREATE);
+  auto file = fs::open(accel_fn, sizeof(buffer), O_CREATE);
   auto val = (buffer *)*file;
   serial::listener_guard guard{listener};
 

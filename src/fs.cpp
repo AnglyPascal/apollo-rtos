@@ -30,14 +30,10 @@ public:
 } tbl;
 
 static_assert(sizeof(tbl) <= pg_sz);
+static_assert(sizeof(tbl) % sizeof(uint32_t) == 0);
 
 uint32_t *tbl_addr = (uint32_t *)__nvm_end;
-nvm_t *tbl_pg;
-
-inline uint32_t *off2pg(size_t off)
-{
-  return (uint32_t *)(__nvm_start + off * pg_sz);
-}
+nvm_t tbl_pg;
 
 ////////////
 /// fd_t ///
@@ -58,6 +54,11 @@ public:
   friend class file_t;
   friend class fd_tbl_t;
 
+  static inline uint32_t *off2pg(size_t off)
+  {
+    return (uint32_t *)((size_t)__nvm_start + off * pg_sz);
+  }
+
 private:
   fd_t() {}
 
@@ -69,8 +70,9 @@ private:
     inode = _inode;
     addr = heap::malloc(inode->sz);
     pg1 = {off2pg(2 * fn), (uint32_t *)addr, inode->pg1_sz()};
-    pg2 = {off2pg(2 * fn + 1), (uint32_t *)((uint8_t *)addr + pg_sz),
-           inode->pg2_sz()};
+    if (inode->pg2_sz() > 0)
+      pg2 = {off2pg(2 * fn + 1), (uint32_t *)((uint8_t *)addr + pg_sz),
+             inode->pg2_sz()};
     w_cnt = 0;
     r_cnt = 0;
 
@@ -253,21 +255,19 @@ inline void init()
 
   tbl[free_fn] = {free_fn, 0, null_fn, true};
   tbl[files_fn] = {files_fn, null_fn, null_fn, true};
-
-  tbl.is_valid = true;
 }
 
-void mount()
+void mount(bool is_valid)
 {
-  tbl_pg = new nvm_t{(uint32_t *)tbl_addr, (uint32_t *)&tbl, sizeof(tbl)};
-  tbl_pg->load();
-  if (!tbl.is_valid)
+  tbl_pg = {(uint32_t *)tbl_addr, (uint32_t *)&tbl, sizeof(tbl)};
+  tbl_pg.load();
+  if (!is_valid)
     init();
 }
 
 void store()
 {
-  tbl_pg->store();
+  tbl_pg.store();
 }
 
 inline void extract(inode_t &inode)
@@ -313,7 +313,7 @@ file_t open(fn_t fn, size_t sz, uint32_t flags)
 
   auto &inode = tbl[fn];
 
-  if (inode.sz == 0) {
+  if (!inode.in_use) {
     assert(flags & O_CREATE);
     inode.sz = sz;
     inode.in_use = true;

@@ -1,4 +1,5 @@
 #include "serial.h"
+#include "circular_buffer.h"
 #include "debug.h"
 #include "hardware.h"
 #include "irq.h"
@@ -12,13 +13,11 @@ namespace
 constexpr auto TX = USB_TX;
 constexpr auto RX = USB_RX;
 
-static constexpr size_t NBUF = 64; /* Buffer size */
+static volatile int txidle; /* Whether UART is idle */
 
-static volatile int txidle;       /* Whether UART is idle */
-static volatile int bufcnt = 0;   /* Number of chars in buffer */
-static unsigned bufin = 0;        /* Index of first free slot */
-static unsigned bufout = 0;       /* Index of first occupied slot */
-static volatile char txbuf[NBUF]; /* The buffer */
+static constexpr size_t NBUF = 64; /* Buffer size */
+using buffer = circular_buffer<char, NBUF>;
+buffer buf;
 
 } // namespace
 
@@ -42,23 +41,6 @@ void init(void)
   UART.INTENSET = BIT(UART_INT_RXDRDY) | BIT(UART_INT_TXDRDY);
   enable_irq(UART_IRQ);
   txidle = 1;
-}
-
-/* buf_put -- add character to buffer */
-void buf_put(char ch)
-{
-  txbuf[bufin] = ch;
-  bufcnt++;
-  bufin = (bufin + 1) % NBUF;
-}
-
-/* buf_get -- fetch character from buffer */
-char buf_get(void)
-{
-  char ch = txbuf[bufout];
-  bufcnt--;
-  bufout = (bufout + 1) % NBUF;
-  return ch;
 }
 
 /** FIXME: works for now, but what about processes that are asleep?
@@ -115,10 +97,10 @@ void uart_handler(void)
 
   if (UART.TXDRDY) {
     UART.TXDRDY = 0;
-    if (bufcnt == 0)
+    if (buf.empty())
       txidle = 1;
     else
-      UART.TXD = buf_get();
+      UART.TXD = buf.dequeue();
   }
 
   clear_pending(UART_IRQ);
@@ -128,7 +110,7 @@ void uart_handler(void)
 /* putc -- send output character */
 void putc(char ch)
 {
-  while (bufcnt == NBUF)
+  while (buf.size() == NBUF)
     pause();
 
   intr_disable();
@@ -136,7 +118,7 @@ void putc(char ch)
     UART.TXD = ch;
     txidle = 0;
   } else {
-    buf_put(ch);
+    buf.enqueue(ch);
   }
   intr_enable();
 }
@@ -151,6 +133,15 @@ void puts(const char *s, size_t len)
 void clear_screen()
 {
   printf("\033[2J\033[H");
+}
+
+void flush()
+{
+  while (!buf.empty()) {
+    while (!UART.TXDRDY)
+      ;
+    UART.TXD = buf.dequeue();
+  }
 }
 
 } // namespace serial

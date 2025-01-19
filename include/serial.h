@@ -14,6 +14,7 @@ void putc(char ch);
 void puts(const char *s);
 void puts(const char *s, size_t len);
 void getline(const char *prompt, char *buf, int nbuf);
+void flush();
 
 template <typename... Args>
 void printf(Args... args)
