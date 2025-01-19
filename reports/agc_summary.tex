@@ -1,0 +1,90 @@
+\section{The Apollo Guidance Computer (AGC)}
+
+The Apollo Guidance Computer (AGC) was a pioneering digital computer developed in the
+early 1960s to navigate and control the Apollo spacecraft during their missions to the
+Moon. Installed aboard both the Command Module and the Lunar Module, the AGC was
+integral to the success of the Apollo program, providing real-time guidance,
+navigation, and control capabilities.
+
+Designed by the MIT Instrumentation Laboratory under the leadership of Charles Stark
+Draper, the AGC featured a 16-bit word length, with 15 data bits and one parity bit,
+and operated at a frequency of 2.048 MHz. The computer's memory was divided into 2,048
+words of erasable magnetic-core memory (RAM) and 36,864 words of fixed core rope memory
+(ROM), which stored the software and mission data. 
+
+Astronauts interacted with the AGC through the Display and Keyboard (DSKY) interface, a
+21-digit display and 19-button keyboard that allowed them to input commands and receive
+information. This interface was crucial for manual adjustments and monitoring during
+the missions. 
+
+The AGC's software was written in AGC assembly language and stored on rope memory. The
+bulk of the software was on read-only rope memory and thus could not be changed in
+operation, but some key parts of the software were stored in standard read-write
+magnetic-core memory and could be overwritten by the astronauts using the DSKY
+interface, as was done on Apollo 14.
+
+
+\subsection{Operating System}
+
+The Apollo Guidance Computer (AGC) utilized a specialized operating system to manage
+its resources and execute the software required for the Apollo missions. The operating
+system, known as AGC software, was designed to perform real-time control and navigation
+tasks with extreme reliability and efficiency. Unlike modern operating systems, which
+handle general-purpose tasks for a wide variety of applications, the AGC's operating
+system was dedicated exclusively to the guidance, navigation, and control of the Apollo
+spacecraft.
+
+One of the key innovations of the AGC operating system was its use of a
+\textit{``priority scheduling"} system. This system ensured that higher-priority tasks,
+such as navigation corrections or abort sequences, were processed before lower-priority
+tasks, allowing the AGC to respond dynamically to changing conditions during the
+mission. The operating system also utilized memory efficiently, with the available
+2,048 words of RAM and 36,864 words of ROM being carefully allocated to critical
+software routines.
+
+The AGC operating system also incorporated error-checking mechanisms to maintain
+reliability in the face of potential hardware malfunctions. Given the harsh and
+unpredictable environment of space, the system was designed to operate autonomously,
+with minimal input from the astronauts, while still allowing for manual intervention
+when necessary. The operating system’s software was written in AGC assembly language
+and was stored in the AGC’s rope memory, providing a highly optimized and
+space-efficient solution for spacecraft operations.
+
+This operating system consisted of two parts: the \indef{Executive}, a batch
+job-scheduler that used priority based cooperative multi-tasking to manage longer
+running jobs, and the \indef{Waitlist}, a timer interrupt-driven pre-emptive scheduler
+that managed real-time tasks running on tight timing constraints. By design, waitlist
+tasks were run in an interrupt-inhibited mode, ensuring uninterrupted processing. This
+greatly limited how much computation these tasks are able to do, limiting each task to
+about 150-200 instructions. As a result, a waitlist task requiring extensive
+calculation would have to schedule other waitlist tasks, or a longer running executive
+job. On the other hand, to meet the deadlines on critical tasks, executive jobs must
+schedule waitlist tasks to be run within a certain deadline. 
+
+The operating system also consisted of a robust recovery mechanism, that offered
+different levels of restart protection for various tasks and jobs. \todo{elaborate}
+
+The success of the AGC operating system relied on the cooperation between the executive
+jobs and waitlist tasks and it's robust recovery system.
+
+
+\section{The Executive}
+
+The \indef{Executive} in the Apollo Guidance Computer is a multiprocessing preemptive
+real-time operating system. It has a few features that set it apart from modern RTOS's,
+and made it such a visionary piece of technology of its time. 
+
+In this section, we'll give a brief overview of the features of the Executive.
+
+\begin{itemize}
+    \item Cooperative and preemptive
+    \item Process construction:
+        \item What we'd call process descriptors, were called Core Set. 
+        \item Could ask for dyanmic storage at the point of process creation.
+        \item Priority based scheduing
+    \item Context switching: using the \texttt{NEWJOB} register
+    \item Process sleep and wakeup
+    \item Waitlist to do most of the real time operations
+
+    \item Restart and recovery
+\end{itemize}

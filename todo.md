@@ -1,18 +1,9 @@
 
-- analytics tools as apps
-- dynamic listener for uart
-    - for example, a calculator app, temporarily redirects all input/output to calc
-        proc
+- implement manual process termination 
+    - terminate when assert fails or some other things
+    - how will the resouce be released up on an untimely death?
 
-- need to find a way to split the outputs used for logging, and the other for the
-    console
-
-- uart backspace
-
-- memory protection
-
-- example
-
-- sleep and wake up
-    - routine that allows to increase priority
-
+- restart mechanism
+    - method for adding checkpoints
+    - table with info for each process
+    - remove entry upon process termination

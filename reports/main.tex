@@ -23,27 +23,7 @@ The sort of structure that would suit many programming projects is as follows:
     \item A bibliography and list of reference
 \end{enumerate}
 
-\section{Overview of the Executive}
-
-The \indef{Executive} in the Apollo Guidance Computer is a multiprocessing preemptive
-real-time operating system. It has a few features that set it apart from modern RTOS's,
-and made it such a visionary piece of technology of its time. 
-
-In this section, we'll give a brief overview of the features of the Executive.
-
-\begin{itemize}
-    \item Cooperative and preemptive
-    \item Process construction:
-        \item What we'd call process descriptors, were called Core Set. 
-        \item Could ask for dyanmic storage at the point of process creation.
-        \item Priority based scheduing
-    \item Context switching: using the \texttt{NEWJOB} register
-    \item Process sleep and wakeup
-    \item Waitlist to do most of the real time operations
-
-    \item Restart and recovery
-\end{itemize}
-
+\input{agc_summary}
 
 \section{Reinventing the wheels}
 
