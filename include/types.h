@@ -11,6 +11,7 @@
 using size_t = std::size_t;
 using runnable_t = void *(*)(void *);
 
+using pid_t = uint8_t;
 using priority_t = int32_t;
 
 template <typename T>

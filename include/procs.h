@@ -5,8 +5,6 @@
 #include "serial.h"
 #include "types.h"
 
-using pid_t = uint8_t;
-
 enum class state_t : uint8_t {
   EMPTY,
   RUNNABLE,
@@ -94,5 +92,10 @@ public:
     printf("\t%d. %s : %d, %s\r\n", pid, proc->name.str, proc->priority, state);
     printf("\t\tstack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack, proc->stk_sz,
            proc->stk_ptr);
+  }
+
+  inline pid_t pid(proc_t *proc) const
+  {
+    return proc - procs;
   }
 };

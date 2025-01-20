@@ -3,6 +3,7 @@
 #include "irq.h"
 #include "proc_stack.h"
 #include "procs.h"
+#include "recover.h"
 #include "serial.h"
 #include "timer.h"
 #include "types.h"
@@ -15,7 +16,6 @@ namespace
 {
 constexpr priority_t IDLE_PRIORITY = 1;
 
-constexpr size_t N_PROCS = 16;
 procs_t<N_PROCS> procs;
 stack_t stack;
 
@@ -31,6 +31,7 @@ void end_proc(void *param)
 {
   debug<TRACE>("\t\t\tending %s\r\n", cpu.curr_proc->name.str);
   heap::free(param);
+  recovery::dealloc();
   decr_priority(0);
 }
 
@@ -145,7 +146,14 @@ void init()
   idle_proc->state = state_t::RUNNING;
 
   cpu.curr_proc = idle_proc;
-  setup_procs();
+
+  if (!is_reset()) {
+    set_magic();
+    setup_procs();
+  } else {
+    recover();
+  }
+
   last_checked = timer::now();
 
   __run(idle_task, &idle_proc->stk_ptr);
@@ -175,6 +183,11 @@ void trace()
 {
   printf("sched:\r\n");
   procs.trace();
+}
+
+pid_t curr_pid()
+{
+  return procs.pid(cpu.curr_proc);
 }
 
 } // namespace sched

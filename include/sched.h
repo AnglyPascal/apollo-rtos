@@ -3,6 +3,7 @@
 #include "types.h"
 #include <cstdint>
 
+inline constexpr size_t N_PROCS = 16;
 struct proc_t;
 
 namespace sched
@@ -25,6 +26,8 @@ void sleep(time_t period);
 void sleep(time_t period, void (*alarm)(void *), void *param);
 
 void trace();
+
+pid_t curr_pid();
 
 extern volatile time_t last_checked;
 

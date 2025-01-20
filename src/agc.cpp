@@ -64,10 +64,13 @@ void __start(void)
   waitlist::reg("waitlist1", 640, waitlist1);
   waitlist::reg("waitlist2", 800, waitlist2);
 
+  timer::init();
+  shell::init();
+
   if (!is_reset()) {
-    set_magic();
     printf("boot\r\n");
-    waitlist::reg("reset", 1000, [](void *) {
+
+    waitlist::reg("reset", 10000, [](void *) {
       fs::store();
       trigger_reset();
     });
@@ -75,8 +78,6 @@ void __start(void)
     printf("reset\r\n");
   }
 
-  timer::init();
-  shell::init();
   sched::init();
 
   spin();
@@ -86,14 +87,14 @@ __extern_C__
 void hardfault_handler(void)
 {
   debug<FATAL>("!!WTF!!\r\n");
+
+  volatile uint32_t *fault_stack = (uint32_t *)get_msp();
+  uint32_t pc = fault_stack[6]; // Program Counter
+  uint32_t lr = fault_stack[5]; // Link Register
+
+  debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr);
+
   serial::flush();
-
-  /* volatile uint32_t *fault_stack = (uint32_t *)get_msp(); */
-  /* uint32_t pc = fault_stack[6]; // Program Counter */
-  /* uint32_t lr = fault_stack[5]; // Link Register */
-
-  /* debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr); */
-
   spin();
   /* trigger_reset(); */
 }

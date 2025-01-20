@@ -1,16 +1,60 @@
 #include "recover.h"
+#include "sched.h"
 
-static recover_t recover __attribute__((section(".recover")))
+namespace
+{
+struct alignas(uint32_t) entry_t {
+  bool in_use = false;
+  runnable_t recover_func = nullptr;
+  void *param = nullptr;
+};
+
+struct recover_table_t {
+  uint32_t magic;
+  uint32_t n_used;
+
+  entry_t tbl[N_PROCS];
+};
+} // namespace
+
+static recover_table_t rec_tbl __attribute__((section(".recover")))
 __attribute__((__used__)) = {};
 
 inline constexpr uint32_t magic_value = 0xdeadbeef;
 
 bool is_reset()
 {
-  return recover.magic == magic_value;
+  return rec_tbl.magic == magic_value;
 }
 
 void set_magic()
 {
-  recover.magic = magic_value;
+  rec_tbl.magic = magic_value;
 }
+
+namespace recovery
+{
+void alloc(runnable_t recover_func, void *param)
+{
+  auto pid = sched::curr_pid();
+  rec_tbl.tbl[pid] = {true, recover_func, param};
+}
+
+void dealloc()
+{
+  auto pid = sched::curr_pid();
+  rec_tbl.tbl[pid] = {};
+}
+} // namespace recovery
+
+void recover()
+{
+  for (auto &entry : rec_tbl.tbl) {
+    auto [in_use, rec_func, param] = entry;
+    if (in_use) {
+      rec_func(param);
+    }
+    entry = {};
+  }
+}
+

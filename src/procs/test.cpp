@@ -1,3 +1,4 @@
+#include "recover.h"
 #include "sched.h"
 
 __extern_C__
@@ -6,8 +7,18 @@ void trigger_reset();
 namespace procs
 {
 
+void *test_proc(void *param);
+
+void *test_recover_func(void *param)
+{
+  sched::reg_proc("test_proc", 10, 64, test_proc, nullptr);
+  return param;
+}
+
 void *test_proc(void *param)
 {
+  recovery::alloc(test_recover_func, nullptr);
+
   int n = 3;
   while (n-- > 0)
     ;
