@@ -1,0 +1,82 @@
+\documentclass[oxford]{ahsan}
+
+\title{Restart in AGC}
+
+\begin{document}
+
+\maketitle
+
+\section{Restart and Recovery Mechanism in the AGC}
+
+The Apollo Guidance Computer (AGC) employed a sophisticated restart and recovery
+mechanism designed to ensure reliable operation in the critical real-time environment
+of space missions. The system addressed various types of faults—ranging from minor
+alarms to severe hardware issues—using an efficient combination of restart tables,
+phase tables, and program abort routines.
+
+\subsection{Restart Tables}
+
+The restart table resided in unswitched fixed storage and was organized into six
+groups, each containing multiple restart phases. These phases defined specific recovery
+procedures, with the active phase updated dynamically during program execution via the
+\texttt{PHASCHNG} routine. Each phase corresponded to a unique recovery point in the
+program, and the table's organization minimized memory usage while allowing flexible
+error handling.
+
+Restart phases could execute different recovery operations based on their attributes:
+\begin{itemize}
+    \item \textbf{G.0 (Inhibit group restart):} Prevents any restart operations for the
+        group.
+    \item \textbf{G.1 (Restart last display):} Updates the DSKY display without further
+        recovery processing.
+    \item \textbf{G.Even (Execute two restart routines):} Handles two operations, such
+        as scheduling jobs or waitlist tasks.
+    \item \textbf{G.Odd (Execute one restart routine):} Handles a single operation,
+        typically job scheduling.
+\end{itemize}
+
+The restart table encoded flags and scheduling information directly within its entries,
+saving storage space and allowing dynamic interpretation of task priorities and
+addresses.
+
+\subsection{Phase Tables and Validation}
+
+The phase table stored recovery parameters specific to each group and was located in
+erasable memory. Each parameter entry included its bitwise complement, a design that
+supported error detection. During restart processing, the table's integrity was
+checked, and any corruption resulted in halting recovery and initiating a hardware
+``fresh start.''
+
+Phase tables also managed the system's Major Mode, displayed on the DSKY. For critical
+mission phases, the progression of Major Modes, such as during lunar landing (Programs
+63, 64, and 65), was automatic, reducing crew workload during high-stress operations.
+
+\subsection{Program Alarms and Recovery}
+
+The AGC classified faults into three levels of severity:
+\begin{enumerate}
+    \item \textbf{Program Alarms:} Minor issues that displayed error codes on the DSKY but did not interrupt execution.
+    \item \textbf{Software Restarts:} Triggered by unrecoverable software errors, these restarts preserved most system data and allowed the resumption of interrupted programs with minimal disruption.
+    \item \textbf{Hardware Restarts (Fresh Starts):} Used for severe faults, fresh starts reset the entire system, clearing memory and reinitializing hardware.
+\end{enumerate}
+
+\subsection{Software Restart Sequence}
+
+When a software restart was initiated:
+\begin{itemize}
+    \item All jobs and tasks were canceled.
+    \item Interrupts were temporarily disabled to ensure uninterrupted recovery.
+    \item Critical system tables, such as Core Sets and waitlists, were cleared and reinitialized.
+    \item Displays and warning lights on the DSKY were reset, preserving essential variables for diagnostics.
+\end{itemize}
+
+\subsection{Hardware Restarts (Fresh Starts)}
+
+A fresh start represented a full system reboot, resetting the AGC to an idle state (Major Mode 00). Unlike software restarts, no attempt was made to preserve running programs. Critical systems, such as the Inertial Measurement Unit (IMU), were reinitialized, and all thruster activities were halted to ensure stability.
+
+\subsection{Conclusion}
+
+The AGC's restart and recovery mechanisms combined robustness and efficiency, ensuring mission-critical operations could recover from faults swiftly. Its layered approach—from minor program alarms to full system resets—exemplified an innovative design that balanced limited resources with the stringent reliability demands of space exploration.
+
+
+\end{document}
