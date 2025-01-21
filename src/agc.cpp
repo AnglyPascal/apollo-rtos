@@ -70,9 +70,7 @@ void __start(void)
   if (!is_reset()) {
     printf("boot\r\n");
 
-    waitlist::reg("reset", 10000, [](void *) {
-      trigger_reset();
-    });
+    waitlist::reg("reset", 10000, [](void *) { trigger_reset(); });
   } else {
     printf("reset\r\n");
   }
@@ -82,18 +80,3 @@ void __start(void)
   spin();
 }
 
-__extern_C__
-void hardfault_handler(void)
-{
-  debug<FATAL>("!!WTF!!\r\n");
-
-  volatile uint32_t *fault_stack = (uint32_t *)get_msp();
-  uint32_t pc = fault_stack[6]; // Program Counter
-  uint32_t lr = fault_stack[5]; // Link Register
-
-  debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr);
-
-  serial::flush();
-  spin();
-  /* trigger_reset(); */
-}

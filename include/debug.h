@@ -19,7 +19,7 @@ template <debug_t level, typename... Args>
 void debug(const char *fmt, Args... args)
 {
   if constexpr (level <= DEBUG_LEV) {
-    printf(fmt, args...);
+    do_printf(serial::putc, fmt, args...);
   }
 }
 

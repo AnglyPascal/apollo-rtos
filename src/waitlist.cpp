@@ -26,10 +26,9 @@ waitlist_t store[N_WAITLIST];
 int i = 0;
 waitlist_t freelist_head{};
 
-waitlist_t *alloc()
+inline waitlist_t *alloc()
 {
   if (i == N_WAITLIST) {
-    debug<FATAL>("allocating more waitlist than allowed\r\n");
     return nullptr;
   }
 
@@ -42,7 +41,7 @@ waitlist_t *alloc()
   return store + i++;
 }
 
-void dealloc(waitlist_t *ptr)
+inline void dealloc(waitlist_t *ptr)
 {
   ptr->next = freelist_head.next;
   freelist_head.next = ptr;
@@ -53,6 +52,9 @@ waitlist_t list_head{};
 
 void reg(string name, time_t interval, void (*func)(void *), void *param)
 {
+  auto task = alloc();
+  assert(task != nullptr);
+
   interval = roundup(interval, update_interval);
 
   auto head = &list_head;
@@ -68,7 +70,6 @@ void reg(string name, time_t interval, void (*func)(void *), void *param)
     head->next->remaining -= remaining;
   }
 
-  auto task = alloc();
   *task = {name, remaining, func, param, head->next};
   head->next = task;
 }

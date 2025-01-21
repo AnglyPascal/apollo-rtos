@@ -87,8 +87,6 @@ void unregister_listener()
 __extern_C__
 void uart_handler(void)
 {
-  /* intr_guard guard; */
-
   if (UART.RXDRDY) {
     char ch = UART.RXD;
     listeners(ch);
@@ -108,7 +106,7 @@ void uart_handler(void)
 }
 
 /* putc -- send output character */
-void putc(char ch)
+void intr_putc(char ch)
 {
   while (buf.size() == NBUF)
     pause();
@@ -123,25 +121,29 @@ void putc(char ch)
   intr_enable();
 }
 
-/* puts -- send a string character by character */
-void puts(const char *s, size_t len)
+void busy_putc(char ch)
 {
-  while (len-- > 0 && *s != '\0')
-    putc(*s++);
+  if (!txidle) {
+    while (!UART.TXDRDY)
+      ;
+  }
+  txidle = 0;
+  UART.TXDRDY = 0;
+  UART.TXD = ch;
+}
+
+char getc()
+{
+  while (!UART.RXDRDY)
+    ;
+  char ch = UART.RXD;
+  UART.RXDRDY = 0;
+  return ch;
 }
 
 void clear_screen()
 {
   printf("\033[2J\033[H");
-}
-
-void flush()
-{
-  while (!buf.empty()) {
-    while (!UART.TXDRDY)
-      ;
-    UART.TXD = buf.dequeue();
-  }
 }
 
 } // namespace serial
