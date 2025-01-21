@@ -15,10 +15,9 @@ struct recover_table_t {
 
   entry_t tbl[N_PROCS];
 };
-} // namespace
 
-static recover_table_t rec_tbl __attribute__((section(".recover")))
-__attribute__((__used__)) = {};
+recover_table_t rec_tbl __recover_section__ = {};
+} // namespace
 
 inline constexpr uint32_t magic_value = 0xdeadbeef;
 

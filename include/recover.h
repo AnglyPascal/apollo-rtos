@@ -2,6 +2,8 @@
 
 #include "types.h"
 
+#define __recover_section__ __attribute__((section(".recover"))) __attribute__((__used__))
+
 bool is_reset();
 void set_magic();
 

@@ -71,7 +71,6 @@ void __start(void)
     printf("boot\r\n");
 
     waitlist::reg("reset", 10000, [](void *) {
-      fs::store();
       trigger_reset();
     });
   } else {

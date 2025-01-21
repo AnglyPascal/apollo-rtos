@@ -315,8 +315,11 @@ file_t open(fn_t fn, size_t sz, uint32_t flags)
 
   if (!inode.in_use) {
     assert(flags & O_CREATE);
+
     inode.sz = sz;
     inode.in_use = true;
+
+    fs::store();
   }
 
   bool w_en = flags & O_WRITE;
