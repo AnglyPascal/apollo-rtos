@@ -26,7 +26,10 @@ void printf(Args... args)
   do_printf(putc, args...);
 }
 
-void clear_screen();
+inline void clear_screen()
+{
+  printf("\033[2J\033[H");
+}
 
 using listener_t = bool (*)(char);
 

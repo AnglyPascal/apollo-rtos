@@ -12,7 +12,7 @@ enum debug_t {
   TRACE,
 };
 
-constexpr auto DEBUG_LEV = DEBUG;
+constexpr auto DEBUG_LEV = TRACE;
 constexpr auto ASSERT_EN = DEBUG_LEV >= DEBUG;
 
 template <debug_t level, typename... Args>
