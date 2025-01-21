@@ -1,4 +1,5 @@
 #include "waitlist.h"
+#include "allocator.h"
 #include "debug.h"
 #include "irq.h"
 #include "memory.h"
@@ -11,82 +12,81 @@ namespace waitlist
 
 namespace
 {
-
 struct waitlist_t {
   string name;
-  time_t remaining;
-  void (*func)(void *);
-  void *param;
+  time_t remaining = 0;
+  void (*func)(void *) = nullptr;
+  void *param = nullptr;
+
+  waitlist_t *next = nullptr;
 };
 
 constexpr uint8_t N_WAITLIST = 16;
-waitlist_t waitlist[N_WAITLIST];
-volatile uint8_t list_sz = 0;
+waitlist_t store[N_WAITLIST];
+int i = 0;
+waitlist_t freelist_head{};
 
-inline void swap(waitlist_t &lhs, waitlist_t &rhs)
+waitlist_t *alloc()
 {
-  std::swap(lhs.name, rhs.name);
-  std::swap(lhs.remaining, rhs.remaining);
-  std::swap(lhs.func, rhs.func);
-  std::swap(lhs.param, rhs.param);
+  if (i == N_WAITLIST) {
+    debug<FATAL>("allocating more waitlist than allowed\r\n");
+    return nullptr;
+  }
+
+  if (freelist_head.next != nullptr) {
+    auto ptr = freelist_head.next;
+    freelist_head.next = ptr->next;
+    return ptr;
+  }
+
+  return store + i++;
 }
 
+void dealloc(waitlist_t *ptr)
+{
+  ptr->next = freelist_head.next;
+  freelist_head.next = ptr;
+}
+
+waitlist_t list_head{};
 } // namespace
 
 void reg(string name, time_t interval, void (*func)(void *), void *param)
 {
-  if (list_sz == N_WAITLIST) {
-    debug<FATAL>("!! NO SPACE IN WAITLIST\r\n");
-    return;
-  }
-
   interval = roundup(interval, update_interval);
 
-  uint8_t i = 0;
+  auto head = &list_head;
   time_t prev = 0;
-  while (i < list_sz && prev + waitlist[i].remaining <= interval) {
-    prev += waitlist[i++].remaining;
+  while (head->next != nullptr && prev + head->next->remaining <= interval) {
+    prev += head->next->remaining;
+    head = head->next;
   }
 
-  waitlist[i].remaining += prev - interval;
+  auto remaining = interval - prev;
 
-  auto j = i + 1;
-  while (j <= list_sz) {
-    swap(waitlist[i], waitlist[j++]);
+  if (head->next != nullptr) {
+    head->next->remaining -= remaining;
   }
 
-  waitlist[i] = {name, interval - prev, func, param};
-
-  auto lsz = list_sz;
-  lsz++;
-  list_sz = lsz;
+  auto task = alloc();
+  *task = {name, remaining, func, param, head->next};
+  head->next = task;
 }
 
 void run()
 {
   intr_guard guard;
 
-  if (list_sz == 0)
-    return;
+  auto head = &list_head;
+  if (head->next != nullptr)
+    head->next->remaining -= update_interval;
 
-  // no carry, because of roundup
-  waitlist[0].remaining -= update_interval;
+  while (head->next != nullptr && head->next->remaining == 0) {
+    auto task = head->next;
+    head->next = task->next;
 
-  // when two tasks are to be done at the same time,
-  // the relative order is first come first serve
-  while (list_sz > 0 && waitlist[0].remaining == 0) {
-    auto func = waitlist[0].func;
-    auto param = waitlist[0].param;
-
-    // TODO: improve efficiency
-    for (int i = 1; i < list_sz; i++) {
-      swap(waitlist[i], waitlist[i - 1]);
-    }
-
-    auto lsz = list_sz;
-    lsz--;
-    list_sz = lsz;
-
+    auto [name, remaining, func, param, next] = *task;
+    dealloc(task);
     func(param);
   }
 }
@@ -94,9 +94,9 @@ void run()
 void trace()
 {
   printf("waitlist:\r\n");
-  for (size_t i = 0; i < list_sz; i++) {
-    auto &task = waitlist[i];
-    printf("\t%s\r\n\t\tinterval: %u\r\n", task.name.str, task.remaining);
+  for (auto head = &list_head; head->next != nullptr; head = head->next) {
+    printf("\t%s\r\n\t\tinterval: %u\r\n", head->next->name.str,
+           head->next->remaining);
   }
 }
 
