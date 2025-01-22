@@ -35,7 +35,13 @@ void end_proc(void *param)
   decr_priority(0);
 }
 
-proc_t *reg_proc(string name, priority_t priority, uint32_t stk_sz,
+proc_t *reg_proc(proc_def_t *proc_def)
+{
+  auto [name, priority, stk_sz, func, param] = *proc_def;
+  return reg_proc(name, priority, stk_sz, func, param);
+}
+
+proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
                  runnable_t func, void *param)
 {
   assert(priority > 0);

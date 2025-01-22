@@ -9,7 +9,9 @@
 namespace procs
 {
 
-void *accel(void *param);
+void *accel_func(void *param);
+
+proc_def_t accel{"accel", 32, 256, accel_func, nullptr};
 
 namespace
 {
@@ -26,7 +28,7 @@ int n __recover_section__ = 0;
 
 void *test_recover_func(void *param)
 {
-  sched::reg_proc("accel", 32, 256, accel, nullptr);
+  sched::reg_proc(&accel);
   return param;
 }
 
@@ -34,7 +36,7 @@ void *test_recover_func(void *param)
 
 fn_t accel_fn = 5;
 
-void *accel(void *param)
+void *accel_func(void *param)
 {
   recovery::alloc(test_recover_func, nullptr);
 

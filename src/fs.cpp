@@ -65,7 +65,6 @@ private:
   void open(inode_t *_inode)
   {
     auto fn = _inode->fn;
-    debug<TRACE>("%d, %x, %x, %d\r\n", fn, addr, off2pg(2 * fn), tbl[fn].sz);
 
     inode = _inode;
     addr = heap::malloc(inode->sz);
@@ -75,6 +74,8 @@ private:
              inode->pg2_sz()};
     w_cnt = 0;
     r_cnt = 0;
+
+    debug<TRACE>("%d, %x, %x, %d\r\n", fn, addr, off2pg(2 * fn), tbl[fn].sz);
 
     load();
   }
@@ -319,7 +320,7 @@ file_t open(fn_t fn, size_t sz, uint32_t flags)
     inode.sz = sz;
     inode.in_use = true;
 
-    fs::store();
+    /* fs::store(); */
   }
 
   bool w_en = flags & O_WRITE;

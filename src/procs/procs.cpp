@@ -3,20 +3,21 @@
 
 namespace procs
 {
+extern proc_def_t test, accel, display;
 
-void *test_proc(void *);
-void *accel(void *);
+namespace
+{
+proc_def_t *proc_defs[] = {&test, &accel, &display};
+}
 
 } // namespace procs
 
 namespace sched
 {
-
 void setup_procs(void)
 {
-  sched::reg_proc("test_proc", 10, 64, procs::test_proc, nullptr);
-  sched::reg_proc("accel", 32, 256, procs::accel, nullptr);
-  display::init();
+  for (auto proc_def : procs::proc_defs) {
+    reg_proc(proc_def);
+  }
 }
-
 } // namespace sched

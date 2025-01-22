@@ -44,7 +44,7 @@ bool listener(char c)
   }
 
   if (c == CTRL('d')) {
-    /* serial::clear_screen(); */
+    serial::clear_screen();
     trigger_reset();
     return true;
   }

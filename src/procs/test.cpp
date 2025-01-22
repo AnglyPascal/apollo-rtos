@@ -9,9 +9,11 @@ namespace procs
 
 void *test_proc(void *param);
 
+proc_def_t test{"test_proc", 10, 64, test_proc, nullptr};
+
 void *test_recover_func(void *param)
 {
-  sched::reg_proc("test_proc", 10, 64, test_proc, nullptr);
+  sched::reg_proc(&test);
   return param;
 }
 

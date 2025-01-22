@@ -30,7 +30,6 @@ namespace display
 {
 
 void show(const image_t);
-void init();
 void image_set(int x, int y, image_t img);
 void reset();
 

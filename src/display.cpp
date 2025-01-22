@@ -95,16 +95,15 @@ void show(const image_t img)
   _memcpy(image, img, sizeof(image_t));
 }
 
-/* start display driver task */
-void init(void)
-{
-  sched::reg_proc("display", 2, 128, task, nullptr);
-}
-
 void reset()
 {
   show(blank);
 }
 
 } // namespace display
+
+namespace procs
+{
+proc_def_t display{"display", 2, 128, display::task, nullptr};
+}
 
