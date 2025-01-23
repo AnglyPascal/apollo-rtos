@@ -8,7 +8,7 @@
 template <typename T, size_t N>
 class circular_buffer
 {
-  uint8_t store[N * sizeof(T)];
+  byte_t store[N * sizeof(T)];
   size_t _start = 0, _end = 0, sz = 0;
 
   struct iterator {
@@ -89,7 +89,7 @@ public:
   T front()
   {
     assert(sz > 0);
-    auto arr = (T *) store;
+    auto arr = (T *)store;
     return arr[_start];
   }
 

@@ -2,24 +2,31 @@
 #include "debug.h"
 #include "hardware.h"
 #include "timer.h"
+#include "types.h"
 
 __extern_C__
-uint8_t __nvm_start[],
+byte_t __nvm_start[],
     __nvm_end[], __fs_pg[];
+
+#define TBL_MAGIC 0xdeadbeef;
 
 // can use about 220 pages of flash memory
 constexpr size_t NFILES = 110;
 
-constexpr fn_t free_fn = NFILES;
-constexpr fn_t files_fn = NFILES + 1;
-constexpr fn_t null_fn = _max<fn_t>;
-
-alignas(uint32_t) struct {
+namespace
+{
+alignas(word_t) struct {
 public:
-  bool is_valid = false;
+  bool is_valid()
+  {
+    return magic == TBL_MAGIC;
+  }
   // other information about the fs;
 
+  friend void fs::mount();
+
 private:
+  uint32_t magic;
   inode_t inodes[NFILES + 2];
 
 public:
@@ -30,10 +37,11 @@ public:
 } tbl;
 
 static_assert(sizeof(tbl) <= pg_sz);
-static_assert(sizeof(tbl) % sizeof(uint32_t) == 0);
+static_assert(sizeof(tbl) % sizeof(word_t) == 0);
 
-uint32_t *tbl_addr = (uint32_t *)__fs_pg;
+word_t *const tbl_addr = (word_t *)__fs_pg;
 nvm_t tbl_pg;
+} // namespace
 
 ////////////
 /// fd_t ///
@@ -54,9 +62,9 @@ public:
   friend class file_t;
   friend class fd_tbl_t;
 
-  static inline uint32_t *off2pg(size_t off)
+  static inline word_t *off2pg(size_t off)
   {
-    return (uint32_t *)((size_t)__nvm_start + off * pg_sz);
+    return (word_t *)((size_t)__nvm_start + off * pg_sz);
   }
 
 private:
@@ -68,9 +76,9 @@ private:
 
     inode = _inode;
     addr = heap::malloc(inode->sz);
-    pg1 = {off2pg(2 * fn), (uint32_t *)addr, inode->pg1_sz()};
+    pg1 = {off2pg(2 * fn), (word_t *)addr, inode->pg1_sz()};
     if (inode->pg2_sz() > 0)
-      pg2 = {off2pg(2 * fn + 1), (uint32_t *)((uint8_t *)addr + pg_sz),
+      pg2 = {off2pg(2 * fn + 1), (word_t *)((uint8_t *)addr + pg_sz),
              inode->pg2_sz()};
     w_cnt = 0;
     r_cnt = 0;
@@ -243,27 +251,42 @@ file_t::~file_t()
 namespace fs
 {
 
+namespace
+{
+constexpr fn_t free_fn = NFILES;
+constexpr fn_t files_fn = NFILES + 1;
+constexpr fn_t null_fn = _max<fn_t>;
+} // namespace
+
 inline void init()
 {
   for (fn_t fn = 0; fn < NFILES; fn++) {
     tbl[fn] = {
-        fn, fn_t(fn + 1), fn_t(fn - 1), false, 0,
+        .fn = fn,
+        .next = fn_t(fn + 1),
+        .prev = fn_t(fn - 1),
+        .in_use = false,
+        .sz = 0,
     };
   }
 
   tbl[0].prev = free_fn;
   tbl[NFILES - 1].next = null_fn;
 
-  tbl[free_fn] = {free_fn, 0, null_fn, true};
-  tbl[files_fn] = {files_fn, null_fn, null_fn, true};
+  tbl[free_fn] = {free_fn, 0, null_fn, true, 0};
+  tbl[files_fn] = {files_fn, null_fn, null_fn, true, 0};
 }
 
-void mount(bool is_valid)
+void mount()
 {
-  tbl_pg = {(uint32_t *)tbl_addr, (uint32_t *)&tbl, sizeof(tbl)};
+  tbl_pg = {(word_t *)tbl_addr, (word_t *)&tbl, sizeof(tbl)};
   tbl_pg.load();
-  if (!is_valid)
+
+  if (!tbl.is_valid()) {
     init();
+    tbl.magic = TBL_MAGIC;
+    tbl_pg.store();
+  }
 }
 
 void store()

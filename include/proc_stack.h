@@ -55,7 +55,7 @@ public:
     stk_sz = roundup(stk_sz, alignment);
     stk_sz += debug_depth + timer_depth;
 
-    proc->stack = pool.alloc(stk_sz + sizeof(context_t));
+    proc->stack = (byte_t *)pool.alloc(stk_sz + sizeof(context_t));
 
     if (proc->stack == nullptr) {
       debug<FATAL>("!! STACK NULLPTR\r\n");
@@ -72,7 +72,7 @@ public:
     stk_ptr->r0 = (uint32_t)param;
     stk_ptr->lr_intr = lr_intr_magic;
 
-    proc->stk_ptr = (uint8_t *)stk_ptr;
+    proc->stk_ptr = (byte_t *)stk_ptr;
     proc->stk_sz = stk_sz;
   }
 

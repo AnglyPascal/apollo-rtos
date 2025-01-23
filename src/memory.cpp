@@ -13,7 +13,7 @@ volatile uint8_t *memtop = __stack_limit;
 constexpr uint32_t BLANK_WORD = 0xdeadbeef;
 } // namespace
 
-uint8_t *alloc_heap(size_t sz)
+byte_t *alloc_heap(size_t sz)
 {
   membot = (uint8_t *)roundup((size_t)membot, 8);
 
@@ -30,10 +30,10 @@ uint8_t *alloc_heap(size_t sz)
   }
 
   debug<TRACE>("alloc heap: %x\n", ptr);
-  return (uint8_t *)ptr;
+  return (byte_t *)ptr;
 }
 
-uint8_t *alloc_stack(size_t sz)
+byte_t *alloc_stack(size_t sz)
 {
   if (sz > (size_t)(memtop - membot))
     return nullptr;
@@ -45,7 +45,7 @@ uint8_t *alloc_stack(size_t sz)
   }
 
   debug<TRACE>("alloc stack: %x\n", memtop);
-  return (uint8_t *)memtop;
+  return (byte_t *)memtop;
 }
 
 void *_memcpy(void *dest, const void *src, uint32_t n)

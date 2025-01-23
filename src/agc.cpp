@@ -12,7 +12,7 @@
 #include "waitlist.h"
 
 __extern_C__
-uint8_t __data_start[],
+byte_t __data_start[],
     __data_end[], __bss_start[], __bss_end[], __end[], __etext[], __stack[],
     __stack_limit, __nvm_end[], __nvm_start[];
 
@@ -57,7 +57,7 @@ void __start(void)
 
   led_init();
   serial::init();
-  fs::mount(is_reset());
+  fs::mount();
 
   /* debug_addr(); */
 
@@ -79,4 +79,3 @@ void __start(void)
 
   spin();
 }
-

@@ -73,7 +73,7 @@ void change_proc()
 }
 
 __extern_C__
-uint8_t *cxt_switch(uint8_t *stk_ptr)
+void *cxt_switch(void *stk_ptr)
 {
   assert(cpu.hi_proc->state == state_t::RUNNABLE);
   assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr);
@@ -89,7 +89,7 @@ uint8_t *cxt_switch(uint8_t *stk_ptr)
   } else {
     if (cpu.curr_proc->state != state_t::ASLEEP)
       cpu.curr_proc->state = state_t::RUNNABLE;
-    cpu.curr_proc->stk_ptr = stk_ptr;
+    cpu.curr_proc->stk_ptr = (byte_t *)stk_ptr;
   }
 
   cpu.hi_proc->state = state_t::RUNNING;
@@ -140,7 +140,7 @@ idle_task(void *)
 
 /* enter idle_task with specified stack (see mpx.s) */
 __extern_C__
-void __run(void *(*task)(void *), uint8_t **stk_ptr);
+void __run(void *(*task)(void *), byte_t **stk_ptr);
 
 void setup_procs(void);
 

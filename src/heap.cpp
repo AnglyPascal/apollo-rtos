@@ -21,7 +21,7 @@ void free(void *ptr)
   if (ptr == nullptr)
     return;
 
-  pool.dealloc((uint8_t *)ptr);
+  pool.dealloc((byte_t *)ptr);
 }
 
 void trace()

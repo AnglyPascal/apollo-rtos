@@ -9,9 +9,6 @@
 /* do_print -- the device-independent guts of printf */
 void do_printf(void (*putch)(char), const char *fmt, ...);
 
-/* /1* sprintf -- print to string buffer.  Note danger of overflow! *1/ */
-/* int sprintf(char *buf, const char *fmt, ...); */
-
 /* atoi -- convert decimal string to int */
 int32_t atoi(const char *p);
 

@@ -5,7 +5,7 @@
 #include "serial.h"
 #include "types.h"
 
-using allocator_t = uint8_t *(*)(size_t);
+using allocator_t = byte_t *(*)(size_t);
 
 template <allocator_t alloc_func, size_t alignment>
 class allocator
@@ -21,7 +21,7 @@ class allocator
 public:
   constexpr allocator() {}
 
-  uint8_t *alloc(size_t sz)
+  byte_t *alloc(size_t sz)
   {
     intr_guard guard;
 
@@ -34,16 +34,16 @@ public:
       ptr->next = chunk->next;
 
       if (chunk->sz >= sz) {
-        return (uint8_t *)chunk + header_sz;
+        return (byte_t *)chunk + header_sz;
       }
     }
 
     auto chunk = (chunk_t *)alloc_func(chnk_sz);
     chunk->sz = sz;
-    return (uint8_t *)chunk + header_sz;
+    return (byte_t *)chunk + header_sz;
   }
 
-  void dealloc(uint8_t *ptr)
+  void dealloc(byte_t *ptr)
   {
     intr_guard guard;
 
@@ -55,6 +55,9 @@ public:
   __noinline__
   void trace()
   {
-    printf("alloc trace: \t\n");
+    printf("alloc trace: \r\n");
+    for (auto ptr = &head; ptr->next != nullptr; ptr = ptr->next) {
+      printf("\t%x: %u\r\n", (byte_t *)ptr->next + header_sz, ptr->next->sz);
+    }
   }
 };

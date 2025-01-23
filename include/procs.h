@@ -23,19 +23,19 @@ const char *states[] = {
 }
 
 struct proc_t {
-  state_t state;
-  string name;
-  priority_t priority;
+  state_t state = state_t::EMPTY;
+  string name = {};
+  priority_t priority = 0;
 
-  uint8_t *stk_ptr;
-  uint8_t *stack;
-  size_t stk_sz;
+  byte_t *stk_ptr = nullptr;
+  byte_t *stack = nullptr;
+  size_t stk_sz = 0;
 };
 
 template <uint8_t N_PROCS>
 class procs_t
 {
-  proc_t procs[N_PROCS] = {{state_t::EMPTY, nullptr, 0, nullptr, nullptr, 0}};
+  proc_t procs[N_PROCS] = {{}};
 
 public:
   inline proc_t *alloc()

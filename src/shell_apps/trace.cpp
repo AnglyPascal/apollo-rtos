@@ -31,6 +31,7 @@ void *trace(void *param)
     sched::trace();
     waitlist::trace();
     fs::trace();
+    heap::trace();
     sched::sleep(1000);
   }
   serial::clear_screen();

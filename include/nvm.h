@@ -7,18 +7,18 @@
 // runtime representation of a nvm page
 class nvm_t
 {
-  uint32_t *pg_addr = nullptr;
-  uint32_t *rt_addr = nullptr;
+  word_t *pg_addr = nullptr;
+  word_t *rt_addr = nullptr;
   size_t sz = 0;
 
 public:
   nvm_t() {}
 
-  nvm_t(uint32_t *pg_addr, uint32_t *rt_addr, size_t sz)
+  nvm_t(word_t *pg_addr, word_t *rt_addr, size_t sz)
       : pg_addr{pg_addr}, rt_addr{rt_addr}, sz{sz}
   {
-    assert((uint32_t)pg_addr % sizeof(uint32_t) == 0);
-    assert(sz % sizeof(uint32_t) == 0, "%d\r\n", sz);
+    assert((word_t)pg_addr % sizeof(word_t) == 0);
+    assert(sz % sizeof(word_t) == 0, "%d\r\n", sz);
   }
 
   void load() const;

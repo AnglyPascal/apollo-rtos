@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <utility>
 
 // arm gcc specific attributes
 #define __always_inline__ __attribute__((always_inline))
@@ -14,6 +15,10 @@ using runnable_t = void *(*)(void *);
 using pid_t = uint8_t;
 using priority_t = int32_t;
 
+using word_t = uint32_t;
+using byte_t = uint8_t;
+/* using byte_t = std::byte; */
+
 template <typename T>
 constexpr T _max = std::numeric_limits<T>::max();
 
@@ -22,21 +27,9 @@ using time_t = uint32_t;
 struct string {
   const char *str;
 
-  constexpr string() : str{0} {}
+  constexpr string() : str{nullptr} {}
   constexpr string(const string &other) : str(other.str) {}
-  constexpr string(const char _str[]) : str{_str} {}
-
-  constexpr const string &operator=(const string &other)
-  {
-    str = other.str;
-    return *this;
-  }
-
-  constexpr const string &operator=(const char _str[])
-  {
-    str = _str;
-    return *this;
-  }
+  constexpr string(const char *_str) : str{_str} {}
 
   bool operator==(const string &other) const
   {

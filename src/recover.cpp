@@ -7,7 +7,7 @@ uint8_t __recover_pg[];
 
 namespace
 {
-struct alignas(uint32_t) entry_t {
+struct alignas(word_t) entry_t {
   rec_func_t rec_func = recovery::def_rec_func;
 
   rec_lev_t rec_lev = rec_lev_t::NONE;
@@ -63,17 +63,17 @@ void def_rec_func(void *data)
   sched::reg_proc(proc_def);
 }
 
-static uint32_t *rec_tbl_addr = (uint32_t *)__recover_pg;
+static word_t *rec_tbl_addr = (word_t *)__recover_pg;
 
 void store()
 {
-  nvm_t nvm{rec_tbl_addr, (uint32_t *)&rec_tbl, sizeof(rec_tbl)};
+  nvm_t nvm{rec_tbl_addr, (word_t *)&rec_tbl, sizeof(rec_tbl)};
   nvm.store();
 }
 
 void load()
 {
-  nvm_t nvm{rec_tbl_addr, (uint32_t *)&rec_tbl, sizeof(rec_tbl)};
+  nvm_t nvm{rec_tbl_addr, (word_t *)&rec_tbl, sizeof(rec_tbl)};
   nvm.load();
 }
 
