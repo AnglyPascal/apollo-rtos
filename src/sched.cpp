@@ -31,7 +31,7 @@ void end_proc(void *param)
 {
   debug<TRACE>("\t\t\tending %s\r\n", cpu.curr_proc->name.str);
   heap::free(param);
-  recovery::dealloc();
+  recovery::set_rec_lev(rec_lev_t::NONE);
   decr_priority(0);
 }
 

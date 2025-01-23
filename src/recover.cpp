@@ -1,12 +1,17 @@
 #include "recover.h"
+#include "nvm.h"
 #include "sched.h"
+
+__extern_C__
+uint8_t __recover_pg[];
 
 namespace
 {
 struct alignas(uint32_t) entry_t {
-  bool in_use = false;
-  runnable_t recover_func = nullptr;
-  void *param = nullptr;
+  rec_func_t rec_func = recovery::def_rec_func;
+
+  rec_lev_t rec_lev = rec_lev_t::NONE;
+  uint8_t data[N_REC_DATA];
 };
 
 struct recover_table_t {
@@ -15,6 +20,8 @@ struct recover_table_t {
 
   entry_t tbl[N_PROCS];
 };
+
+static_assert(sizeof(recover_table_t) <= pg_sz);
 
 recover_table_t rec_tbl __recover_section__ = {};
 } // namespace
@@ -33,27 +40,52 @@ void set_magic()
 
 namespace recovery
 {
-void alloc(runnable_t recover_func, void *param)
+void *rec_data()
 {
-  auto pid = sched::curr_pid();
-  rec_tbl.tbl[pid] = {true, recover_func, param};
+  return rec_tbl.tbl[sched::curr_pid()].data;
 }
 
-void dealloc()
+void set_rec_lev(rec_lev_t lev)
 {
-  auto pid = sched::curr_pid();
-  rec_tbl.tbl[pid] = {};
+  set_rec_lev(lev, def_rec_func);
 }
+
+void set_rec_lev(rec_lev_t lev, rec_func_t rec_func)
+{
+  auto &entry = rec_tbl.tbl[sched::curr_pid()];
+  entry.rec_lev = lev;
+  entry.rec_func = rec_func;
+}
+
+void def_rec_func(void *data)
+{
+  auto proc_def = (proc_def_t *)data;
+  sched::reg_proc(proc_def);
+}
+
+static uint32_t *rec_tbl_addr = (uint32_t *)__recover_pg;
+
+void store()
+{
+  nvm_t nvm{rec_tbl_addr, (uint32_t *)&rec_tbl, sizeof(rec_tbl)};
+  nvm.store();
+}
+
+void load()
+{
+  nvm_t nvm{rec_tbl_addr, (uint32_t *)&rec_tbl, sizeof(rec_tbl)};
+  nvm.load();
+}
+
 } // namespace recovery
 
 void recover()
 {
-  for (auto &entry : rec_tbl.tbl) {
-    auto [in_use, rec_func, param] = entry;
-    if (in_use) {
-      rec_func(param);
+  for (auto &[rec_func, rec_lev, data] : rec_tbl.tbl) {
+    if (rec_lev != rec_lev_t::NONE) {
+      rec_func(data);
+      rec_lev = rec_lev_t::NONE;
     }
-    entry = {};
   }
 }
 

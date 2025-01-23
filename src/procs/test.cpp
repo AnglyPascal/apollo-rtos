@@ -11,15 +11,10 @@ void *test_proc(void *param);
 
 proc_def_t test{"test_proc", 10, 64, test_proc, nullptr};
 
-void *test_recover_func(void *param)
-{
-  sched::reg_proc(&test);
-  return param;
-}
-
 void *test_proc(void *param)
 {
-  recovery::alloc(test_recover_func, nullptr);
+  recovery::set_rec_lev(rec_lev_t::RESET);
+  recovery::store_data(test);
 
   int n = 3;
   while (n-- > 0)

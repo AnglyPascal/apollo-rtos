@@ -26,19 +26,14 @@ using buffer = circular_buffer<accel_t, len>;
 
 int n __recover_section__ = 0;
 
-void *test_recover_func(void *param)
-{
-  sched::reg_proc(&accel);
-  return param;
-}
-
 } // namespace
 
 fn_t accel_fn = 5;
 
 void *accel_func(void *param)
 {
-  recovery::alloc(test_recover_func, nullptr);
+  recovery::set_rec_lev(rec_lev_t::RESET);
+  recovery::store_data(accel);
 
   auto file = fs::open(accel_fn, sizeof(buffer), O_WRITE | O_CREATE);
   buffer *val = (buffer *)*file;

@@ -3,6 +3,7 @@
 
 #include "display.h"
 #include "memory.h"
+#include "recover.h"
 #include "sched.h"
 
 /* A simple driver for the micro:bit LEDs with the same interface on
@@ -71,23 +72,7 @@ image_t image;
 } // namespace
 
 /* device driver for LED display */
-void *task(void *)
-{
-  GPIO.DIR = LED_MASK;
-  image_clear(image);
-
-  while (1) {
-    /* Carefully change LED bits and leave other bits alone */
-    int n = 0;
-    while (n < 3) {
-      GPIO.OUT = image[n++];
-      delay_loop(5000);
-    }
-    sched::sleep(10);
-  }
-
-  return nullptr;
-}
+void *task(void *);
 
 /* set display from image */
 void show(const image_t img)
@@ -107,3 +92,26 @@ namespace procs
 proc_def_t display{"display", 2, 128, display::task, nullptr};
 }
 
+namespace display
+{
+void *task(void *)
+{
+  recovery::set_rec_lev(rec_lev_t::RESET);
+  recovery::store_data(procs::display);
+
+  GPIO.DIR = LED_MASK;
+  image_clear(image);
+
+  while (1) {
+    /* Carefully change LED bits and leave other bits alone */
+    int n = 0;
+    while (n < 3) {
+      GPIO.OUT = image[n++];
+      delay_loop(5000);
+    }
+    sched::sleep(10);
+  }
+
+  return nullptr;
+}
+} // namespace display

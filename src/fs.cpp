@@ -5,7 +5,7 @@
 
 __extern_C__
 uint8_t __nvm_start[],
-    __nvm_end[];
+    __nvm_end[], __fs_pg[];
 
 // can use about 220 pages of flash memory
 constexpr size_t NFILES = 110;
@@ -32,7 +32,7 @@ public:
 static_assert(sizeof(tbl) <= pg_sz);
 static_assert(sizeof(tbl) % sizeof(uint32_t) == 0);
 
-uint32_t *tbl_addr = (uint32_t *)__nvm_end;
+uint32_t *tbl_addr = (uint32_t *)__fs_pg;
 nvm_t tbl_pg;
 
 ////////////
