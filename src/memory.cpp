@@ -50,21 +50,31 @@ byte_t *alloc_stack(size_t sz)
 
 void *_memcpy(void *dest, const void *src, uint32_t n)
 {
-  auto *p = static_cast<uint8_t *>(dest);
-  auto *q = static_cast<const uint8_t *>(src);
-  while (n-- > 0)
+  auto p = (uint32_t *)dest;
+  auto q = (const uint32_t *)src;
+  while (n >= sizeof(uint32_t)) {
     *p++ = *q++;
+    n -= 4;
+  }
+
+  auto pb = (uint8_t *)p;
+  auto qb = (uint8_t *)q;
+  while (n-- > 0) {
+    *pb++ = *qb++;
+  }
+
   return dest;
 }
 
 void *_memmove(void *dest, const void *src, uint32_t n)
 {
-  auto *p = static_cast<uint8_t *>(dest);
-  auto *q = static_cast<const uint8_t *>(src);
-  if (dest <= src)
+  auto *p = (uint8_t *)dest;
+  auto *q = (const uint8_t *)src;
+
+  if (dest <= src) {
     while (n-- > 0)
       *p++ = *q++;
-  else {
+  } else {
     p += n;
     q += n;
     while (n-- > 0)
@@ -73,7 +83,7 @@ void *_memmove(void *dest, const void *src, uint32_t n)
   return dest;
 }
 
-void *_memset(void *dest, uint32_t x, uint32_t n)
+void *_memset(void *dest, uint8_t x, uint32_t n)
 {
   auto *p = static_cast<uint8_t *>(dest);
   while (n-- > 0)

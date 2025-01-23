@@ -21,7 +21,7 @@ void *_memcpy(void *dest, const void *src, uint32_t n);
 void *_memmove(void *dest, const void *src, uint32_t n);
 
 /* set n bytes of dest to byte x */
-void *_memset(void *dest, uint32_t x, uint32_t n);
+void *_memset(void *dest, uint8_t x, uint32_t n);
 
 /* compare n bytes */
 int _memcmp(const void *pp, const void *qq, int n);

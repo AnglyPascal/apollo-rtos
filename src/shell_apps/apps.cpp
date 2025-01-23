@@ -3,18 +3,18 @@
 namespace shell
 {
 
-extern cmd_t echo_cmd, trace_cmd, heart_cmd, show_cmd, calc_cmd, accel_cmd;
+extern proc_def_t echo_cmd, trace_cmd, heart_cmd, show_cmd, calc_cmd, accel_cmd;
 
 namespace
 {
-cmd_t *cmds[] = {&echo_cmd, &trace_cmd, &heart_cmd,
-                 &show_cmd, &calc_cmd,  &accel_cmd};
+proc_def_t *cmds[] = {&echo_cmd, &trace_cmd, &heart_cmd,
+                      &show_cmd, &calc_cmd,  &accel_cmd};
 }
 
-cmd_t *match_cmd(string cmd_str)
+proc_def_t *match_cmd(string cmd_str)
 {
   for (auto cmd : cmds) {
-    if (cmd->cmd == cmd_str)
+    if (cmd->name == cmd_str)
       return cmd;
   }
   return nullptr;

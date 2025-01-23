@@ -48,7 +48,6 @@ class stack_t
   allocator<alloc_stack, alignment> pool;
 
 public:
-  // FIXME: set a minimum stack size
   inline void acquire(proc_t *proc, size_t stk_sz, runnable_t func, void *param,
                       void (*ret)(void *))
   {

@@ -48,6 +48,6 @@ void *heart(void *param)
 
 } // namespace
 
-cmd_t heart_cmd = {"heart", 3, 68, heart};
+proc_def_t heart_cmd = {"heart", 3, 68, heart, nullptr};
 
 } // namespace shell

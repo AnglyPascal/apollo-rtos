@@ -60,6 +60,6 @@ void *calc(void *param)
 
 } // namespace
 
-cmd_t calc_cmd = {"calc", 4, 128, calc};
+proc_def_t calc_cmd = {"calc", 4, 128, calc, nullptr};
 
 } // namespace shell

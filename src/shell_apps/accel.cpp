@@ -62,6 +62,6 @@ void *accel(void *param)
 
 } // namespace
 
-cmd_t accel_cmd = {"accel", 4, 128, accel};
+proc_def_t accel_cmd = {"accel", 4, 128, accel, nullptr};
 
 } // namespace shell

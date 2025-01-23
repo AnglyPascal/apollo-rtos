@@ -164,6 +164,6 @@ void *show(void *param)
 
 } // namespace
 
-cmd_t show_cmd = {"show", 3, 68, show};
+proc_def_t show_cmd = {"show", 3, 68, show, nullptr};
 
 } // namespace shell

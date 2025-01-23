@@ -19,6 +19,6 @@ void *echo(void *param)
 
 } // namespace
 
-cmd_t echo_cmd = {"echo", 4, 128, echo};
+proc_def_t echo_cmd = {"echo", 4, 128, echo, nullptr};
 
 } // namespace shell

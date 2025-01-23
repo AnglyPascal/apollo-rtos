@@ -20,14 +20,16 @@ void *proc(void *param)
   buf->replace(idx, '\0');
   auto [cmd, args] = buf->split(idx + 1);
 
-  auto cmd_ptr = match_cmd(cmd);
-  if (cmd_ptr == nullptr) {
+  auto cmd_def = match_cmd(cmd);
+  if (cmd_def == nullptr) {
     printf(">> WRONG COMMAND\r\n");
     return buf;
   }
 
-  auto [cmd_name, priority, stk_sz, func] = *cmd_ptr;
-  sched::reg_proc(cmd_name, priority, stk_sz, func, buf);
+  cmd_def->param = buf;
+  sched::reg_proc(cmd_def);
+  cmd_def->param = nullptr;
+
   return nullptr;
 }
 
