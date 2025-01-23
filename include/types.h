@@ -16,8 +16,8 @@ using pid_t = uint8_t;
 using priority_t = int32_t;
 
 using word_t = uint32_t;
-using byte_t = uint8_t;
-/* using byte_t = std::byte; */
+/* using byte_t = uint8_t; */
+using byte_t = std::byte;
 
 template <typename T>
 constexpr T _max = std::numeric_limits<T>::max();

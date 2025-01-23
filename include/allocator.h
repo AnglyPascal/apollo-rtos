@@ -1,5 +1,6 @@
 #pragma once
 
+#include "debug.h"
 #include "irq.h"
 #include "memory.h"
 #include "serial.h"
@@ -12,10 +13,20 @@ class allocator
 {
   struct chunk_t {
     chunk_t *next = nullptr;
+
+#if DEBUG_LEV >= DEBUG
+    chunk_t *prev = nullptr;
+#endif
+
     size_t sz = 0;
   };
 
-  chunk_t head;
+  chunk_t free_hd; // singly list
+                   //
+#if DEBUG_LEV >= DEBUG
+  chunk_t used_hd; // doubly list
+#endif
+
   static constexpr size_t header_sz = roundup(sizeof(chunk_t), alignment);
 
 public:
@@ -27,18 +38,28 @@ public:
 
     sz = roundup(sz, alignment);
     auto chnk_sz = header_sz + sz;
+    chunk_t *chunk = nullptr;
 
-    auto ptr = &head;
+    auto ptr = &free_hd;
     while (ptr->next != nullptr) {
-      auto chunk = ptr->next;
+      chunk = ptr->next;
       ptr->next = chunk->next;
 
-      if (chunk->sz >= sz) {
-        return (byte_t *)chunk + header_sz;
-      }
+      if (chunk->sz >= sz)
+        break;
     }
+    if (chunk == nullptr)
+      chunk = (chunk_t *)alloc_func(chnk_sz);
 
-    auto chunk = (chunk_t *)alloc_func(chnk_sz);
+#if DEBUG_LEV >= DEBUG
+    chunk->prev = &used_hd;
+    chunk->next = used_hd.next;
+
+    if (used_hd.next != nullptr)
+      used_hd.next->prev = chunk;
+    used_hd.next = chunk;
+#endif
+
     chunk->sz = sz;
     return (byte_t *)chunk + header_sz;
   }
@@ -48,16 +69,30 @@ public:
     intr_guard guard;
 
     auto chunk = (chunk_t *)(ptr - header_sz);
-    chunk->next = head.next;
-    head.next = chunk;
+
+#if DEBUG_LEV >= DEBUG
+    chunk->prev->next = chunk->next;
+    if (chunk->next != nullptr)
+      chunk->next->prev = chunk->prev;
+
+    chunk->prev = nullptr;
+#endif
+
+    chunk->next = free_hd.next;
+    free_hd.next = chunk;
   }
 
   __noinline__
   void trace()
   {
     printf("alloc trace: \r\n");
-    for (auto ptr = &head; ptr->next != nullptr; ptr = ptr->next) {
-      printf("\t%x: %u\r\n", (byte_t *)ptr->next + header_sz, ptr->next->sz);
+    printf("\tfree list: \r\n");
+    for (auto ptr = &free_hd; ptr->next != nullptr; ptr = ptr->next) {
+      printf("\t\t%x: %u\r\n", (byte_t *)ptr->next + header_sz, ptr->next->sz);
+    }
+    printf("\tused list: \r\n");
+    for (auto ptr = &used_hd; ptr->next != nullptr; ptr = ptr->next) {
+      printf("\t\t%x: %u\r\n", (byte_t *)ptr->next + header_sz, ptr->next->sz);
     }
   }
 };
