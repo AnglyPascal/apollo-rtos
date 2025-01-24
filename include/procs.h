@@ -2,6 +2,7 @@
 
 #include "debug.h"
 #include "irq.h"
+#include "memory.h"
 #include "serial.h"
 #include "types.h"
 
@@ -30,6 +31,8 @@ struct proc_t {
   byte_t *stk_ptr = nullptr;
   byte_t *stack = nullptr;
   size_t stk_sz = 0;
+
+  chunk_t used_hd = {};
 };
 
 template <uint8_t N_PROCS>
@@ -92,10 +95,14 @@ public:
     printf("\t%d. %s : %d, %s\r\n", pid, proc->name.str, proc->priority, state);
     printf("\t\tstack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack, proc->stk_sz,
            proc->stk_ptr);
+    for (auto ptr = &proc->used_hd; ptr->next != nullptr; ptr = ptr->next) {
+      printf("\t\t%x: %d\r\n", ptr, ptr->sz);
+    }
   }
 
   inline pid_t pid(proc_t *proc) const
   {
+    assert(proc != nullptr);
     return proc - procs;
   }
 };

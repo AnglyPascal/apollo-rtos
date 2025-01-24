@@ -8,22 +8,14 @@
 
 using allocator_t = byte_t *(*)(size_t);
 
+#define USED_LIST 0
+
 template <allocator_t alloc_func, size_t alignment>
 class allocator
 {
-  struct chunk_t {
-    chunk_t *next = nullptr;
-
-#if DEBUG_LEV >= DEBUG
-    chunk_t *prev = nullptr;
-#endif
-
-    size_t sz = 0;
-  };
-
   chunk_t free_hd; // singly list
-                   //
-#if DEBUG_LEV >= DEBUG
+                   
+#if USED_LIST
   chunk_t used_hd; // doubly list
 #endif
 
@@ -51,7 +43,7 @@ public:
     if (chunk == nullptr)
       chunk = (chunk_t *)alloc_func(chnk_sz);
 
-#if DEBUG_LEV >= DEBUG
+#if USED_LIST
     chunk->prev = &used_hd;
     chunk->next = used_hd.next;
 
@@ -70,7 +62,7 @@ public:
 
     auto chunk = (chunk_t *)(ptr - header_sz);
 
-#if DEBUG_LEV >= DEBUG
+#if USED_LIST
     chunk->prev->next = chunk->next;
     if (chunk->next != nullptr)
       chunk->next->prev = chunk->prev;
@@ -90,9 +82,12 @@ public:
     for (auto ptr = &free_hd; ptr->next != nullptr; ptr = ptr->next) {
       printf("\t\t%x: %u\r\n", (byte_t *)ptr->next + header_sz, ptr->next->sz);
     }
+
+#if USED_LIST
     printf("\tused list: \r\n");
     for (auto ptr = &used_hd; ptr->next != nullptr; ptr = ptr->next) {
       printf("\t\t%x: %u\r\n", (byte_t *)ptr->next + header_sz, ptr->next->sz);
     }
+#endif
   }
 };

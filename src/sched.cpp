@@ -196,4 +196,9 @@ pid_t curr_pid()
   return procs.pid(cpu.curr_proc);
 }
 
+chunk_t *curr_proc_used_hd()
+{
+  return &cpu.curr_proc->used_hd;
+}
+
 } // namespace sched

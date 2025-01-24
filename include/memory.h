@@ -3,6 +3,13 @@
 #include "types.h"
 #include <cstdint>
 
+struct chunk_t {
+  chunk_t *next = nullptr;
+  chunk_t *prev = nullptr;
+
+  size_t sz = 0;
+};
+
 constexpr size_t roundup(size_t sz, size_t align)
 {
   return (sz + align - 1) & ~(align - 1);
@@ -31,6 +38,7 @@ namespace heap
 void *malloc(size_t sz) __attribute__((malloc));
 void free(void *);
 void trace();
+void cleanup();
 } // namespace heap
 
 void *operator new(size_t sz);
