@@ -7,6 +7,8 @@
 #include "shell.h"
 #include "types.h"
 
+#include <utility>
+
 namespace shell
 {
 
@@ -41,6 +43,7 @@ void *accel(void *param)
 {
   auto file = fs::open(accel_fn, sizeof(buffer), O_CREATE);
   auto val = (buffer *)*file;
+
   serial::listener_guard guard{listener};
 
   while (!exit) {

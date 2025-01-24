@@ -8,10 +8,10 @@ __extern_C__
 byte_t __nvm_start[],
     __nvm_end[], __fs_pg[];
 
-#define TBL_MAGIC 0xdeadbeef;
+#define TBL_MAGIC 0xdeadbabe
 
-// can use about 220 pages of flash memory
-constexpr size_t NFILES = 110;
+// can use about 200 pages of flash memory
+constexpr size_t NFILES = 80;
 
 namespace
 {
@@ -40,7 +40,7 @@ static_assert(sizeof(tbl) <= pg_sz);
 static_assert(sizeof(tbl) % sizeof(word_t) == 0);
 
 word_t *const tbl_addr = (word_t *)__fs_pg;
-nvm_t tbl_pg;
+pg_t tbl_pg;
 } // namespace
 
 ////////////
@@ -53,8 +53,8 @@ public:
   inode_t *inode = nullptr;
   void *addr = nullptr;
 
-  nvm_t pg1;
-  nvm_t pg2;
+  pg_t pg1;
+  pg_t pg2;
 
   uint8_t w_cnt = 0;
   uint8_t r_cnt = 0;
@@ -67,19 +67,45 @@ public:
     return (word_t *)((size_t)__nvm_start + off * pg_sz);
   }
 
+  size_t pg1_sz() const
+  {
+    return min(inode->sz, pg_sz - sizeof(page_guard_t));
+  }
+
+  size_t pg2_sz() const
+  {
+    return inode->sz - pg1_sz();
+  }
+
 private:
   fd_t() {}
 
   void open(inode_t *_inode)
   {
-    auto fn = _inode->fn;
-
     inode = _inode;
-    addr = heap::malloc(inode->sz);
-    pg1 = {off2pg(2 * fn), (word_t *)addr, inode->pg1_sz()};
-    if (inode->pg2_sz() > 0)
-      pg2 = {off2pg(2 * fn + 1), (word_t *)((uint8_t *)addr + pg_sz),
-             inode->pg2_sz()};
+    assert(inode != nullptr);
+
+    auto sz = inode->sz;
+    assert(sz <= 2 * pg_sz - 2 * sizeof(page_guard_t), "%u, %u\r\n", sz,
+           2 * pg_sz - 2 * sizeof(page_guard_t));
+
+    auto fn = inode->fn;
+    addr = heap::malloc(sz);
+
+    pg1 = {
+        off2pg(2 * fn),
+        (word_t *)addr,
+        pg1_sz(),
+    };
+
+    if (pg2_sz() > 0) {
+      pg2 = {
+          off2pg(2 * fn + 1),
+          (word_t *)((uint8_t *)addr + pg1_sz()),
+          pg2_sz(),
+      };
+    }
+
     w_cnt = 0;
     r_cnt = 0;
 
@@ -115,27 +141,24 @@ private:
 
   void load() const
   {
-    auto sz = inode->sz;
     pg1.load();
-    if (sz > pg_sz) {
+    if (pg2_sz() > 0) {
       pg2.load();
     }
   }
 
   void erase() const
   {
-    auto sz = inode->sz;
     pg1.erase();
-    if (sz > pg_sz) {
+    if (pg2_sz() > 0) {
       pg2.erase();
     }
   }
 
   void store() const
   {
-    auto sz = inode->sz;
     pg1.store();
-    if (sz > pg_sz) {
+    if (pg2_sz() > 0) {
       pg2.store();
     }
   }
@@ -143,6 +166,11 @@ private:
   void *operator*()
   {
     return addr;
+  }
+
+  bool is_valid() const
+  {
+    return pg1.is_valid();
   }
 
 public:
@@ -189,8 +217,9 @@ public:
   fd_t *open(inode_t *inode)
   {
     auto fd = find(inode);
-    if (fd->inode != inode)
+    if (fd->inode != inode) {
       fd->open(inode);
+    }
     return fd;
   }
 
@@ -237,6 +266,11 @@ void file_t::erase()
 void *file_t::operator*()
 {
   return **fd;
+}
+
+bool file_t::is_valid() const
+{
+  return fd->is_valid();
 }
 
 file_t::~file_t()
@@ -337,14 +371,17 @@ file_t open(fn_t fn, size_t sz, uint32_t flags)
 
   auto &inode = tbl[fn];
 
-  if (!inode.in_use) {
-    assert(flags & O_CREATE);
+  if (inode.sz == 0) {
+    assert(flags & O_CREATE, "inode doesn't exist, but not creating\r\n");
+    assert(!inode.in_use, "inode already in use\r\n");
 
     inode.sz = sz;
     inode.in_use = true;
 
-    /* fs::store(); */
+    fs::store();
   }
+
+  assert(inode.sz == sz);
 
   bool w_en = flags & O_WRITE;
   return {fn, fd_tbl.open(&inode), w_en};

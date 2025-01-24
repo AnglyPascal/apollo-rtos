@@ -13,16 +13,6 @@ struct inode_t {
 
   uint8_t in_use;
   size_t sz;
-
-  size_t pg1_sz() const
-  {
-    return min(sz, pg_sz);
-  }
-
-  size_t pg2_sz() const
-  {
-    return sz > pg_sz ? sz - pg_sz : 0;
-  }
 };
 
 class file_t;
@@ -35,7 +25,9 @@ namespace fs
 
 void mount();
 void store();
+
 file_t open(fn_t fn, size_t sz, uint32_t flags);
+
 void trace();
 
 } // namespace fs
@@ -60,6 +52,8 @@ public:
   void store();
   void erase();
   void *operator*();
+  bool is_valid() const;
 
   ~file_t();
 };
+

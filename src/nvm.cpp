@@ -51,3 +51,24 @@ void *nvm_t::operator*() const
   return rt_addr;
 }
 
+#define PG_MAGIC 0xbebebebe;
+
+void pg_t::load() const
+{
+  if (is_valid())
+    nvm_t::load();
+}
+
+bool pg_t::is_valid() const
+{
+  auto addr = (page_guard_t *)((uint32_t)pg_addr + pg_sz) - 1;
+  assert((uint32_t)addr % sizeof(word_t) == 0);
+  return *addr == PG_MAGIC;
+}
+
+void pg_t::store() const
+{
+  nvm_t::store();
+  auto addr = (page_guard_t *)((uint32_t)pg_addr + pg_sz) - 1;
+  *addr = PG_MAGIC;
+}

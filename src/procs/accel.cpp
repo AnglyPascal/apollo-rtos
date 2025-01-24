@@ -24,6 +24,8 @@ struct accel_t {
 constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
 using buffer = circular_buffer<accel_t, len>;
 
+static_assert(sizeof(buffer) <= pg_sz - sizeof(page_guard_t));
+
 int n __recover_section__ = 0;
 
 } // namespace
@@ -36,7 +38,7 @@ void *accel_func(void *param)
   recovery::store_data(accel);
 
   auto file = fs::open(accel_fn, sizeof(buffer), O_WRITE | O_CREATE);
-  buffer *val = (buffer *)*file;
+  auto val = file.is_valid() ? (buffer *)*file : new (*file) buffer{};
 
   /* int n = 0; */
   while (1) {
