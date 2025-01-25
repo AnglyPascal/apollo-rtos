@@ -49,6 +49,9 @@ void spin(void);
 __extern_C__
 void trigger_reset(void);
 
+bool is_reset();
+void set_magic();
+
 __extern_C__
 void __start(void)
 {
@@ -69,6 +72,8 @@ void __start(void)
 
   if (!is_reset()) {
     printf("boot\r\n");
+    set_boot();
+    set_magic();
 
     waitlist::reg("reset", 10000, [](void *) { trigger_reset(); });
   } else {

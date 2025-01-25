@@ -13,9 +13,6 @@ enum class rec_lev_t {
   BOOT,
 };
 
-bool is_reset();
-void set_magic();
-
 using rec_func_t = void (*)(void *);
 
 namespace recovery
@@ -39,3 +36,13 @@ void store();
 } // namespace recovery
 
 void recover();
+
+bool is_first_boot();
+void set_boot();
+
+template <typename T>
+void rec_init(T &t)
+{
+  if (is_first_boot())
+    t = T{};
+}

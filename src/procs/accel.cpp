@@ -27,13 +27,14 @@ using buffer = circular_buffer<accel_t, len>;
 static_assert(sizeof(buffer) <= pg_sz - sizeof(page_guard_t));
 
 int n __recover_section__ = 0;
-
 } // namespace
 
 fn_t accel_fn = 5;
 
 void *accel_func(void *param)
 {
+  rec_init(n);
+
   recovery::set_rec_lev(rec_lev_t::RESET);
   recovery::store_data(accel);
 

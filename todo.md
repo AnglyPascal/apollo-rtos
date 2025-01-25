@@ -27,3 +27,7 @@
     - check that no assumptions are being made about the file contents
         - clear out runtime map of the file, and don't load it 
 
+- reset recovery:
+    - recovery section variables needs explicit initialization by code
+    - and this needs to happen only when booting for the first time
+    - needs methods for initializing these variables properly

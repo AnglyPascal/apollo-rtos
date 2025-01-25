@@ -43,9 +43,11 @@ SECTIONS {
         __bss_end = .;
     } > RAM
 
-    .recover :
+    .recover (NOLOAD) :
     {
+        . = ALIGN(4);
         KEEP(*(.recover)) ;
+        . = ALIGN(4);
         __end = .;
     } > RAM
 

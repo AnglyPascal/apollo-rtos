@@ -153,8 +153,7 @@ void init()
 
   cpu.curr_proc = idle_proc;
 
-  if (!is_reset()) {
-    set_magic();
+  if (is_first_boot()) {
     setup_procs();
   } else {
     recover();
