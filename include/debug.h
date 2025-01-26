@@ -12,8 +12,11 @@ enum debug_t {
   TRACE,
 };
 
+#ifndef NDEBUG
 constexpr auto DEBUG_LEV = DEBUG;
-constexpr auto ASSERT_EN = DEBUG_LEV >= DEBUG;
+#else
+constexpr auto DEBUG_LEV = WARN;
+#endif
 
 template <debug_t level, typename... Args>
 void debug(const char *fmt, Args... args)
@@ -30,12 +33,13 @@ __always_inline__
 inline void __assert(bool ex, const char *src, const char *func,
                      const char *file, int line)
 {
-  if constexpr (ASSERT_EN)
-    if (!ex) {
-      debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
-                   file, line);
-      asm("udf #0");
-    }
+#ifndef NDEBUG
+  if (!ex) {
+    debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
+                 file, line);
+    asm("udf #0");
+  }
+#endif
 }
 
 template <typename... Args>
@@ -43,13 +47,14 @@ __always_inline__
 inline void __assert(bool ex, const char *src, const char *func,
                      const char *file, int line, const char *fmt, Args... args)
 {
-  if constexpr (ASSERT_EN)
-    if (!ex) {
-      debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
-                   file, line);
-      debug<FATAL>(fmt, args...);
-      asm("udf #0");
-    }
+#ifndef NDEBUG
+  if (!ex) {
+    debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
+                 file, line);
+    debug<FATAL>(fmt, args...);
+    asm("udf #0");
+  }
+#endif
 }
 
 #define assert(EX, ...)                                                        \

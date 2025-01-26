@@ -40,7 +40,7 @@ class stack_t
   static constexpr uint32_t lr_intr_magic = 0xfffffff9; // not 0xfffffffd
 
   // minimum stack depth to allow for a printf to execute in debug mode
-  static constexpr size_t debug_depth = (size_t)ASSERT_EN * 128;
+  static constexpr size_t debug_depth = 128;
   static constexpr size_t timer_depth = 32;
 
   static constexpr uint32_t alignment = 16;
@@ -75,8 +75,5 @@ public:
     proc->stk_sz = stk_sz;
   }
 
-  inline void release(proc_t *proc)
-  {
-    pool.dealloc(proc->stack);
-  }
+  inline void release(proc_t *proc) { pool.dealloc(proc->stack); }
 };
