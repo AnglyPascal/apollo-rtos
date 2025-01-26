@@ -2,14 +2,13 @@
 /* Copyright (c) 2020 J. M. Spivey */
 
 #include "display.h"
+#include "irq.h"
 #include "memory.h"
 #include "recover.h"
 #include "sched.h"
 
 /* A simple driver for the micro:bit LEDs with the same interface on
 V1 and V2. */
-
-void delay_loop(uint32_t);
 namespace display
 {
 
@@ -25,10 +24,7 @@ constexpr image_t blank = IMAGE(0, 0, 0, 0, 0, //
                                 0, 0, 0, 0, 0, //
                                 0, 0, 0, 0, 0);
 
-void image_clear(image_t img)
-{
-  _memcpy(img, blank, sizeof(image_t));
-}
+void image_clear(image_t img) { _memcpy(img, blank, sizeof(image_t)); }
 
 /* encode a pair of integers in one integer */
 #define PAIR(x, y) (((x) << 5) | (y))
@@ -46,10 +42,7 @@ static uint32_t img_map[5][5] = {
     {PIX(1, 1), PIX(2, 4), PIX(1, 2), PIX(2, 5), PIX(1, 3)}};
 
 /* find logical row and column for a pixel */
-static uint32_t map_pixel(int x, int y)
-{
-  return img_map[y][x];
-}
+static uint32_t map_pixel(int x, int y) { return img_map[y][x]; }
 
 } // namespace
 
@@ -75,15 +68,9 @@ image_t image;
 void *task(void *);
 
 /* set display from image */
-void show(const image_t img)
-{
-  _memcpy(image, img, sizeof(image_t));
-}
+void show(const image_t img) { _memcpy(image, img, sizeof(image_t)); }
 
-void reset()
-{
-  show(blank);
-}
+void reset() { show(blank); }
 
 } // namespace display
 

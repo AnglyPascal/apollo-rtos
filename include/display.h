@@ -18,15 +18,16 @@ using image_t = uint32_t[NIMG];
 
 #define LED_MASK 0xfff0
 
-#define led_init() GPIO.DIRSET = LED_MASK
-#define led_dot() GPIO.OUTSET = 0x5fbf
-#define led_off() GPIO.OUTCLR = LED_MASK
+namespace led
+{
+inline void init() { GPIO.DIRSET = LED_MASK; }
+inline void dot() { GPIO.OUTSET = 0x5fbf; }
+inline void off() { GPIO.OUTCLR = LED_MASK; }
+} // namespace led
 
 namespace display
 {
-
 void show(const image_t);
 void image_set(int x, int y, image_t img);
 void reset();
-
 } // namespace display

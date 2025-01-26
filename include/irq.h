@@ -111,3 +111,8 @@ public:
 };
 
 inline volatile uint32_t intr_guard::intr_sem = 0;
+
+__extern_C__
+void spin(void);
+
+void delay_loop(uint32_t usecs);

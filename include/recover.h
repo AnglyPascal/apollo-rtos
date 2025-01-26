@@ -17,8 +17,6 @@ using rec_func_t = void (*)(void *);
 
 namespace recovery
 {
-void def_rec_func(void *data);
-
 void *rec_data();
 
 template <typename T>
@@ -38,7 +36,6 @@ void store();
 void recover();
 
 bool is_first_boot();
-void set_boot();
 
 template <typename T>
 void rec_init(T &t)

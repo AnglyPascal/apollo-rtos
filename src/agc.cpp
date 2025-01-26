@@ -3,79 +3,53 @@
 #include "fs.h"
 #include "hardware.h"
 #include "irq.h"
-#include "lib.h"
 #include "recover.h"
 #include "sched.h"
 #include "serial.h"
 #include "shell.h"
 #include "timer.h"
-#include "waitlist.h"
 
 __extern_C__
 byte_t __data_start[],
     __data_end[], __bss_start[], __bss_end[], __end[], __etext[], __stack[],
     __stack_limit, __nvm_end[], __nvm_start[];
 
-void waitlist1(void *)
-{
-  /* led_dot(); */
-  waitlist::reg("waitlist1", 640, waitlist1);
-}
-
-void waitlist2(void *)
-{
-  /* led_off(); */
-  waitlist::reg("waitlist2", 800, waitlist2);
-}
-
 inline void debug_addr()
 {
-  debug<DEBUG>("\tetext:      %x\r\n", (uint32_t)__etext);
-  debug<DEBUG>("\tdata_start: %x\r\n", (uint32_t)__data_start);
-  debug<DEBUG>("\tdata_end:   %x\r\n", (uint32_t)__data_end);
+  debug<TRACE>("\tetext:      %x\r\n", __etext);
+  debug<TRACE>("\tdata_start: %x\r\n", __data_start);
+  debug<TRACE>("\tdata_end:   %x\r\n", __data_end);
 
-  debug<DEBUG>("\tend:        %x\r\n", (uint32_t)__end);
-  debug<DEBUG>("\tstack:      %x\r\n", (uint32_t)__stack);
+  debug<TRACE>("\tend:        %x\r\n", __end);
+  debug<TRACE>("\tstack:      %x\r\n", __stack);
 
-  debug<DEBUG>("\tbss_start:  %x\r\n", (uint32_t)__bss_start);
-  debug<DEBUG>("\tbss_end:    %x\r\n", (uint32_t)__bss_end);
-  debug<DEBUG>("\tnvm_start:  %x\r\n", (uint32_t)__nvm_start);
-  debug<DEBUG>("\tnvm_end:    %x\r\n", (uint32_t)__nvm_end);
+  debug<TRACE>("\tbss_start:  %x\r\n", __bss_start);
+  debug<TRACE>("\tbss_end:    %x\r\n", __bss_end);
+  debug<TRACE>("\tnvm_start:  %x\r\n", __nvm_start);
+  debug<TRACE>("\tnvm_end:    %x\r\n", __nvm_end);
 }
 
-__extern_C__
-void spin(void);
-
-__extern_C__
-void trigger_reset(void);
-
 bool is_reset();
-void set_magic();
+void set_boot();
 
-__extern_C__
-void __start(void)
+inline void __start(void)
 {
   _memcpy(__data_start, __etext, __data_end - __data_start);
   _memset(__bss_start, 0, __bss_end - __bss_start);
 
-  led_init();
+  led::init();
   serial::init();
   fs::mount();
-
-  /* debug_addr(); */
-
-  waitlist::reg("waitlist1", 640, waitlist1);
-  waitlist::reg("waitlist2", 800, waitlist2);
-
   timer::init();
   shell::init();
+
+  serial::clear_screen();
+
+  debug_addr();
 
   if (!is_reset()) {
     printf("boot\r\n");
     set_boot();
-    set_magic();
-
-    waitlist::reg("reset", 10000, [](void *) { trigger_reset(); });
   } else {
     printf("reset\r\n");
   }
@@ -84,3 +58,16 @@ void __start(void)
 
   spin();
 }
+
+__extern_C__
+void __reset(void)
+{
+  /* Activate the crystal clock */
+  CLOCK.HFCLKSTARTED = 0;
+  CLOCK.HFCLKSTART = 1;
+  while (!CLOCK.HFCLKSTARTED)
+    ;
+
+  __start();
+}
+

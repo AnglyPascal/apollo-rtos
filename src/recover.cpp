@@ -27,41 +27,30 @@ struct recover_table_t {
 static_assert(sizeof(recover_table_t) <= pg_sz);
 
 recover_table_t rec_tbl __recover_section__ = {};
-
 bool first_boot = false;
-} // namespace
 
-bool is_first_boot()
-{
-  return first_boot;
-}
+} // namespace
 
 void set_boot()
 {
   first_boot = true;
-}
-
-bool is_reset()
-{
-  return rec_tbl.magic == REC_MAGIC;
-}
-
-void set_magic()
-{
   rec_tbl.magic = REC_MAGIC;
 }
 
+bool is_first_boot() { return first_boot; }
+bool is_reset() { return rec_tbl.magic == REC_MAGIC; }
+
 namespace recovery
 {
-void *rec_data()
+void *rec_data() { return rec_tbl.tbl[sched::curr_pid()].data; }
+
+inline void def_rec_func(void *data)
 {
-  return rec_tbl.tbl[sched::curr_pid()].data;
+  auto proc_def = (proc_def_t *)data;
+  sched::reg_proc(proc_def);
 }
 
-void set_rec_lev(rec_lev_t lev)
-{
-  set_rec_lev(lev, def_rec_func);
-}
+void set_rec_lev(rec_lev_t lev) { set_rec_lev(lev, def_rec_func); }
 
 void set_rec_lev(rec_lev_t lev, rec_func_t rec_func)
 {
@@ -69,12 +58,6 @@ void set_rec_lev(rec_lev_t lev, rec_func_t rec_func)
   entry.magic = REC_MAGIC;
   entry.rec_lev = lev;
   entry.rec_func = rec_func;
-}
-
-void def_rec_func(void *data)
-{
-  auto proc_def = (proc_def_t *)data;
-  sched::reg_proc(proc_def);
 }
 
 static word_t *rec_tbl_addr = (word_t *)__recover_pg;
