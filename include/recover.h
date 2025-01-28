@@ -36,10 +36,3 @@ void store();
 void recover();
 
 bool is_first_boot();
-
-template <typename T>
-void rec_init(T &t)
-{
-  if (is_first_boot())
-    t = T{};
-}

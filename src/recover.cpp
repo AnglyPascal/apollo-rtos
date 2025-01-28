@@ -10,7 +10,6 @@ uint8_t __recover_pg[];
 namespace
 {
 struct alignas(word_t) entry_t {
-  uint32_t magic;
   rec_func_t rec_func = nullptr;
 
   rec_lev_t rec_lev = rec_lev_t::NONE;
@@ -18,10 +17,10 @@ struct alignas(word_t) entry_t {
 };
 
 struct recover_table_t {
-  uint32_t magic;
-  uint32_t n_used;
+  uint32_t magic = REC_MAGIC;
+  uint32_t n_used = 0;
 
-  entry_t tbl[N_PROCS];
+  entry_t tbl[N_PROCS] = {{}};
 };
 
 static_assert(sizeof(recover_table_t) <= pg_sz);
@@ -31,13 +30,13 @@ bool first_boot = false;
 
 } // namespace
 
-void set_boot()
-{
-  first_boot = true;
-  rec_tbl.magic = REC_MAGIC;
-}
-
+/** this shouldn't be needed,
+ *  but we need it to indicate to sched that this is the first boot,
+ *  because by then, in agc, we had already set the magic by initialization
+ * */
+void set_boot() { first_boot = true; }
 bool is_first_boot() { return first_boot; }
+
 bool is_reset() { return rec_tbl.magic == REC_MAGIC; }
 
 namespace recovery
@@ -55,7 +54,6 @@ void set_rec_lev(rec_lev_t lev) { set_rec_lev(lev, def_rec_func); }
 void set_rec_lev(rec_lev_t lev, rec_func_t rec_func)
 {
   auto &entry = rec_tbl.tbl[sched::curr_pid()];
-  entry.magic = REC_MAGIC;
   entry.rec_lev = lev;
   entry.rec_func = rec_func;
 }
@@ -78,8 +76,8 @@ void load()
 
 void recover()
 {
-  for (auto &[magic, rec_func, rec_lev, data] : rec_tbl.tbl) {
-    if (magic == REC_MAGIC && rec_lev != rec_lev_t::NONE) {
+  for (auto &[rec_func, rec_lev, data] : rec_tbl.tbl) {
+    if (rec_lev != rec_lev_t::NONE) {
       rec_func(data);
       rec_lev = rec_lev_t::NONE;
     }

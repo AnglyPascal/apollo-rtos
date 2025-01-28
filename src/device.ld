@@ -16,40 +16,52 @@ SECTIONS {
         KEEP(*(.vectors))
         *(.text*)
         *(.rodata*)
+        KEEP(*(.init_array))
+
         . = ALIGN(4);
         __etext = .;
     } > FLASH
 
-    /DISCARD/ : {
+    /* /DISCARD/ : { */
         /* Some parts of the GCC library have C++ exception data,
            which is of no use to us. */
-        *(.ARM.extab*)
-        *(.ARM.exidx*)
+        /* *(.ARM.extab*) */
+        /* *(.ARM.exidx*) */
         /* *(.eh_frame*) */
-    }
+    /* } */
 
     .data : AT (__etext) {
         __data_start = .;
+
         *(.data*)
+
         . = ALIGN(4);
         __data_end = .;
     } > RAM
 
     .bss : {
         __bss_start = .;
+
         *(.bss*)
         *(COMMON)
+
         . = ALIGN(4);
         __bss_end = .;
     } > RAM
 
-    .recover (NOLOAD) :
+    __recover_load = __etext + __data_end - __data_start;
+
+    .recover : AT (__recover_load)
     {
-        . = ALIGN(4);
+        __recover_start = .;
+
         KEEP(*(.recover)) ;
+
         . = ALIGN(4);
+        __recover_end = .;
         __end = .;
     } > RAM
+
 
     /* Set stack top to end of RAM, and move stack limit down by
        size of stack */

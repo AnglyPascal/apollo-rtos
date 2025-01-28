@@ -14,6 +14,10 @@ byte_t __data_start[],
     __data_end[], __bss_start[], __bss_end[], __end[], __etext[], __stack[],
     __stack_limit, __nvm_end[], __nvm_start[];
 
+__extern_C__
+byte_t __recover_load[],
+    __recover_start[], __recover_end[];
+
 inline void debug_addr()
 {
   debug<TRACE>("\tetext:      %x\r\n", __etext);
@@ -49,6 +53,11 @@ inline void __start(void)
 
   if (!is_reset()) {
     printf("boot\r\n");
+
+    // initialize recovery section
+    _memcpy(__recover_start, __recover_load, __recover_end - __recover_start);
+
+    // set boot value to true
     set_boot();
   } else {
     printf("reset\r\n");
