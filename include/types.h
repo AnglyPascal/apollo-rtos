@@ -9,18 +9,20 @@
 #define __noinline__ __attribute__((noinline))
 #define __extern_C__ extern "C"
 
+template <typename T>
+constexpr T _max = std::numeric_limits<T>::max();
+
 using size_t = std::size_t;
 using runnable_t = void *(*)(void *);
 
 using pid_t = uint8_t;
+inline constexpr pid_t null_pid = _max<pid_t>;
+
 using priority_t = int32_t;
 
 using word_t = uint32_t;
 /* using byte_t = uint8_t; */
 using byte_t = std::byte;
-
-template <typename T>
-constexpr T _max = std::numeric_limits<T>::max();
 
 using time_t = uint32_t;
 
@@ -74,30 +76,15 @@ class list
   public:
     iterator(const node<T> *head) : head(head) {}
 
-    T &operator*() const
-    {
-      return *head->next->val;
-    }
+    T &operator*() const { return *head->next->val; }
 
-    T *operator->() const
-    {
-      return head->next->val;
-    }
+    T *operator->() const { return head->next->val; }
 
-    iterator operator++() const
-    {
-      return iterator{head->next};
-    }
+    iterator operator++() const { return iterator{head->next}; }
 
-    bool operator==(const iterator &other) const
-    {
-      return head == other.head;
-    }
+    bool operator==(const iterator &other) const { return head == other.head; }
 
-    bool operator!=(const iterator &other) const
-    {
-      return head != other.head;
-    }
+    bool operator!=(const iterator &other) const { return head != other.head; }
   };
 
   using const_iterator = const iterator;
@@ -109,15 +96,9 @@ public:
     head.next = nd;
   }
 
-  iterator begin() const
-  {
-    return iterator{&head};
-  }
+  iterator begin() const { return iterator{&head}; }
 
-  iterator end() const
-  {
-    return iterator{nullptr};
-  }
+  iterator end() const { return iterator{nullptr}; }
 };
 
 template <typename T, size_t len>
@@ -135,20 +116,11 @@ class stack
     iterator(T *arr) : arr{arr} {}
     iterator(const iterator &other) : arr{other.arr} {}
 
-    T &operator*() const
-    {
-      return *arr;
-    }
+    T &operator*() const { return *arr; }
 
-    T *operator->() const
-    {
-      return arr;
-    }
+    T *operator->() const { return arr; }
 
-    iterator operator++()
-    {
-      return iterator{++arr};
-    }
+    iterator operator++() { return iterator{++arr}; }
 
     iterator &operator++(int)
     {
@@ -156,27 +128,15 @@ class stack
       return *this;
     }
 
-    bool operator==(const iterator &other) const
-    {
-      return arr == other.arr;
-    }
+    bool operator==(const iterator &other) const { return arr == other.arr; }
 
-    bool operator!=(const iterator &other) const
-    {
-      return arr != other.arr;
-    }
+    bool operator!=(const iterator &other) const { return arr != other.arr; }
   };
 
 public:
-  bool full()
-  {
-    return sz == len;
-  }
+  bool full() { return sz == len; }
 
-  bool empty()
-  {
-    return sz == 0;
-  }
+  bool empty() { return sz == 0; }
 
   void push(T val)
   {
@@ -185,20 +145,11 @@ public:
     arr[sz++] = val;
   }
 
-  T pop()
-  {
-    return arr[sz--];
-  }
+  T pop() { return arr[sz--]; }
 
-  iterator begin()
-  {
-    return iterator{arr};
-  }
+  iterator begin() { return iterator{arr}; }
 
-  iterator end()
-  {
-    return iterator{arr + len};
-  }
+  iterator end() { return iterator{arr + len}; }
 };
 
 template <typename T>
@@ -213,9 +164,6 @@ constexpr T min(T t, T s)
   return t < s ? t : s;
 }
 
-inline void *operator new(size_t, void *where)
-{
-  return where;
-}
+inline void *operator new(size_t, void *where) { return where; }
 
 #define pg_sz (size_t)1024

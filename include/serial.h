@@ -1,6 +1,7 @@
 #pragma once
 
 #include "hardware.h"
+#include "irq.h"
 #include "lib.h"
 #include "types.h"
 
@@ -26,10 +27,15 @@ void printf(Args... args)
   do_printf(putc, args...);
 }
 
-inline void clear_screen()
+template <typename... Args>
+void kprintf(Args... args)
 {
-  printf("\033[2J\033[H");
+  intr_disable();
+  do_printf(busy_putc, args...);
+  intr_enable();
 }
+
+inline void clear_screen() { kprintf("\033[2J\033[H"); }
 
 using listener_t = bool (*)(char);
 
@@ -39,17 +45,12 @@ void unregister_listener();
 class listener_guard
 {
 public:
-  listener_guard(listener_t listener)
-  {
-    register_listener(listener);
-  }
+  listener_guard(listener_t listener) { register_listener(listener); }
 
-  ~listener_guard()
-  {
-    unregister_listener();
-  }
+  ~listener_guard() { unregister_listener(); }
 };
 
 } // namespace serial
 
 using serial::printf;
+using serial::kprintf;

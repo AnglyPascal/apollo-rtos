@@ -60,10 +60,7 @@ proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
   return proc;
 }
 
-bool needs_swap()
-{
-  return cpu.hi_proc != cpu.curr_proc;
-}
+bool needs_swap() { return cpu.hi_proc != cpu.curr_proc; }
 
 void change_proc()
 {
@@ -99,7 +96,8 @@ void *cxt_switch(void *stk_ptr)
 
 void incr_priority(proc_t *proc, priority_t priority)
 {
-  assert(proc->priority < priority);
+  assert(proc->priority < priority, "previous: %d, new: %d\r\n", proc->priority,
+         priority);
   debug<TRACE>("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str,
                proc->priority, priority);
 
@@ -164,6 +162,16 @@ void init()
   __run(idle_task, &idle_proc->stk_ptr);
 }
 
+void trace()
+{
+  printf("sched:\r\n");
+  procs.trace();
+}
+
+pid_t curr_pid() { return procs.pid(cpu.curr_proc); }
+
+chunk_t *curr_proc_used_hd() { return &cpu.curr_proc->used_hd; }
+
 void default_alarm(void *ptr)
 {
   auto proc = (proc_t *)ptr;
@@ -184,20 +192,22 @@ void sleep(time_t period)
   decr_priority(-proc->priority);
 }
 
-void trace()
+void sleep()
 {
-  printf("sched:\r\n");
-  procs.trace();
+  auto proc = cpu.curr_proc;
+
+  {
+    intr_guard guard;
+    proc->state = state_t::ASLEEP;
+  }
+
+  decr_priority(-proc->priority);
 }
 
-pid_t curr_pid()
+void wakeup(pid_t pid)
 {
-  return procs.pid(cpu.curr_proc);
-}
-
-chunk_t *curr_proc_used_hd()
-{
-  return &cpu.curr_proc->used_hd;
+  auto proc = procs[pid];
+  default_alarm(proc);
 }
 
 } // namespace sched

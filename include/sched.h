@@ -32,7 +32,8 @@ proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
 void init();
 
 void sleep(time_t period);
-void sleep(time_t period, void (*alarm)(void *), void *param);
+void sleep();
+void wakeup(pid_t pid);
 
 void trace();
 

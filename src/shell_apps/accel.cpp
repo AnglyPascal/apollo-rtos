@@ -54,7 +54,7 @@ void *accel(void *param)
       printf("x: %d, y: %d, z: %d\r\n", x, y, z);
     }
 
-    sched::sleep(1000);
+    sched::sleep(500);
   }
 
   exit = false;

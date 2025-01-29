@@ -1,7 +1,9 @@
+#include "accel.h"
 #include "debug.h"
 #include "display.h"
 #include "fs.h"
 #include "hardware.h"
+#include "i2c.h"
 #include "irq.h"
 #include "recover.h"
 #include "sched.h"
@@ -43,8 +45,11 @@ inline void __start(void)
 
   led::init();
   serial::init();
+
   fs::mount();
   timer::init();
+
+  i2c::init();
   shell::init();
 
   serial::clear_screen();
@@ -52,7 +57,7 @@ inline void __start(void)
   debug_addr();
 
   if (!is_reset()) {
-    printf("boot\r\n");
+    kprintf("boot\r\n");
 
     // initialize recovery section
     _memcpy(__recover_start, __recover_load, __recover_end - __recover_start);
@@ -60,7 +65,7 @@ inline void __start(void)
     // set boot value to true
     set_boot();
   } else {
-    printf("reset\r\n");
+    kprintf("reset\r\n");
   }
 
   sched::init();

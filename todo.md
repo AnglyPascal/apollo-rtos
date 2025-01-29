@@ -31,3 +31,6 @@
     - recovery section variables needs explicit initialization by code
     - and this needs to happen only when booting for the first time
     - needs methods for initializing these variables properly
+
+- memory trace:
+    - why doesn't it print free?

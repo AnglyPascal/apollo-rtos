@@ -22,7 +22,10 @@ template <debug_t level, typename... Args>
 void debug(const char *fmt, Args... args)
 {
   if constexpr (level <= DEBUG_LEV) {
-    do_printf(serial::putc, fmt, args...);
+    if (level <= ERROR)
+      serial::kprintf(fmt, args...);
+    else
+      serial::printf(fmt, args...);
   }
 }
 

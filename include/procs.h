@@ -105,4 +105,10 @@ public:
     assert(proc != nullptr);
     return proc - procs;
   }
+
+  inline proc_t *operator[](pid_t pid)
+  {
+    assert(pid >= 0 && pid < N_PROCS, "pid: %d\r\n", pid);
+    return &procs[pid];
+  }
 };

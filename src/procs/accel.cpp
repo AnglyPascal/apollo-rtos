@@ -1,5 +1,7 @@
+#include "accel.h"
 #include "circular_buffer.h"
 #include "fs.h"
+#include "irq.h"
 #include "nvm.h"
 #include "recover.h"
 #include "sched.h"
@@ -36,18 +38,20 @@ void *accel_func(void *param)
   recovery::set_rec_lev(rec_lev_t::RESET);
   recovery::store_data(accel);
 
+  accel::init();
+
   auto file = fs::open(accel_fn, sizeof(buffer), O_WRITE | O_CREATE);
   auto val = file.is_valid() ? (buffer *)*file : new (*file) buffer{};
 
-  /* int n = 0; */
+  int x, y, z;
   while (1) {
-    n++;
-    val->enqueue(n, n, n);
+    accel::reading(&x, &y, &z);
+    val->enqueue(x, y, z);
 
     /* if ((n & 31) == 0) */
     /*   file->store(); */
 
-    sched::sleep(1000);
+    sched::sleep(400);
   }
 
   return param;
