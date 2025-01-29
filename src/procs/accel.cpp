@@ -31,7 +31,6 @@ static_assert(sizeof(buffer) <= pg_sz - sizeof(page_guard_t));
 int n __recover_section__ = 100;
 } // namespace
 
-__attribute__((optimize("O0"))) // O2 doesn't work
 void *accel_func(void *param)
 {
   recovery::set_rec_lev(rec_lev_t::RESET);
@@ -43,9 +42,7 @@ void *accel_func(void *param)
   auto val = file.is_valid() ? (buffer *)*file : new (*file) buffer{};
 
   int x, y, z;
-  while (1) {
-    asm volatile("" ::: "memory");
-
+  while ((volatile int)1) {
     accel::read(&x, &y, &z);
     val->enqueue(x, y, z);
 

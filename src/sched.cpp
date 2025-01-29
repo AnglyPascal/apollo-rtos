@@ -207,10 +207,13 @@ void sleep()
 void wakeup(pid_t pid)
 {
   auto proc = procs[pid];
+
   assert(proc->priority < 0 && proc->state == state_t::ASLEEP,
          "wakeup: \"%s\" not asleep\r\n", proc->name.str);
   proc->state = state_t::RUNNABLE;
   incr_priority(proc, -proc->priority);
 }
+
+string curr_proc_name() { return cpu.curr_proc->name; }
 
 } // namespace sched

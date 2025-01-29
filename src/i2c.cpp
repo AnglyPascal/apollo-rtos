@@ -175,12 +175,6 @@ void i2c0_spi0_handler(void)
 {
   auto irq = I2C0_IRQ;
 
-  /* if (I2C0.BB) { */
-  /*   I2C0.BB = 0; */
-  /*   clear_pending(irq); */
-  /*   enable_irq(irq); */
-  /* } */
-
   assert(intr_pid != null_pid);
   assert(I2C0.ERROR || (intr_event && *intr_event));
 
