@@ -11,31 +11,29 @@ namespace i2c
 namespace
 {
 
-enum class CMD {
+enum class TASK {
   READ,
   WRITE,
 };
 
+using TASK::READ;
+using TASK::WRITE;
+
 pid_t intr_pid = null_pid;
-volatile uint32_t *intr_event;
+volatile uint32_t *intr_event = nullptr;
 
 static int wait(volatile uint32_t *event)
 {
   intr_pid = sched::curr_pid();
   intr_event = event;
   sched::sleep();
-
-  if (I2C0.ERROR) {
-    return ERR;
-  }
-
-  return OK;
+  return I2C0.ERROR ? ERR : OK;
 }
 
 static int do_write(byte_t *buf, size_t n)
 {
   for (size_t i = 0; i < n; i++) {
-    I2C0.TXD = (uint32_t)buf[i];
+    I2C0.TXD = (uint8_t)buf[i];
     auto status = wait(&I2C0.TXDSENT);
     if (status != OK)
       return status;
@@ -51,12 +49,10 @@ static void stop()
 
 } // namespace
 
-template <CMD task>
-inline int xfer(uint32_t addr, byte_t *cmd, size_t cmd_sz, byte_t *buf,
-                size_t n)
+template <TASK task>
+inline int xfer(uint8_t addr, byte_t *cmd, size_t cmd_sz, byte_t *buf, size_t n)
 {
   auto status = OK;
-  auto error = 0;
 
   I2C0.ADDRESS = addr;
 
@@ -66,7 +62,7 @@ inline int xfer(uint32_t addr, byte_t *cmd, size_t cmd_sz, byte_t *buf,
     status = do_write(cmd, cmd_sz);
   }
 
-  if constexpr (task == CMD::READ) {
+  if constexpr (task == READ) {
     debug<TRACE>("initiating read\r\n");
     for (size_t i = 0; i < n; i++) {
       /* On all but the last byte, use SUSPEND to send an ACK after receiving
@@ -99,50 +95,47 @@ inline int xfer(uint32_t addr, byte_t *cmd, size_t cmd_sz, byte_t *buf,
     I2C0.SHORTS = 0;
   }
 
-  if constexpr (task == CMD::WRITE) {
+  if constexpr (task == WRITE) {
     debug<TRACE>("initiating write\r\n");
     if (status == OK && n > 0)
       status = do_write(buf, n);
     stop();
   }
 
-  if (status != OK) {
-    error = I2C0.ERRORSRC;
-    I2C0.ERRORSRC = I2C_ERRORSRC_All;
-  }
+  if (status == OK)
+    return OK;
 
-  if (error)
-    return ERR;
-
-  return status;
+  int error = I2C0.ERRORSRC;
+  I2C0.ERRORSRC = I2C_ERRORSRC_All;
+  return error;
 }
 
-void read_bytes(uint32_t addr, uint32_t cmd, byte_t *buf, size_t n)
+void read_bytes(uint8_t addr, uint8_t cmd, byte_t *buf, size_t n)
 {
-  xfer<CMD::READ>(addr, (byte_t *)&cmd, 1, buf, n);
+  xfer<READ>(addr, (byte_t *)&cmd, 1, buf, n);
 }
 
-byte_t read_reg(uint32_t addr, uint32_t cmd)
+byte_t read_reg(uint8_t addr, uint8_t cmd)
 {
   byte_t byte;
   read_bytes(addr, cmd, &byte, 1);
   return byte;
 }
 
-void write_bytes(uint32_t addr, uint32_t cmd, byte_t *buf, size_t n)
+void write_bytes(uint8_t addr, uint8_t cmd, byte_t *buf, size_t n)
 {
-  xfer<CMD::WRITE>(addr, (byte_t *)&cmd, 1, buf, n);
+  xfer<WRITE>(addr, (byte_t *)&cmd, 1, buf, n);
 }
 
-void write_reg(uint32_t addr, uint32_t cmd, uint32_t val)
+void write_reg(uint8_t addr, uint8_t cmd, uint8_t val)
 {
   write_bytes(addr, cmd, (byte_t *)&val, 1);
 }
 
-int probe(uint32_t addr)
+int probe(uint8_t addr)
 {
   char buf = 0;
-  return xfer<CMD::WRITE>(addr, (byte_t *)&buf, 1, nullptr, 0);
+  return xfer<WRITE>(addr, (byte_t *)&buf, 1, nullptr, 0);
 }
 
 void init()
@@ -165,20 +158,39 @@ void init()
   enable_irq(I2C0_IRQ);
 }
 
+inline void which_source()
+{
+  if (I2C0.STOPPED)
+    serial::busy_putc('s');
+  else if (I2C0.RXDREADY)
+    serial::busy_putc('r');
+  else if (I2C0.TXDSENT)
+    serial::busy_putc('t');
+  else
+    serial::busy_putc('e');
+}
+
 __extern_C__
 void i2c0_spi0_handler(void)
 {
   auto irq = I2C0_IRQ;
 
-  if (I2C0.ERROR || *intr_event) {
-    auto pid = intr_pid;
-    intr_pid = null_pid;
+  /* if (I2C0.BB) { */
+  /*   I2C0.BB = 0; */
+  /*   clear_pending(irq); */
+  /*   enable_irq(irq); */
+  /* } */
 
-    *intr_event = 0;
-    intr_event = nullptr;
+  assert(intr_pid != null_pid);
+  assert(I2C0.ERROR || (intr_event && *intr_event));
 
-    sched::wakeup(pid);
-  }
+  auto pid = intr_pid;
+  intr_pid = null_pid;
+
+  *intr_event = 0;
+  intr_event = nullptr;
+
+  sched::wakeup(pid);
 
   clear_pending(irq);
   enable_irq(irq);

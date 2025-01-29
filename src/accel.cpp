@@ -16,7 +16,7 @@
 namespace accel
 {
 
-static void read(int *x, int *y, int *z)
+void read(int *x, int *y, int *z)
 {
   int8_t buf[3];
   i2c::read_bytes(ACC, ACC_X_DATA, (byte_t *)buf, 3);
@@ -34,7 +34,5 @@ void init(void)
     debug<FATAL>("Can't find accelerometer");
   }
 }
-
-void reading(int *x, int *y, int *z) { read(x, y, z); }
 
 } // namespace accel

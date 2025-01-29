@@ -96,8 +96,8 @@ void *cxt_switch(void *stk_ptr)
 
 void incr_priority(proc_t *proc, priority_t priority)
 {
-  assert(proc->priority < priority, "previous: %d, new: %d\r\n", proc->priority,
-         priority);
+  assert(proc->priority < priority, "\r\nproc: %s, previous: %d, new: %d\r\n",
+         proc->name.str, proc->priority, priority);
   debug<TRACE>("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str,
                proc->priority, priority);
 
@@ -175,6 +175,8 @@ chunk_t *curr_proc_used_hd() { return &cpu.curr_proc->used_hd; }
 void default_alarm(void *ptr)
 {
   auto proc = (proc_t *)ptr;
+  assert(proc->priority < 0 && proc->state == state_t::ASLEEP,
+         "alarm: \"%s\" not asleep\r\n", proc->name.str);
   proc->state = state_t::RUNNABLE;
   incr_priority(proc, -proc->priority);
 }
@@ -182,11 +184,12 @@ void default_alarm(void *ptr)
 void sleep(time_t period)
 {
   auto proc = cpu.curr_proc;
+  assert(proc->state != state_t::ASLEEP, "sleep2\r\n");
 
   {
     intr_guard guard;
     proc->state = state_t::ASLEEP;
-    waitlist::reg("sleep", period, default_alarm, (void *)proc);
+    waitlist::reg(proc->name, period, default_alarm, (void *)proc);
   }
 
   decr_priority(-proc->priority);
@@ -195,19 +198,19 @@ void sleep(time_t period)
 void sleep()
 {
   auto proc = cpu.curr_proc;
+  assert(proc->state != state_t::ASLEEP, "sleep2\r\n");
 
-  {
-    intr_guard guard;
-    proc->state = state_t::ASLEEP;
-  }
-
+  proc->state = state_t::ASLEEP;
   decr_priority(-proc->priority);
 }
 
 void wakeup(pid_t pid)
 {
   auto proc = procs[pid];
-  default_alarm(proc);
+  assert(proc->priority < 0 && proc->state == state_t::ASLEEP,
+         "wakeup: \"%s\" not asleep\r\n", proc->name.str);
+  proc->state = state_t::RUNNABLE;
+  incr_priority(proc, -proc->priority);
 }
 
 } // namespace sched

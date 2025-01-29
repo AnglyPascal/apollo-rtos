@@ -38,7 +38,7 @@ inline void __assert(bool ex, const char *src, const char *func,
 {
 #ifndef NDEBUG
   if (!ex) {
-    debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
+    debug<FATAL>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
                  file, line);
     asm("udf #0");
   }
@@ -52,7 +52,7 @@ inline void __assert(bool ex, const char *src, const char *func,
 {
 #ifndef NDEBUG
   if (!ex) {
-    debug<FATAL>("assertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
+    debug<FATAL>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
                  file, line);
     debug<FATAL>(fmt, args...);
     asm("udf #0");

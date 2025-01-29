@@ -28,10 +28,7 @@ inline void timer1_init()
   enable_irq(TIMER1_IRQ);
 }
 
-void init()
-{
-  timer1_init();
-}
+void init() { timer1_init(); }
 
 volatile time_t MILLIS = 0;
 
@@ -65,14 +62,12 @@ void timer1_handler(void)
   }
 
   if ((MILLIS & (waitlist::update_interval - 1)) == 0) {
-    disable_irq(TIMER1_IRQ);
+    intr_guard guard;
 
     auto prev_stk = (uint8_t *)get_msp();
     set_msp(stk_end); // setup temporary stk to run waitlist tasks
     waitlist::run();
     set_msp(prev_stk);
-
-    enable_irq(TIMER1_IRQ);
   }
 
   sched_invoke();

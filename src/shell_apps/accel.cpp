@@ -1,5 +1,7 @@
+#include "accel.h"
 #include "char_buffer.h"
 #include "circular_buffer.h"
+#include "display.h"
 #include "fs.h"
 #include "memory.h"
 #include "nvm.h"
@@ -37,34 +39,105 @@ bool listener(char c)
   return false;
 }
 
-fn_t accel_fn = 5;
+const image_t dirs[] = {
+    IMAGE(0, 0, 1, 0, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0), //
+                          //
+    IMAGE(0, 0, 0, 0, 1,  //
+          0, 0, 0, 1, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0), //
+                          //
+    IMAGE(0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 1, 1, 1,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0), //
+                          //
+    IMAGE(0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 0, 0, 1, 0,  //
+          0, 0, 0, 0, 1), //
+                          //
+    IMAGE(0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 0, 1, 0, 0), //
+                          //
+    IMAGE(0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 1, 0, 0, 0,  //
+          1, 0, 0, 0, 0), //
+                          //
+    IMAGE(0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          1, 1, 1, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0), //
+                          //
+    IMAGE(1, 0, 0, 0, 0,  //
+          0, 1, 0, 0, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0), //
+                          //
+    IMAGE(0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 1, 0, 0,  //
+          0, 0, 0, 0, 0,  //
+          0, 0, 0, 0, 0), //
+};
 
 void *accel(void *param)
 {
-  auto file = fs::open(accel_fn, sizeof(buffer), O_CREATE);
+  auto file = fs::open(accel::fn, sizeof(buffer), O_CREATE);
   auto val = (buffer *)*file;
 
   serial::listener_guard guard{listener};
+
+  int threshold = 10;
+  auto is_zero = [threshold](int p) {
+    return (-threshold < p) && (p < threshold);
+  };
 
   while (!exit) {
     serial::clear_screen();
 
     if (!val->empty()) {
       auto [x, y, z] = val->back();
+
+      int dir;
+      if (is_zero(x)) {
+        dir = is_zero(y) ? 8 : (y > 0 ? 0 : 4);
+      } else if (x > 0) {
+        dir = is_zero(y) ? 2 : (y > 0 ? 1 : 3);
+      } else {
+        dir = is_zero(y) ? 6 : (y > 0 ? 7 : 5);
+      }
+
+      display::show(dirs[dir]);
       printf("x: %d, y: %d, z: %d\r\n", x, y, z);
     }
 
-    sched::sleep(500);
+    sched::sleep(100);
   }
 
   exit = false;
   serial::clear_screen();
+  display::reset();
 
   return param;
 }
 
 } // namespace
 
-proc_def_t accel_cmd = {"accel", 4, 128, accel, nullptr};
+proc_def_t accel_cmd = {"accel", 30, 128, accel, nullptr};
 
 } // namespace shell

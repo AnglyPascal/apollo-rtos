@@ -2,19 +2,19 @@
 
 #include "types.h"
 
-#define OK 1
-#define ERR 0
+#define OK 0
+#define ERR (1 << 3)
 
 namespace i2c
 {
 
-int probe(uint32_t addr);
+int probe(uint8_t addr);
 
-void read_bytes(uint32_t addr, uint32_t cmd, byte_t *buf, size_t n);
-byte_t read_reg(uint32_t addr, uint32_t cmd);
+void read_bytes(uint8_t addr, uint8_t cmd, byte_t *buf, size_t n);
+byte_t read_reg(uint8_t addr, uint8_t cmd);
 
-void write_bytes(uint32_t addr, uint32_t cmd, byte_t *buf, size_t n);
-void write_reg(uint32_t addr, uint32_t cmd, uint32_t val);
+void write_bytes(uint8_t addr, uint8_t cmd, byte_t *buf, size_t n);
+void write_reg(uint8_t addr, uint8_t cmd, uint8_t val);
 
 void init();
 

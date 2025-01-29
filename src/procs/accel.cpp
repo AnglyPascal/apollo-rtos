@@ -13,7 +13,7 @@ namespace procs
 
 void *accel_func(void *param);
 
-proc_def_t accel{"accel", 32, 256, accel_func, nullptr};
+proc_def_t accel{"accel_bg", 32, 256, accel_func, nullptr};
 
 namespace
 {
@@ -31,8 +31,7 @@ static_assert(sizeof(buffer) <= pg_sz - sizeof(page_guard_t));
 int n __recover_section__ = 100;
 } // namespace
 
-fn_t accel_fn = 5;
-
+__attribute__((optimize("O0"))) // O2 doesn't work
 void *accel_func(void *param)
 {
   recovery::set_rec_lev(rec_lev_t::RESET);
@@ -40,18 +39,20 @@ void *accel_func(void *param)
 
   accel::init();
 
-  auto file = fs::open(accel_fn, sizeof(buffer), O_WRITE | O_CREATE);
+  auto file = fs::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE);
   auto val = file.is_valid() ? (buffer *)*file : new (*file) buffer{};
 
   int x, y, z;
   while (1) {
-    accel::reading(&x, &y, &z);
+    asm volatile("" ::: "memory");
+
+    accel::read(&x, &y, &z);
     val->enqueue(x, y, z);
 
     /* if ((n & 31) == 0) */
     /*   file->store(); */
 
-    sched::sleep(400);
+    sched::sleep(200);
   }
 
   return param;

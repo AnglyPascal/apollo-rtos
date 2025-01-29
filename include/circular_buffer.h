@@ -17,15 +17,9 @@ class circular_buffer
     using pointer = value_type *;   // or also value_type*
     using reference = value_type &; // or also value_type&
 
-    reference operator*() const
-    {
-      return arr[i];
-    }
+    reference operator*() const { return arr[i]; }
 
-    pointer operator->()
-    {
-      return arr + i;
-    }
+    pointer operator->() { return arr + i; }
 
     iterator &operator++()
     {
@@ -101,30 +95,15 @@ public:
     return arr[i];
   }
 
-  bool empty()
-  {
-    return sz == 0;
-  }
+  bool empty() { return sz == 0; }
 
-  size_t size()
-  {
-    return sz;
-  }
+  size_t size() { return sz; }
 
-  size_t capacity()
-  {
-    return N;
-  }
+  size_t capacity() { return N; }
 
-  iterator begin()
-  {
-    return iterator{(T *)store, _start, sz};
-  }
+  iterator begin() { return iterator{(T *)store, _start, sz}; }
 
-  iterator end()
-  {
-    return iterator{(T *)store, _end, 0};
-  }
+  iterator end() { return iterator{(T *)store, _end, 0}; }
 };
 
 inline constexpr size_t circular_buffer_header_sz = sizeof(size_t) * 3;
