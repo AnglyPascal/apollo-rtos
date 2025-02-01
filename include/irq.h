@@ -90,27 +90,17 @@ inline void intr_enable()
 
 class intr_guard
 {
-  static volatile uint32_t intr_sem;
+  uint32_t primask;
 
 public:
   intr_guard() noexcept
   {
-    auto sem = intr_sem;
-    if (sem++ == 0)
-      intr_disable();
-    intr_sem = sem;
+    primask = get_primask();
+    intr_disable();
   }
 
-  ~intr_guard() noexcept
-  {
-    auto sem = intr_sem;
-    if (--sem == 0)
-      intr_enable();
-    intr_sem = sem;
-  }
+  ~intr_guard() noexcept { set_primask(primask); }
 };
-
-inline volatile uint32_t intr_guard::intr_sem = 0;
 
 __extern_C__
 void spin(void);

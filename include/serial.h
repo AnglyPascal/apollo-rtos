@@ -30,9 +30,8 @@ void printf(Args... args)
 template <typename... Args>
 void kprintf(Args... args)
 {
-  intr_disable();
+  intr_guard guard;
   do_printf(busy_putc, args...);
-  intr_enable();
 }
 
 inline void clear_screen() { kprintf("\033[2J\033[H"); }
@@ -52,5 +51,5 @@ public:
 
 } // namespace serial
 
-using serial::printf;
 using serial::kprintf;
+using serial::printf;
