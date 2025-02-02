@@ -117,7 +117,7 @@ void *accel(void *param)
 
       // FIXME: NASTY STACK OVERFLOW SOMEWHRE. THIS IS A HOTFIX
       // kprintf works, so it must be a problem with uart interrupts?
-      kprintf("x: %d, y: %d, z: %d\r\n", x, y, z);
+      printf("x: %d, y: %d, z: %d\r\n", x, y, z);
     }
 
     sched::sleep(100);

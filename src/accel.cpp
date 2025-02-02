@@ -19,7 +19,7 @@ namespace accel
 void read(int *x, int *y, int *z)
 {
   int8_t buf[3];
-  i2c::read_bytes(ACC, ACC_X_DATA, (byte_t *)buf, 3);
+  i2c::read_bytes(ACC, ACC_X_DATA, (uint8_t *)buf, 3);
   *x = -buf[0];
   *y = buf[1];
   *z = -buf[2];

@@ -80,6 +80,13 @@ public:
     return t;
   }
 
+  const T &peek()
+  {
+    assert(sz > 0);
+    auto arr = (T *)store;
+    return arr[_start];
+  }
+
   T front()
   {
     assert(sz > 0);

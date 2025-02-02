@@ -36,10 +36,10 @@ void *accel_func(void *param)
   recovery::set_rec_lev(rec_lev_t::RESET);
   recovery::store_data(accel);
 
-  accel::init();
-
   auto file = fs::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE);
   auto val = file.is_valid() ? (buffer *)*file : new (*file) buffer{};
+
+  accel::init();
 
   int x, y, z;
   while ((volatile int)1) {
