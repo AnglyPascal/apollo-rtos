@@ -32,7 +32,7 @@ void *trace(void *param)
     waitlist::trace();
     fs::trace();
     heap::trace();
-    sched::sleep(1000);
+    sched::sleep(3000);
   }
   serial::clear_screen();
   exit = false;
@@ -42,6 +42,6 @@ void *trace(void *param)
 
 } // namespace
 
-proc_def_t trace_cmd = {"trace", 4, 128, trace, nullptr};
+proc_def_t trace_cmd = {"trace", 2, 128, trace, nullptr};
 
 } // namespace shell

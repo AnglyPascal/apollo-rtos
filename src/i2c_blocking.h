@@ -16,7 +16,7 @@ int wait(volatile uint32_t *event)
 {
   while (!*event)
     ;
-  return I2C0.ERROR ? ERR : OK;
+  return I2C0.ERROR ? I2C0.ERRORSRC : I2C_OK;
 }
 
 inline int do_write(uint8_t *buf, size_t n)
@@ -24,10 +24,10 @@ inline int do_write(uint8_t *buf, size_t n)
   for (size_t i = 0; i < n; i++) {
     I2C0.TXD = buf[i];
     auto status = wait(&I2C0.TXDSENT);
-    if (status != OK)
+    if (status != I2C_OK)
       return status;
   }
-  return OK;
+  return I2C_OK;
 }
 
 inline void stop()
@@ -40,7 +40,7 @@ inline void stop()
 template <bool is_read>
 int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 {
-  auto status = OK;
+  auto status = I2C_OK;
 
   I2C0.ADDRESS = addr;
 
@@ -68,13 +68,13 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
         I2C0.RESUME = 1;
 
       status = wait(&I2C0.RXDREADY);
-      if (status != OK)
+      if (status != I2C_OK)
         break;
 
       buf[i] = (uint8_t)I2C0.RXD;
     }
 
-    if (status == OK) {
+    if (status == I2C_OK) {
       wait(&I2C0.STOPPED);
     } else {
       stop();
@@ -85,13 +85,13 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 
   if constexpr (!is_read) {
     debug<TRACE>("initiating write\r\n");
-    if (status == OK && n > 0)
+    if (status == I2C_OK && n > 0)
       status = do_write(buf, n);
     stop();
   }
 
-  if (status == OK)
-    return OK;
+  if (status == I2C_OK)
+    return I2C_OK;
 
   int error = I2C0.ERRORSRC;
   I2C0.ERRORSRC = I2C_ERRORSRC_All;

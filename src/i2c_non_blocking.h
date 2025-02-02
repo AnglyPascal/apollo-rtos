@@ -25,16 +25,22 @@ enum class mode_t {
   WRITE,
 };
 
+enum class flag_t {
+  NONE,
+  BUSY,
+};
+
 enum class fault_t {
   NONE,
   BUSY,
+  TIMEOUT,
   ERROR,
 };
 
 struct state_t {
   stage_t stage = stage_t::NONE;
   mode_t mode = mode_t::WRITE;
-  fault_t fault = fault_t::NONE;
+  flag_t flag = flag_t::NONE;
 
   uint8_t dev_addr = 0;
   uint8_t cmd = 0;
@@ -42,10 +48,14 @@ struct state_t {
   uint8_t *data = nullptr;
   size_t data_sz = 0;
   size_t data_idx = 0;
+
+  fault_t fault = fault_t::NONE;
+  uint8_t err_src = I2C_OK;
 };
 
 inline state_t state{};
 
+__always_inline__
 inline void clear_event(volatile uint32_t &event)
 {
   assert(event);
@@ -59,6 +69,19 @@ void handler(void)
 {
   auto irq = I2C0_IRQ;
   disable_irq(irq);
+
+  if (I2C0.ERROR) {
+    clear_event(I2C0.ERROR);
+
+    state.fault = fault_t::ERROR;
+    state.err_src = (uint8_t)I2C0.ERRORSRC;
+    I2C0.ERRORSRC = I2C_ERRORSRC_All;
+
+    state.stage = stage_t::NACK;
+    I2C0.STOP = 1;
+
+    goto clear_intr;
+  }
 
   if (state.stage == stage_t::W_CMD) {
     clear_event(I2C0.TXDSENT);
@@ -125,6 +148,7 @@ void handler(void)
     if (state.mode == mode_t::READ)
       I2C0.SHORTS = 0;
 
+    state.flag = flag_t::NONE;
     sched::notify(&intr_chan);
 
     goto clear_intr;
@@ -138,8 +162,11 @@ clear_intr:
 template <bool is_read>
 int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 {
-  if (state.fault == fault_t::BUSY)
-    return -1;
+  if (state.flag == flag_t::BUSY) {
+    state.fault = fault_t::BUSY;
+    return I2C_BUSY;
+  }
+  state.flag = flag_t::BUSY;
 
   state.mode = is_read ? mode_t::READ : mode_t::WRITE;
 
@@ -156,7 +183,17 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
   I2C0.TXD = *cmd;
 
   sched::wait(&intr_chan);
-  return OK;
+
+  if (state.fault == fault_t::NONE)
+    return I2C_OK;
+
+  auto fault = state.fault;
+  state.fault = fault_t::NONE;
+
+  if (fault == fault_t::ERROR)
+    return state.err_src;
+
+  return I2C_ERR;
 }
 
 } // namespace i2c_non_blocking

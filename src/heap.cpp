@@ -25,6 +25,7 @@ void *malloc(size_t sz)
 
   chunk->next = used_hd->next;
   chunk->prev = used_hd;
+  chunk->sz = sz;
 
   if (used_hd->next != nullptr)
     used_hd->next->prev = chunk;

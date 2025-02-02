@@ -93,7 +93,7 @@ public:
     printf("\t\tstack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack, proc->stk_sz,
            proc->stk_ptr);
     for (auto ptr = &proc->used_hd; ptr->next != nullptr; ptr = ptr->next) {
-      printf("\t\t%x: %d\r\n", ptr, ptr->sz);
+      printf("\t\t%x: %d\r\n", ptr->next, ptr->next->sz);
     }
   }
 

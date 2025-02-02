@@ -2,8 +2,12 @@
 
 #include "types.h"
 
-#define OK 0
-#define ERR (1 << 3)
+#define I2C_OK 0
+#define I2C_OVERRUN (1 << 0)
+#define I2C_ANACK (1 << 1)
+#define I2C_DNACK (1 << 2)
+#define I2C_ERR (1 << 3)
+#define I2C_BUSY (1 << 4)
 
 namespace i2c
 {
