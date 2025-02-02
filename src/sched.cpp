@@ -1,4 +1,5 @@
 #include "sched.h"
+#include "circular_buffer.h"
 #include "debug.h"
 #include "irq.h"
 #include "proc_stack.h"
@@ -50,7 +51,6 @@ proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
   assert(proc != nullptr);
 
   proc->name = name;
-  proc->state = state_t::RUNNABLE;
 
   stack.acquire(proc, stk_sz, func, param, end_proc);
   incr_priority(proc, priority);
@@ -62,8 +62,10 @@ proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
 
 bool needs_swap() { return cpu.hi_proc != cpu.curr_proc; }
 
+__noinline__
 void change_proc()
 {
+  intr_enable();
   last_checked = timer::now();
   if (needs_swap())
     reschedule();
@@ -72,7 +74,7 @@ void change_proc()
 __extern_C__
 void *cxt_switch(void *stk_ptr)
 {
-  assert(cpu.hi_proc->state == state_t::RUNNABLE);
+  assert(cpu.hi_proc->priority > 0);
   assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr);
 
   debug<TRACE>("\t\t\t\t\"%s\" -> \"%s\"\r\n", cpu.curr_proc->name.str,
@@ -84,12 +86,9 @@ void *cxt_switch(void *stk_ptr)
     stack.release((proc_t *)cpu.curr_proc);
     procs.dealloc((proc_t *)cpu.curr_proc);
   } else {
-    if (cpu.curr_proc->state != state_t::ASLEEP)
-      cpu.curr_proc->state = state_t::RUNNABLE;
     cpu.curr_proc->stk_ptr = (byte_t *)stk_ptr;
   }
 
-  cpu.hi_proc->state = state_t::RUNNING;
   cpu.curr_proc = cpu.hi_proc;
   return cpu.hi_proc->stk_ptr;
 }
@@ -111,22 +110,19 @@ void incr_priority(proc_t *proc, priority_t priority)
 
 void decr_priority(priority_t priority)
 {
-  assert(cpu.curr_proc->priority >= priority);
+  assert(cpu.curr_proc->priority > priority,
+         "\r\nproc: %s, previous: %d, new: %d\r\n", cpu.curr_proc->name.str,
+         cpu.curr_proc->priority, priority);
   debug<TRACE>("\t\t\tdecr prio, %s: %d -> %d\r\n", cpu.curr_proc->name.str,
                cpu.curr_proc->priority, priority);
 
-  {
-    intr_guard guard;
-
-    cpu.curr_proc->priority = priority;
-    proc_t *max_proc = procs.max_priority();
-    cpu.hi_proc = max_proc;
-  }
+  cpu.curr_proc->priority = priority;
+  cpu.hi_proc = procs.max_priority();
 
   change_proc();
 }
 
-__attribute__((optimize("O1"))) // O2 doesn't work
+__attribute__((optimize("O0"))) // O2 doesn't work
 void *
 idle_task(void *)
 {
@@ -147,8 +143,6 @@ void setup_procs(void);
 void init()
 {
   auto idle_proc = reg_proc("idle_proc", IDLE_PRIORITY, 0, idle_task, nullptr);
-  idle_proc->state = state_t::RUNNING;
-
   cpu.curr_proc = idle_proc;
 
   if (is_first_boot()) {
@@ -164,53 +158,41 @@ void init()
 
 void trace()
 {
+  printf("current proc: %s\r\n", cpu.curr_proc->name.str);
   printf("sched:\r\n");
   procs.trace();
 }
 
 pid_t curr_pid() { return procs.pid(cpu.curr_proc); }
 
+// TODO: write doc for these, or rename
 chunk_t *curr_proc_used_hd() { return &cpu.curr_proc->used_hd; }
 
 void default_alarm(void *ptr)
 {
   auto proc = (proc_t *)ptr;
-  assert(proc->priority < 0 && proc->state == state_t::ASLEEP,
-         "alarm: \"%s\" not asleep\r\n", proc->name.str);
-  proc->state = state_t::RUNNABLE;
+  assert(proc->priority < 0, "alarm: \"%s\" not asleep\r\n", proc->name.str);
   incr_priority(proc, -proc->priority);
 }
 
 void sleep(time_t period)
 {
   auto proc = cpu.curr_proc;
-  assert(proc->state != state_t::ASLEEP, "sleep2\r\n");
-
-  {
-    intr_guard guard;
-    proc->state = state_t::ASLEEP;
-    waitlist::reg(proc->name, period, default_alarm, (void *)proc);
-  }
-
+  assert(proc->priority > 0, "sleep1\r\n");
+  waitlist::reg(proc->name, period, default_alarm, (void *)proc);
   decr_priority(-proc->priority);
 }
 
-void sleep()
+void wait(chan_t *chan)
 {
-  auto proc = cpu.curr_proc;
-  assert(proc->state != state_t::ASLEEP, "sleep2\r\n");
-
-  proc->state = state_t::ASLEEP;
-  decr_priority(-proc->priority);
+  chan->pid = curr_pid();
+  decr_priority(-cpu.curr_proc->priority);
 }
 
-void wakeup(pid_t pid)
+void notify(chan_t *chan)
 {
-  auto proc = procs[pid];
-
-  assert(proc->priority < 0 && proc->state == state_t::ASLEEP,
-         "wakeup: \"%s\" not asleep\r\n", proc->name.str);
-  proc->state = state_t::RUNNABLE;
+  assert(*chan->event);
+  auto proc = procs[chan->pid];
   incr_priority(proc, -proc->priority);
 }
 

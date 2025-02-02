@@ -93,12 +93,7 @@ class intr_guard
   uint32_t primask;
 
 public:
-  intr_guard() noexcept
-  {
-    primask = get_primask();
-    intr_disable();
-  }
-
+  intr_guard() noexcept : primask(get_primask()) { intr_disable(); }
   ~intr_guard() noexcept { set_primask(primask); }
 };
 

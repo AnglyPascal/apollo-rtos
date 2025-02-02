@@ -6,25 +6,17 @@
 #include "serial.h"
 #include "types.h"
 
-enum class state_t : uint8_t {
-  EMPTY,
-  RUNNABLE,
-  RUNNING,
-  ASLEEP,
-};
-
 namespace
 {
 const char *states[] = {
     "[empty]",
     "[runnable]",
-    "[running]",
     "[asleep]",
+    "[running]",
 };
 }
 
 struct proc_t {
-  state_t state = state_t::EMPTY;
   string name = {};
   priority_t priority = 0;
 
@@ -46,21 +38,20 @@ public:
     intr_guard guard;
 
     uint8_t pid = 0;
-    while (pid < N_PROCS && procs[pid].state != state_t::EMPTY)
+    while (pid < N_PROCS && procs[pid].priority != 0)
       pid++;
 
     if (pid == N_PROCS) {
       return nullptr;
     }
 
-    procs[pid].state = state_t::RUNNABLE;
     return &procs[pid];
   }
 
   inline void dealloc(proc_t *proc)
   {
     intr_guard guard;
-    proc->state = state_t::EMPTY;
+    proc->priority = 0;
   }
 
   proc_t *max_priority()
@@ -69,8 +60,7 @@ public:
     priority_t max_priority = 0;
 
     for (pid_t pid = 0; pid < N_PROCS; pid++) {
-      if (procs[pid].state != state_t::RUNNABLE ||
-          max_priority >= procs[pid].priority)
+      if (max_priority >= procs[pid].priority)
         continue;
 
       max_proc = &procs[pid];
@@ -83,7 +73,7 @@ public:
   void trace()
   {
     for (auto proc = procs; proc < procs + N_PROCS; proc++) {
-      if (proc->state != state_t::EMPTY)
+      if (proc->priority != 0)
         proc_trace(proc);
     }
   }
@@ -91,8 +81,15 @@ public:
   inline void proc_trace(proc_t *proc)
   {
     auto pid = proc - procs;
-    auto state = states[static_cast<size_t>(proc->state)];
-    printf("\t%d. %s : %d, %s\r\n", pid, proc->name.str, proc->priority, state);
+
+    int state = 0;
+    if (proc->priority > 0)
+      state = 1;
+    else if (proc->priority < 0)
+      state = 2;
+
+    printf("\t%d. %s : %d, %s\r\n", pid, proc->name.str, proc->priority,
+           states[state]);
     printf("\t\tstack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack, proc->stk_sz,
            proc->stk_ptr);
     for (auto ptr = &proc->used_hd; ptr->next != nullptr; ptr = ptr->next) {

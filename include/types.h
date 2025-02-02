@@ -167,3 +167,5 @@ constexpr T min(T t, T s)
 inline void *operator new(size_t, void *where) { return where; }
 
 #define pg_sz (size_t)1024
+
+#define MEMORY_FENCE() asm volatile("" ::: "memory")

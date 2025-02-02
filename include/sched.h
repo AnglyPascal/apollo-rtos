@@ -6,6 +6,14 @@
 inline constexpr size_t N_PROCS = 16;
 struct proc_t;
 
+struct chan_t {
+  pid_t pid = N_PROCS;
+  volatile uint32_t *event = nullptr;
+
+  chan_t() {}
+  chan_t(volatile uint32_t *event) : pid(N_PROCS), event(event) {}
+};
+
 struct proc_def_t {
   string name;
   priority_t priority;
@@ -32,8 +40,9 @@ proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
 void init();
 
 void sleep(time_t period);
-void sleep();
-void wakeup(pid_t pid);
+
+void wait(chan_t *);
+void notify(chan_t *);
 
 void trace();
 
