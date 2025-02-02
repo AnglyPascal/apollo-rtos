@@ -59,7 +59,7 @@ void init()
   I2C0.INTENCLR = BIT(I2C_INT_BB);
 
   enable_irq(I2C0_IRQ);
-  /* irq_priority(I2C0_IRQ, 1); */
+  irq_priority(I2C0_IRQ, IRQ_PRIO_M1);
 }
 
 __extern_C__

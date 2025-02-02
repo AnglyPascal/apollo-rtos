@@ -40,6 +40,8 @@ void init(void)
 
   UART.INTENSET = BIT(UART_INT_RXDRDY) | BIT(UART_INT_TXDRDY);
   enable_irq(UART_IRQ);
+  irq_priority(UART_IRQ, IRQ_PRIO_LO);
+
   txidle = 1;
 }
 
@@ -53,10 +55,7 @@ class listeners_t
   size_t idx = 0;
 
 public:
-  void push(listener_t listener)
-  {
-    stack[idx++] = listener;
-  }
+  void push(listener_t listener) { stack[idx++] = listener; }
 
   void pop()
   {
@@ -74,15 +73,9 @@ public:
 listeners_t listeners;
 } // namespace
 
-void register_listener(listener_t listener)
-{
-  listeners.push(listener);
-}
+void register_listener(listener_t listener) { listeners.push(listener); }
 
-void unregister_listener()
-{
-  listeners.pop();
-}
+void unregister_listener() { listeners.pop(); }
 
 __extern_C__
 void uart_handler(void)

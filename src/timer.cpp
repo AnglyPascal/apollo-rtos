@@ -31,6 +31,7 @@ inline void timer1_init()
   TIMER1.START = 1;
 
   enable_irq(TIMER1_IRQ);
+  irq_priority(TIMER1_IRQ, IRQ_PRIO_HI);
 }
 
 void init() { timer1_init(); }

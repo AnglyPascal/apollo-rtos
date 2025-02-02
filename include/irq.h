@@ -24,6 +24,11 @@
 
 #define N_INTERRUPTS 32
 
+#define IRQ_PRIO_HI 0
+#define IRQ_PRIO_M1 1
+#define IRQ_PRIO_M2 2
+#define IRQ_PRIO_LO 3
+
 /* NVIC SETUP FUNCTIONS */
 
 /* On Cortex-M0, only the top two bits of each interrupt priority are
@@ -35,6 +40,7 @@ implemented.*/
 __always_inline__
 inline void irq_priority(int irq, uint8_t prio)
 {
+  prio = prio << 6;
   if (irq < 0)
     SET_BYTE(SCB.SHPR[(irq + 12) >> 2], irq & 0x3, prio);
   else
