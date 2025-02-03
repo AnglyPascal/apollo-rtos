@@ -25,9 +25,11 @@ struct proc_t {
   byte_t *stack = nullptr;
   size_t stk_sz = 0;
 
-  signals_t signals = {};
-
+  void *param;
   chunk_t used_hd = {};
+
+  size_t rec_entry_id = 0;
+  signals_t signals = {};
 };
 
 template <uint8_t N_PROCS>

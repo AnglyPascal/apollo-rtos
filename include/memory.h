@@ -38,7 +38,7 @@ namespace heap
 void *malloc(size_t sz) __attribute__((malloc));
 void free(void *);
 void trace();
-void cleanup();
+void cleanup(chunk_t *);
 } // namespace heap
 
 void *operator new(size_t sz);

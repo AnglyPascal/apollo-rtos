@@ -9,6 +9,7 @@ inline constexpr size_t N_REC_DATA = 48;
 
 enum class rec_lev_t {
   NONE,
+  INIT,
   RESET,
   BOOT,
 };
@@ -27,6 +28,8 @@ void store_data(T &src)
 
 void set_rec_lev(rec_lev_t lev);
 void set_rec_lev(rec_lev_t lev, rec_func_t rec_func);
+
+size_t get_rec_entry_id();
 
 void load();
 void store();

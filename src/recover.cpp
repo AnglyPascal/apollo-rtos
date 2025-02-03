@@ -41,7 +41,11 @@ bool is_reset() { return rec_tbl.magic == REC_MAGIC; }
 
 namespace recovery
 {
-void *rec_data() { return rec_tbl.tbl[sched::curr_pid()].data; }
+void *rec_data()
+{
+  size_t entry_id = sched::curr_proc_rec_entry_id();
+  return rec_tbl.tbl[entry_id].data;
+}
 
 inline void def_rec_func(void *data)
 {
@@ -53,9 +57,22 @@ void set_rec_lev(rec_lev_t lev) { set_rec_lev(lev, def_rec_func); }
 
 void set_rec_lev(rec_lev_t lev, rec_func_t rec_func)
 {
-  auto &entry = rec_tbl.tbl[sched::curr_pid()];
+  size_t entry_id = sched::curr_proc_rec_entry_id();
+  auto &entry = rec_tbl.tbl[entry_id];
   entry.rec_lev = lev;
   entry.rec_func = rec_func;
+}
+
+size_t get_rec_entry_id()
+{
+  for (size_t entry_id = 0; entry_id < N_PROCS; entry_id++) {
+    auto &rec_lev = rec_tbl.tbl[entry_id].rec_lev;
+    if (rec_lev == rec_lev_t::NONE) {
+      rec_lev = rec_lev_t::INIT;
+      return entry_id;
+    }
+  }
+  return N_PROCS;
 }
 
 static word_t *rec_tbl_addr = (word_t *)__recover_pg;
@@ -74,12 +91,19 @@ void load()
 
 } // namespace recovery
 
+// FIXME: set a recover id. Every reset, id gets incremented. So previous
+// recover entries with INIT gets reused
 void recover()
 {
   for (auto &[rec_func, rec_lev, data] : rec_tbl.tbl) {
-    if (rec_lev != rec_lev_t::NONE) {
-      rec_func(data);
+    if (rec_lev == rec_lev_t::INIT) {
       rec_lev = rec_lev_t::NONE;
+      continue;
+    }
+
+    if (rec_lev != rec_lev_t::NONE) {
+      rec_lev = rec_lev_t::NONE;
+      rec_func(data);
     }
   }
 }

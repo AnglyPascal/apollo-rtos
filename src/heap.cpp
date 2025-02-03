@@ -47,10 +47,9 @@ void free(void *ptr)
   pool.dealloc((byte_t *)ptr);
 }
 
-void cleanup()
+void cleanup(chunk_t *hd)
 {
   debug<TRACE>("heap cleanup for current proc\r\n");
-  auto hd = sched::curr_proc_used_hd();
   while (hd->next != nullptr) {
     auto ptr = (byte_t *)hd->next + sizeof(chunk_t);
     hd = hd->next;
@@ -66,12 +65,6 @@ void trace()
 
 } // namespace heap
 
-void *operator new(size_t sz)
-{
-  return heap::malloc(sz);
-}
+void *operator new(size_t sz) { return heap::malloc(sz); }
 
-void operator delete(void *ptr)
-{
-  return heap::free(ptr);
-}
+void operator delete(void *ptr) { return heap::free(ptr); }

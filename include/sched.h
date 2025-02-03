@@ -47,6 +47,7 @@ void notify(chan_t *);
 void trace();
 
 pid_t curr_pid();
+size_t curr_proc_rec_entry_id();
 
 extern volatile time_t last_checked;
 

@@ -30,13 +30,22 @@ volatile struct {
 
 volatile time_t last_checked = 0;
 
-void end_proc(void *param)
+__always_inline__
+inline void exit(bool kill, void *param)
 {
-  debug<TRACE>("\t\t\tending %s\r\n", cpu.curr_proc->name.str);
+  debug<TRACE>("| ending %s, kill: %d\r\n", cpu.curr_proc->name.str, kill);
+
   heap::free(param);
-  recovery::set_rec_lev(rec_lev_t::NONE);
+  heap::cleanup(&cpu.curr_proc->used_hd);
+
+  if (kill) {
+    recovery::set_rec_lev(rec_lev_t::NONE);
+  }
+
   decr_priority(0);
 }
+
+void end_proc(void *param) { exit(true, param); }
 
 proc_t *reg_proc(proc_def_t *proc_def)
 {
@@ -44,15 +53,19 @@ proc_t *reg_proc(proc_def_t *proc_def)
   return reg_proc(name, priority, stk_sz, func, param);
 }
 
+size_t curr_proc_rec_entry_id() { return cpu.curr_proc->rec_entry_id; }
+
 proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
                  runnable_t func, void *param)
 {
-  assert(priority > 0);
+  assert(priority > 0, "%s\r\n", name.str);
 
   auto proc = procs.alloc();
-  assert(proc != nullptr);
+  assert(proc != nullptr, "%s\r\n", name.str);
 
   proc->name = name;
+  proc->param = param;
+  proc->rec_entry_id = recovery::get_rec_entry_id();
 
   stack.acquire(proc, stk_sz, func, param, end_proc);
   incr_priority(proc, priority);
@@ -207,8 +220,9 @@ string curr_proc_name() { return cpu.curr_proc->name; }
 template <signal_t sig>
 void default_handler(void)
 {
+  auto proc = sched::cpu.curr_proc;
   if constexpr (sig == SIGTERM) {
-    sched::end_proc(nullptr);
+    sched::exit(false, proc->param);
   }
 }
 
@@ -225,10 +239,10 @@ void handle_signals(void)
   if (signals.raised == 0)
     return;
 
-  for (int i = 0; i < N_SIGNALS; i++) {
-    auto msk = sigmsk(i);
+  for (int sig = 0; sig < N_SIGNALS; sig++) {
+    auto msk = sigmsk(sig);
     if (signals.raised & msk) {
-      signals.handlers[i]();
+      signals.handlers[sig]();
       signals.raised &= ~msk;
     }
   }
