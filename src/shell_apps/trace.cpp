@@ -22,19 +22,36 @@ bool listener(char c)
   return false;
 }
 
+__always_inline__
+inline void do_trace()
+{
+  sched::trace();
+  waitlist::trace();
+  fs::trace();
+  heap::trace();
+}
+
 void *trace(void *param)
 {
-  serial::listener_guard guard{listener};
+  buffer &buf = *(buffer *)param;
+  auto args = buf.args;
 
-  while (!exit) {
+  bool resume = false;
+  if (*args++ == '-' && *args++ == 'r')
+    resume = true;
+
+  serial::listener_guard guard{listener, resume};
+
+  if (resume) {
+    while (!exit) {
+      serial::clear_screen();
+      do_trace();
+      sched::sleep(1000);
+    }
     serial::clear_screen();
-    sched::trace();
-    waitlist::trace();
-    fs::trace();
-    heap::trace();
-    sched::sleep(3000);
+  } else {
+    do_trace();
   }
-  serial::clear_screen();
   exit = false;
 
   return param;

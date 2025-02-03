@@ -88,12 +88,13 @@ public:
     else if (proc->priority < 0)
       state = 2;
 
-    printf("\t%d. %s : %d, %s\r\n", pid, proc->name.str, proc->priority,
-           states[state]);
-    printf("\t\tstack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack, proc->stk_sz,
-           proc->stk_ptr);
+    debug<INFO>("  |  %d. %s : prio: %d, %s\r\n", pid, proc->name.str,
+                proc->priority, states[state]);
+    debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack,
+                proc->stk_sz, proc->stk_ptr);
+    debug<TRACE>("  |    heap usage:\r\n");
     for (auto ptr = &proc->used_hd; ptr->next != nullptr; ptr = ptr->next) {
-      printf("\t\t%x: %d\r\n", ptr->next, ptr->next->sz);
+      debug<TRACE>("  |      %x: %d\r\n", ptr->next, ptr->next->sz);
     }
   }
 

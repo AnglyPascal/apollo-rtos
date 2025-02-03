@@ -158,8 +158,7 @@ void init()
 
 void trace()
 {
-  printf("current proc: %s\r\n", cpu.curr_proc->name.str);
-  printf("sched:\r\n");
+  printf("  curr_proc: %s\r\n", cpu.curr_proc->name.str);
   procs.trace();
 }
 

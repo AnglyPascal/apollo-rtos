@@ -1,5 +1,4 @@
 #include "accel.h"
-#include "char_buffer.h"
 #include "circular_buffer.h"
 #include "display.h"
 #include "fs.h"
@@ -98,15 +97,15 @@ void *accel(void *param)
   auto file = fs::open(accel::fn, sizeof(buffer), O_CREATE);
   auto val = (buffer *)*file;
 
-  serial::listener_guard guard{listener};
+  bool run_bg = ((shell::buffer *)param)->run_bg;
+  serial::listener_guard guard{listener, !run_bg};
 
-  int threshold = 10;
-  auto is_zero = [threshold](int p) {
-    return (-threshold < p) && (p < threshold);
-  };
+  constexpr int threshold = 10;
+  auto is_zero = [](int p) { return (-threshold < p) && (p < threshold); };
 
   while (!exit) {
-    serial::clear_screen();
+    if (!run_bg)
+      serial::clear_screen();
 
     if (!val->empty()) {
       auto [x, y, z] = val->back();
@@ -115,9 +114,8 @@ void *accel(void *param)
       auto dy = is_zero(y) ? 1 : (y < 0 ? 2 : 0);
       display::show(dirs[dy][dx]);
 
-      // FIXME: NASTY STACK OVERFLOW SOMEWHRE. THIS IS A HOTFIX
-      // kprintf works, so it must be a problem with uart interrupts?
-      printf("x: %d, y: %d, z: %d\r\n", x, y, z);
+      if (!run_bg)
+        printf("x: %d, y: %d, z: %d\r\n", x, y, z);
     }
 
     sched::sleep(100);

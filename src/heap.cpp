@@ -60,7 +60,7 @@ void cleanup()
 
 void trace()
 {
-  printf("heap allocator: \r\n");
+  debug<TRACE>("  heap: \r\n");
   pool.trace();
 }
 

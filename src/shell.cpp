@@ -14,19 +14,34 @@ namespace shell
 
 void *proc(void *param)
 {
-  auto buf = (buffer *)param;
+  auto &buf = *(buffer *)param;
 
-  auto idx = buf->find(' ');
-  buf->replace(idx, '\0');
-  auto [cmd, args] = buf->split(idx + 1);
+  size_t idx = 0;
+  while (idx < buf.sz && buf[idx] != ' ')
+    idx++;
 
+  buf[idx] = '\0';
+
+  idx++;
+  while (idx < buf.sz && buf[idx] == ' ')
+    idx++;
+  buf.args = &buf[idx];
+
+  if (buf[buf.sz - 1] == '&') {
+    buf.run_bg = true;
+
+    buf.pop();
+    buf.push('\0');
+  }
+
+  auto cmd = buf.str;
   auto cmd_def = match_cmd(cmd);
   if (cmd_def == nullptr) {
     printf(">> WRONG COMMAND\r\n");
-    return buf;
+    return &buf;
   }
 
-  cmd_def->param = buf;
+  cmd_def->param = param;
   sched::reg_proc(cmd_def);
   cmd_def->param = nullptr;
 

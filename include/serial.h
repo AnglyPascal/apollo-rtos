@@ -43,10 +43,21 @@ void unregister_listener();
 
 class listener_guard
 {
-public:
-  listener_guard(listener_t listener) { register_listener(listener); }
+  bool do_listen;
 
-  ~listener_guard() { unregister_listener(); }
+public:
+  listener_guard(listener_t listener, bool do_listen = true)
+      : do_listen(do_listen)
+  {
+    if (do_listen)
+      register_listener(listener);
+  }
+
+  ~listener_guard()
+  {
+    if (do_listen)
+      unregister_listener();
+  }
 };
 
 } // namespace serial

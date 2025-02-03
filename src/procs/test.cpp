@@ -1,3 +1,4 @@
+#include "irq.h"
 #include "recover.h"
 #include "sched.h"
 
@@ -16,19 +17,11 @@ void *test_proc(void *param)
   recovery::set_rec_lev(rec_lev_t::RESET);
   recovery::store_data(test);
 
-  int n = 3;
-  while (n-- > 0)
-    ;
+  delay_loop(1000);
   sched::decr_priority(5);
 
   while (1) {
-    int m = 10;
-    while (m-- > 0) {
-      n = 100000000;
-      while (n-- > 0)
-        ;
-    }
-
+    delay_loop(10000);
     sched::sleep(50);
   }
 

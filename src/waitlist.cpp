@@ -94,10 +94,14 @@ void run()
 
 void trace()
 {
-  printf("waitlist:\r\n");
+  if (list_head.next == nullptr)
+    debug<INFO>("  waitlist: NONE\r\n");
+  else
+    debug<INFO>("  waitlist:\r\n");
+
   for (auto head = &list_head; head->next != nullptr; head = head->next) {
-    printf("\t%s\r\n\t\tinterval: %u\r\n", head->next->name.str,
-           head->next->remaining);
+    debug<INFO>("  |  %s\r\n  |    interval: %u\r\n", head->next->name.str,
+                head->next->remaining);
   }
 }
 

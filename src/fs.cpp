@@ -17,10 +17,7 @@ namespace
 {
 alignas(word_t) struct {
 public:
-  bool is_valid()
-  {
-    return magic == TBL_MAGIC;
-  }
+  bool is_valid() { return magic == TBL_MAGIC; }
   // other information about the fs;
 
   friend void fs::mount();
@@ -30,10 +27,7 @@ private:
   inode_t inodes[NFILES + 2];
 
 public:
-  inode_t &operator[](size_t idx)
-  {
-    return inodes[idx];
-  }
+  inode_t &operator[](size_t idx) { return inodes[idx]; }
 } tbl;
 
 static_assert(sizeof(tbl) <= pg_sz);
@@ -67,15 +61,9 @@ public:
     return (word_t *)((size_t)__nvm_start + off * pg_sz);
   }
 
-  size_t pg1_sz() const
-  {
-    return min(inode->sz, pg_sz - sizeof(page_guard_t));
-  }
+  size_t pg1_sz() const { return min(inode->sz, pg_sz - sizeof(page_guard_t)); }
 
-  size_t pg2_sz() const
-  {
-    return inode->sz - pg1_sz();
-  }
+  size_t pg2_sz() const { return inode->sz - pg1_sz(); }
 
 private:
   fd_t() {}
@@ -163,22 +151,16 @@ private:
     }
   }
 
-  void *operator*()
-  {
-    return addr;
-  }
+  void *operator*() { return addr; }
 
-  bool is_valid() const
-  {
-    return pg1.is_valid();
-  }
+  bool is_valid() const { return pg1.is_valid(); }
 
 public:
   void fstat()
   {
     auto fn = inode->fn;
-    printf("\t%d. sz: %d, pg: %x, rt: %x\r\n", fn, inode->sz, off2pg(2 * fn),
-           addr);
+    debug<INFO>("  |  %d. sz: %d, pg: %x, rt: %x\r\n", fn, inode->sz,
+                off2pg(2 * fn), addr);
   }
 };
 
@@ -223,10 +205,7 @@ public:
     return fd;
   }
 
-  void close(fd_t *fd)
-  {
-    fd->close();
-  }
+  void close(fd_t *fd) { fd->close(); }
 
   void trace() const
   {
@@ -246,10 +225,7 @@ file_t::file_t(fn_t fn, fd_t *fd, bool w_en) : fn{fn}, fd{fd}, w_en{w_en}
   fd->acquire(w_en);
 }
 
-void file_t::load()
-{
-  fd->load();
-}
+void file_t::load() { fd->load(); }
 
 void file_t::store()
 {
@@ -263,20 +239,11 @@ void file_t::erase()
     fd->erase();
 }
 
-void *file_t::operator*()
-{
-  return **fd;
-}
+void *file_t::operator*() { return **fd; }
 
-bool file_t::is_valid() const
-{
-  return fd->is_valid();
-}
+bool file_t::is_valid() const { return fd->is_valid(); }
 
-file_t::~file_t()
-{
-  fd->release(w_en);
-}
+file_t::~file_t() { fd->release(w_en); }
 
 /////////////////////
 // Filesystem impl //
@@ -323,10 +290,7 @@ void mount()
   }
 }
 
-void store()
-{
-  tbl_pg.store();
-}
+void store() { tbl_pg.store(); }
 
 inline void extract(inode_t &inode)
 {
@@ -396,7 +360,7 @@ void fstat(fn_t fn)
 
 void trace()
 {
-  printf("filesystem:\r\n");
+  debug<INFO>("  fs:\r\n");
   fd_tbl.trace();
 }
 

@@ -14,7 +14,7 @@ template <allocator_t alloc_func, size_t alignment>
 class allocator
 {
   chunk_t free_hd; // singly list
-                   
+
 #if USED_LIST
   chunk_t used_hd; // doubly list
 #endif
@@ -77,16 +77,17 @@ public:
   __noinline__
   void trace()
   {
-    printf("alloc trace: \r\n");
-    printf("\tfree list: \r\n");
+    debug<TRACE>("  |  free list: \r\n");
     for (auto ptr = &free_hd; ptr->next != nullptr; ptr = ptr->next) {
-      printf("\t\t%x: %u\r\n", (byte_t *)ptr->next + header_sz, ptr->next->sz);
+      debug<TRACE>("  |    %x: %u\r\n", (byte_t *)ptr->next + header_sz,
+                   ptr->next->sz);
     }
 
 #if USED_LIST
-    printf("\tused list: \r\n");
+    debug<TRACE>("  |  used list: \r\n");
     for (auto ptr = &used_hd; ptr->next != nullptr; ptr = ptr->next) {
-      printf("\t\t%x: %u\r\n", (byte_t *)ptr->next + header_sz, ptr->next->sz);
+      debug<TRACE>("  |    %x: %u\r\n", (byte_t *)ptr->next + header_sz,
+                   ptr->next->sz);
     }
 #endif
   }

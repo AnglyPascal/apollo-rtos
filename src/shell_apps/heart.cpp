@@ -1,4 +1,3 @@
-#include "char_buffer.h"
 #include "display.h"
 #include "lib.h"
 #include "serial.h"
@@ -26,7 +25,7 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
 void *heart(void *param)
 {
   auto buf = (buffer *)param;
-  auto str = buf->str + 6;
+  auto str = buf->args;
 
   auto n = (*str == '\0') ? 100 : atoi(str);
 

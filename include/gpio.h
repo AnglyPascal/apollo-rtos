@@ -35,7 +35,4 @@ inline void gpio_out(uint32_t pin, uint32_t value)
 }
 
 /* gpio_in -- get GPIO input bit */
-inline uint32_t gpio_in(uint32_t pin)
-{
-  return GET_BIT(GPIO.IN, pin);
-}
+inline uint32_t gpio_in(uint32_t pin) { return GET_BIT(GPIO.IN, pin); }
