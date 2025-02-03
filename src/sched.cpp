@@ -2,10 +2,12 @@
 #include "circular_buffer.h"
 #include "debug.h"
 #include "irq.h"
+#include "lib.h"
 #include "proc_stack.h"
 #include "procs.h"
 #include "recover.h"
 #include "serial.h"
+#include "shell.h"
 #include "timer.h"
 #include "types.h"
 #include "waitlist.h"
@@ -122,6 +124,8 @@ void decr_priority(priority_t priority)
   change_proc();
 }
 
+static pid_t IDLE_PID = 0;
+
 __attribute__((optimize("O0"))) // O2 doesn't work
 void *
 idle_task(void *)
@@ -143,6 +147,7 @@ void setup_procs(void);
 void init()
 {
   auto idle_proc = reg_proc("idle_proc", IDLE_PRIORITY, 0, idle_task, nullptr);
+  IDLE_PID = procs.pid(idle_proc);
   cpu.curr_proc = idle_proc;
 
   if (is_first_boot()) {
@@ -198,3 +203,73 @@ void notify(chan_t *chan)
 string curr_proc_name() { return cpu.curr_proc->name; }
 
 } // namespace sched
+
+template <signal_t sig>
+void default_handler(void)
+{
+  if constexpr (sig == SIGTERM) {
+    sched::end_proc(nullptr);
+  }
+}
+
+constexpr int sigmsk(int sig) { return 1 << sig; }
+
+__extern_C__
+void handle_signals(void)
+{
+  // FIXME: kprintf causes a sleep/wake up issue, investigate later
+  /* printf("sig\r\n"); */
+
+  auto &signals = sched::cpu.curr_proc->signals;
+
+  if (signals.raised == 0)
+    return;
+
+  for (int i = 0; i < N_SIGNALS; i++) {
+    auto msk = sigmsk(i);
+    if (signals.raised & msk) {
+      signals.handlers[i]();
+      signals.raised &= ~msk;
+    }
+  }
+}
+
+void send_signal(pid_t pid, signal_t sig)
+{
+  sched::procs[pid]->signals.send_signal(sig);
+}
+
+namespace shell
+{
+void *pkill(void *param)
+{
+  auto buf = (shell::buffer *)param;
+  auto args = buf->args;
+
+  pid_t pid;
+
+  if (*args <= '9' && *args >= '0') {
+    pid = atoi(buf->args);
+  } else {
+    for (pid = 0; pid < N_PROCS; pid++) {
+      if (sched::procs[pid]->name == string{args})
+        break;
+    }
+  }
+
+  if (pid >= N_PROCS) {
+    debug<ERROR>("Process not found\r\n");
+    return param;
+  }
+
+  if (pid == sched::IDLE_PID) {
+    debug<FATAL>("Cannot kill idle_proc\r\n");
+    return param;
+  }
+
+  send_signal(pid, SIGTERM);
+  return param;
+}
+
+proc_def_t pkill_cmd = {"pkill", _max<priority_t>, 32, pkill, nullptr};
+} // namespace shell

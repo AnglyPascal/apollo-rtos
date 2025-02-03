@@ -68,6 +68,8 @@ __run:
     pop {r4-r7}
     pop {r4}
 
+    bl handle_signals
+
     bx r4
     .endm
 

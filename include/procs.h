@@ -4,6 +4,7 @@
 #include "irq.h"
 #include "memory.h"
 #include "serial.h"
+#include "signal.h"
 #include "types.h"
 
 namespace
@@ -23,6 +24,8 @@ struct proc_t {
   byte_t *stk_ptr = nullptr;
   byte_t *stack = nullptr;
   size_t stk_sz = 0;
+
+  signals_t signals = {};
 
   chunk_t used_hd = {};
 };
@@ -91,7 +94,7 @@ public:
     debug<INFO>("  |  %d. %s : prio: %d, %s\r\n", pid, proc->name.str,
                 proc->priority, states[state]);
     debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack,
-                proc->stk_sz, proc->stk_ptr);
+                 proc->stk_sz, proc->stk_ptr);
     debug<TRACE>("  |    heap usage:\r\n");
     for (auto ptr = &proc->used_hd; ptr->next != nullptr; ptr = ptr->next) {
       debug<TRACE>("  |      %x: %d\r\n", ptr->next, ptr->next->sz);
