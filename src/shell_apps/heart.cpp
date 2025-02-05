@@ -2,6 +2,7 @@
 #include "lib.h"
 #include "serial.h"
 #include "shell.h"
+#include "signal.h"
 #include "types.h"
 
 namespace shell
@@ -22,14 +23,18 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
                                   0, 0, 1, 0, 0,  //
                                   0, 0, 0, 0, 0); //
 
+static bool exit = false;
+
 void *heart(void *param)
 {
+  swap_handler(SIGTERM, []() { exit = true; });
+
   auto buf = (buffer *)param;
   auto str = buf->args;
 
   auto n = (*str == '\0') ? 100 : atoi(str);
 
-  while (n-- > 0) {
+  while (!exit && n-- > 0) {
     display::show(big_heart);
     sched::sleep(500);
     display::show(small_heart);
@@ -41,6 +46,9 @@ void *heart(void *param)
 
     display::reset();
   }
+
+  exit = false;
+  display::reset();
 
   return param;
 }

@@ -6,6 +6,7 @@
 #include "nvm.h"
 #include "serial.h"
 #include "shell.h"
+#include "signal.h"
 #include "types.h"
 
 #include <utility>
@@ -94,6 +95,8 @@ const image_t dirs[3][3] = {
 
 void *accel(void *param)
 {
+  swap_handler(SIGTERM, []() { exit = true; });
+
   auto file = fs::open(accel::fn, sizeof(buffer), O_CREATE);
   auto val = (buffer *)*file;
 
@@ -118,7 +121,7 @@ void *accel(void *param)
         printf("x: %d, y: %d, z: %d\r\n", x, y, z);
     }
 
-    sched::sleep(100);
+    sched::sleep(50);
   }
 
   exit = false;

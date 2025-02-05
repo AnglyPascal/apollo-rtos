@@ -6,6 +6,8 @@
 #include "memory.h"
 #include "recover.h"
 #include "sched.h"
+#include "signal.h"
+#include "waitlist.h"
 
 /* A simple driver for the micro:bit LEDs with the same interface on
 V1 and V2. */
@@ -81,6 +83,7 @@ proc_def_t display{"display", 3, 128, display::task, nullptr};
 
 namespace display
 {
+
 void *task(void *)
 {
   recovery::set_rec_lev(rec_lev_t::RESET);
@@ -96,9 +99,10 @@ void *task(void *)
       GPIO.OUT = image[n++];
       delay_loop(5000);
     }
-    sched::sleep(10);
+    sched::sleep(5);
   }
 
   return nullptr;
 }
+
 } // namespace display

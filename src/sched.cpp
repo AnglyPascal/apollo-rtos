@@ -139,9 +139,7 @@ void decr_priority(priority_t priority)
 
 static pid_t IDLE_PID = 0;
 
-__attribute__((optimize("O0"))) // O2 doesn't work
-void *
-idle_task(void *)
+void *idle_task(void *)
 {
   while (true) {
     change_proc(); // NOTE: comment to test invoker
@@ -176,7 +174,7 @@ void init()
 
 void trace()
 {
-  printf("  curr_proc: %s\r\n", cpu.curr_proc->name.str);
+  debug<INFO>("  curr_proc: %s\r\n", cpu.curr_proc->name.str);
   procs.trace();
 }
 
@@ -217,16 +215,23 @@ string curr_proc_name() { return cpu.curr_proc->name; }
 
 } // namespace sched
 
-template <signal_t sig>
-void default_handler(void)
+///////////////
+/// SIGNALS ///
+///////////////
+
+template <>
+void default_handler<SIGTERM>(void)
 {
   auto proc = sched::cpu.curr_proc;
-  if constexpr (sig == SIGTERM) {
-    sched::exit(false, proc->param);
-  }
+  sched::exit(false, proc->param);
 }
 
-constexpr int sigmsk(int sig) { return 1 << sig; }
+template <>
+void default_handler<SIGKILL>(void)
+{
+  auto proc = sched::cpu.curr_proc;
+  sched::exit(true, proc->param);
+}
 
 __extern_C__
 void handle_signals(void)
@@ -234,23 +239,22 @@ void handle_signals(void)
   // FIXME: kprintf causes a sleep/wake up issue, investigate later
   /* printf("sig\r\n"); */
 
-  auto &signals = sched::cpu.curr_proc->signals;
+  sched::cpu.curr_proc->signals.handle_signals();
+}
 
-  if (signals.raised == 0)
-    return;
-
-  for (int sig = 0; sig < N_SIGNALS; sig++) {
-    auto msk = sigmsk(sig);
-    if (signals.raised & msk) {
-      signals.handlers[sig]();
-      signals.raised &= ~msk;
-    }
-  }
+signal_handler_t swap_handler(signal_t sig, signal_handler_t new_handler)
+{
+  return sched::cpu.curr_proc->signals.swap(sig, new_handler);
 }
 
 void send_signal(pid_t pid, signal_t sig)
 {
-  sched::procs[pid]->signals.send_signal(sig);
+  if (pid < 0 || pid > N_PROCS) {
+    debug<ERROR>("pid %u out of range\r\n", pid);
+    return;
+  }
+
+  sched::procs[pid]->signals.send(sig);
 }
 
 namespace shell
@@ -260,8 +264,14 @@ void *pkill(void *param)
   auto buf = (shell::buffer *)param;
   auto args = buf->args;
 
-  pid_t pid;
+  bool kill = args[0] == '-' && args[1] == '9';
+  if (kill) {
+    args += 2;
+    while (*args == ' ')
+      args++;
+  }
 
+  pid_t pid;
   if (*args <= '9' && *args >= '0') {
     pid = atoi(buf->args);
   } else {
@@ -281,7 +291,7 @@ void *pkill(void *param)
     return param;
   }
 
-  send_signal(pid, SIGTERM);
+  send_signal(pid, kill ? SIGKILL : SIGTERM);
   return param;
 }
 

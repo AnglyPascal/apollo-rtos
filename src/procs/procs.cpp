@@ -7,7 +7,11 @@ extern proc_def_t test, accel, display;
 
 namespace
 {
-proc_def_t *proc_defs[] = {&test, &accel, &display};
+proc_def_t *proc_defs[] = {
+    &test,
+    &accel,
+    &display,
+};
 }
 
 } // namespace procs
