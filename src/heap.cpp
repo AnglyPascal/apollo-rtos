@@ -31,6 +31,7 @@ void *malloc(size_t sz)
     used_hd->next->prev = chunk;
   used_hd->next = chunk;
 
+  kprintf("malloc: %x\r\n", ptr);
   return ptr;
 }
 
@@ -44,6 +45,7 @@ void free(void *ptr)
   if (chunk->next != nullptr)
     chunk->next->prev = chunk->prev;
 
+  kprintf("free: %x\r\n", ptr);
   pool.dealloc((byte_t *)ptr);
 }
 
@@ -68,3 +70,4 @@ void trace()
 void *operator new(size_t sz) { return heap::malloc(sz); }
 
 void operator delete(void *ptr) { return heap::free(ptr); }
+

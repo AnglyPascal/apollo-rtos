@@ -1,4 +1,5 @@
 #include "shell.h"
+#include "debug.h"
 #include "sched.h"
 #include "serial.h"
 #include "types.h"
@@ -17,14 +18,16 @@ void *proc(void *param)
   auto &buf = *(buffer *)param;
 
   size_t idx = 0;
-  while (idx < buf.sz && buf[idx] != ' ')
+  while (idx < buf.sz && buf[idx] != ' ') {
     idx++;
+  }
 
   buf[idx] = '\0';
 
   idx++;
-  while (idx < buf.sz && buf[idx] == ' ')
+  while (idx < buf.sz && buf[idx] == ' ') {
     idx++;
+  }
   buf.args = &buf[idx];
 
   if (buf[buf.sz - 1] == '&') {
@@ -37,7 +40,7 @@ void *proc(void *param)
   auto cmd = buf.str;
   auto cmd_def = match_cmd(cmd);
   if (cmd_def == nullptr) {
-    printf(">> WRONG COMMAND\r\n");
+    debug<ERROR>("wrong command: \"%s\"\r\n", cmd);
     return &buf;
   }
 
@@ -73,9 +76,11 @@ bool listener(char c)
     return true;
   }
 
-  printf("\r\n");
+  kprintf("\r\n");
+  kprintf("old_buf: %x,\r\n", buf);
   sched::reg_proc("shell", _max<priority_t>, 256, proc, buf);
   buf = new buffer{};
+  kprintf("new_buf: %x\r\n\r\n", buf);
   return true;
 }
 } // namespace

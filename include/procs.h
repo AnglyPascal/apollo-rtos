@@ -1,7 +1,6 @@
 #pragma once
 
 #include "debug.h"
-#include "irq.h"
 #include "memory.h"
 #include "serial.h"
 #include "signal.h"
@@ -40,8 +39,6 @@ class procs_t
 public:
   inline proc_t *alloc()
   {
-    intr_guard guard;
-
     uint8_t pid = 0;
     while (pid < N_PROCS && procs[pid].priority != 0)
       pid++;
@@ -53,11 +50,7 @@ public:
     return &procs[pid];
   }
 
-  inline void dealloc(proc_t *proc)
-  {
-    intr_guard guard;
-    proc->priority = 0;
-  }
+  inline void dealloc(proc_t *proc) { proc->priority = 0; }
 
   proc_t *max_priority()
   {

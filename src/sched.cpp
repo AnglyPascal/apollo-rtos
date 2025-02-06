@@ -42,6 +42,7 @@ inline void exit(bool kill, void *param)
     recovery::set_rec_lev(rec_lev_t::NONE);
   }
 
+  intr_disable();
   decr_priority(0);
 }
 
@@ -60,14 +61,17 @@ proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
 {
   assert(priority > 0, "%s\r\n", name.str);
 
+  intr_guard guard;
+
   auto proc = procs.alloc();
   assert(proc != nullptr, "%s\r\n", name.str);
 
   proc->name = name;
   proc->param = param;
-  proc->rec_entry_id = recovery::get_rec_entry_id();
 
+  proc->rec_entry_id = recovery::get_rec_entry_id();
   stack.acquire(proc, stk_sz, func, param, end_proc);
+
   incr_priority(proc, priority);
 
   debug<TRACE>("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc->stack,

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "types.h"
-#include <cstdint>
 
 inline constexpr size_t N_PROCS = 16;
 struct proc_t;

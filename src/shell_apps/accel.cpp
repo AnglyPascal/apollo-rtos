@@ -125,7 +125,6 @@ void *accel(void *param)
   }
 
   exit = false;
-  serial::clear_screen();
   display::reset();
 
   return param;

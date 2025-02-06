@@ -9,10 +9,10 @@ namespace shell
 constexpr size_t args_len = 64;
 
 struct buffer {
-  char str[args_len];
+  char str[args_len] = {'\0'};
   size_t sz = 0;
 
-  char *args;
+  char *args = nullptr;
   bool run_bg = false;
 
   char &operator[](size_t i) { return str[i]; }

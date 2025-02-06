@@ -45,6 +45,7 @@ inline void __start(void)
 
   led::init();
   serial::init();
+  serial::clear_screen();
 
   fs::mount();
   timer::init();
@@ -52,7 +53,6 @@ inline void __start(void)
   i2c::init();
   shell::init();
 
-  serial::clear_screen();
 
   debug_addr();
 

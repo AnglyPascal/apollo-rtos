@@ -8,18 +8,12 @@
 
 using allocator_t = byte_t *(*)(size_t);
 
-#define USED_LIST 0
-
 template <allocator_t alloc_func, size_t alignment>
 class allocator
 {
   chunk_t free_hd; // singly list
 
-#if USED_LIST
-  chunk_t used_hd; // doubly list
-#endif
-
-  static constexpr size_t header_sz = roundup(sizeof(chunk_t), alignment);
+  static constexpr size_t header_sz = sizeof(chunk_t);
 
 public:
   constexpr allocator() {}
@@ -35,24 +29,21 @@ public:
     auto ptr = &free_hd;
     while (ptr->next != nullptr) {
       chunk = ptr->next;
-      ptr->next = chunk->next;
-
       if (chunk->sz >= sz)
         break;
+      ptr = chunk;
     }
-    if (chunk == nullptr)
+
+    if (chunk == nullptr) {
       chunk = (chunk_t *)alloc_func(chnk_sz);
+      chunk->sz = sz;
+    } else {
+      ptr->next = chunk->next;
+    }
 
-#if USED_LIST
-    chunk->prev = &used_hd;
-    chunk->next = used_hd.next;
+    chunk->prev = nullptr;
+    chunk->next = nullptr;
 
-    if (used_hd.next != nullptr)
-      used_hd.next->prev = chunk;
-    used_hd.next = chunk;
-#endif
-
-    chunk->sz = sz;
     return (byte_t *)chunk + header_sz;
   }
 
@@ -62,15 +53,9 @@ public:
 
     auto chunk = (chunk_t *)(ptr - header_sz);
 
-#if USED_LIST
-    chunk->prev->next = chunk->next;
-    if (chunk->next != nullptr)
-      chunk->next->prev = chunk->prev;
-
-    chunk->prev = nullptr;
-#endif
-
     chunk->next = free_hd.next;
+    chunk->prev = &free_hd;
+
     free_hd.next = chunk;
   }
 
@@ -82,13 +67,5 @@ public:
       debug<TRACE>("  |    %x: %u\r\n", (byte_t *)ptr->next + header_sz,
                    ptr->next->sz);
     }
-
-#if USED_LIST
-    debug<TRACE>("  |  used list: \r\n");
-    for (auto ptr = &used_hd; ptr->next != nullptr; ptr = ptr->next) {
-      debug<TRACE>("  |    %x: %u\r\n", (byte_t *)ptr->next + header_sz,
-                   ptr->next->sz);
-    }
-#endif
   }
 };
