@@ -161,7 +161,7 @@ const image_t period = IMAGE(0, 0, 0, 0, 0, //
                              0, 0, 0, 0, 0, //
                              0, 0, 0, 1, 0);
 
-void *show(void *param)
+void show(void *param)
 {
   auto buf = (buffer *)param;
   auto str = buf->args;
@@ -179,7 +179,6 @@ void *show(void *param)
   }
 
   display::reset();
-  return param;
 }
 
 } // namespace

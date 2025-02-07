@@ -38,25 +38,20 @@ public:
       chunk = (chunk_t *)alloc_func(chnk_sz);
       chunk->sz = sz;
     } else {
-      ptr->next = chunk->next;
+      chunk->detach();
     }
-
-    chunk->prev = nullptr;
-    chunk->next = nullptr;
 
     return (byte_t *)chunk + header_sz;
   }
 
   void dealloc(byte_t *ptr)
   {
+    if (ptr == nullptr)
+      return;
+
     intr_guard guard;
-
     auto chunk = (chunk_t *)(ptr - header_sz);
-
-    chunk->next = free_hd.next;
-    chunk->prev = &free_hd;
-
-    free_hd.next = chunk;
+    free_hd.insert_next(chunk);
   }
 
   __noinline__

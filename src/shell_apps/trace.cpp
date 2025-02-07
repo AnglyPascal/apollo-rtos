@@ -31,7 +31,7 @@ inline void do_trace()
   heap::trace();
 }
 
-void *trace(void *param)
+void trace(void *param)
 {
   buffer &buf = *(buffer *)param;
   auto args = buf.args;
@@ -53,8 +53,6 @@ void *trace(void *param)
     do_trace();
   }
   exit = false;
-
-  return param;
 }
 
 } // namespace

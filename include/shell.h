@@ -29,7 +29,7 @@ struct buffer {
       sz--;
   }
 
-  void reset() { sz = 0; }
+  void reset() { *this = buffer{}; }
 };
 
 void init();

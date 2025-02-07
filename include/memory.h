@@ -1,5 +1,6 @@
 #pragma once
 
+#include "debug.h"
 #include "types.h"
 #include <cstdint>
 
@@ -8,6 +9,27 @@ struct chunk_t {
   chunk_t *prev = nullptr;
 
   size_t sz = 0;
+
+  void insert_next(chunk_t *chunk)
+  {
+    chunk->next = next;
+    chunk->prev = this;
+
+    if (next != nullptr)
+      next->prev = chunk;
+    next = chunk;
+  }
+
+  void detach()
+  {
+    if (prev != nullptr)
+      prev->next = next;
+    if (next != nullptr)
+      next->prev = prev;
+
+    prev = nullptr;
+    next = nullptr;
+  }
 };
 
 constexpr size_t roundup(size_t sz, size_t align)
@@ -43,3 +65,9 @@ void cleanup(chunk_t *);
 
 void *operator new(size_t sz);
 void operator delete(void *);
+
+namespace kmem
+{
+void *kmalloc(size_t sz) __attribute__((malloc));
+void kfree(void *);
+} // namespace kmem

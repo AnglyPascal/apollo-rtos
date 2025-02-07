@@ -10,18 +10,16 @@ namespace shell
 namespace
 {
 
-void *echo(void *param)
+void echo(void *param)
 {
   auto buf = (buffer *)param;
   printf(">> %s\r\n", buf->args);
-  return param;
 }
 
-void *clear(void *param)
+void clear(void *param)
 {
   serial::clear_screen();
   display::reset();
-  return param;
 }
 
 } // namespace

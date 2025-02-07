@@ -13,7 +13,7 @@ template <typename T>
 constexpr T _max = std::numeric_limits<T>::max();
 
 using size_t = std::size_t;
-using runnable_t = void *(*)(void *);
+using runnable_t = void (*)(void *);
 
 using pid_t = uint8_t;
 inline constexpr pid_t null_pid = _max<pid_t>;

@@ -88,4 +88,4 @@ trigger_reset:
     ldr r0, =0xE000ED0C       @ Load the address of AIRCR into r0
     ldr r1, =0x05FA0004       @ Load the VECTKEY (0x5FA << 16) | SYSRESETREQ bit
     str r1, [r0]              @ Write the value directly to AIRCR
-
+    

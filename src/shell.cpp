@@ -1,5 +1,6 @@
 #include "shell.h"
 #include "debug.h"
+#include "memory.h"
 #include "sched.h"
 #include "serial.h"
 #include "types.h"
@@ -13,7 +14,7 @@ void trigger_reset();
 namespace shell
 {
 
-void *proc(void *param)
+void proc(void *param)
 {
   auto &buf = *(buffer *)param;
 
@@ -41,14 +42,14 @@ void *proc(void *param)
   auto cmd_def = match_cmd(cmd);
   if (cmd_def == nullptr) {
     debug<ERROR>("wrong command: \"%s\"\r\n", cmd);
-    return &buf;
+    return;
   }
 
   cmd_def->param = param;
   sched::reg_proc(cmd_def);
   cmd_def->param = nullptr;
 
-  return nullptr;
+  sched::give_up_param();
 }
 
 namespace
@@ -77,17 +78,20 @@ bool listener(char c)
   }
 
   kprintf("\r\n");
-  kprintf("old_buf: %x,\r\n", buf);
   sched::reg_proc("shell", _max<priority_t>, 256, proc, buf);
-  buf = new buffer{};
-  kprintf("new_buf: %x\r\n\r\n", buf);
+
+  buf = (buffer *)kmem::kmalloc(sizeof(buffer));
+  buf->reset();
+
   return true;
 }
 } // namespace
 
 void init()
 {
-  buf = new buffer{};
+  buf = (buffer *)kmem::kmalloc(sizeof(buffer));
+  buf->reset();
+
   serial::register_listener(listener);
 }
 

@@ -25,7 +25,7 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
 
 static bool exit = false;
 
-void *heart(void *param)
+void heart(void *param)
 {
   swap_handler(SIGTERM, []() { exit = true; });
 
@@ -49,8 +49,6 @@ void *heart(void *param)
 
   exit = false;
   display::reset();
-
-  return param;
 }
 
 } // namespace

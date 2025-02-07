@@ -48,6 +48,8 @@ void trace();
 pid_t curr_pid();
 size_t curr_proc_rec_entry_id();
 
+void give_up_param();
+
 extern volatile time_t last_checked;
 
 } // namespace sched

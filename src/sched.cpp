@@ -30,23 +30,21 @@ volatile struct {
 
 volatile time_t last_checked = 0;
 
-__always_inline__
-inline void exit(bool kill, void *param)
+template <bool kill>
+void exit()
 {
   debug<TRACE>("| ending %s, kill: %d\r\n", cpu.curr_proc->name.str, kill);
 
-  heap::free(param);
+  kmem::kfree(cpu.curr_proc->param);
   heap::cleanup(&cpu.curr_proc->used_hd);
 
-  if (kill) {
+  if constexpr (kill) {
     recovery::set_rec_lev(rec_lev_t::NONE);
   }
 
   intr_disable();
   decr_priority(0);
 }
-
-void end_proc(void *param) { exit(true, param); }
 
 proc_t *reg_proc(proc_def_t *proc_def)
 {
@@ -70,7 +68,7 @@ proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
   proc->param = param;
 
   proc->rec_entry_id = recovery::get_rec_entry_id();
-  stack.acquire(proc, stk_sz, func, param, end_proc);
+  stack.acquire(proc, stk_sz, func, param, exit<true>);
 
   incr_priority(proc, priority);
 
@@ -143,17 +141,16 @@ void decr_priority(priority_t priority)
 
 static pid_t IDLE_PID = 0;
 
-void *idle_task(void *)
+void idle_task(void *)
 {
   while (true) {
     change_proc(); // NOTE: comment to test invoker
   }
-  return nullptr;
 }
 
 /* enter idle_task with specified stack (see mpx.s) */
 __extern_C__
-void __run(void *(*task)(void *), byte_t **stk_ptr);
+void __run(runnable_t task, byte_t **stk_ptr);
 
 void setup_procs(void);
 
@@ -217,6 +214,8 @@ void notify(chan_t *chan)
 
 string curr_proc_name() { return cpu.curr_proc->name; }
 
+void give_up_param() { cpu.curr_proc->param = nullptr; }
+
 } // namespace sched
 
 ///////////////
@@ -226,15 +225,13 @@ string curr_proc_name() { return cpu.curr_proc->name; }
 template <>
 void default_handler<SIGTERM>(void)
 {
-  auto proc = sched::cpu.curr_proc;
-  sched::exit(false, proc->param);
+  sched::exit<false>();
 }
 
 template <>
 void default_handler<SIGKILL>(void)
 {
-  auto proc = sched::cpu.curr_proc;
-  sched::exit(true, proc->param);
+  sched::exit<true>();
 }
 
 __extern_C__
@@ -263,7 +260,7 @@ void send_signal(pid_t pid, signal_t sig)
 
 namespace shell
 {
-void *pkill(void *param)
+void pkill(void *param)
 {
   auto buf = (shell::buffer *)param;
   auto args = buf->args;
@@ -287,16 +284,15 @@ void *pkill(void *param)
 
   if (pid >= N_PROCS) {
     debug<ERROR>("Process not found\r\n");
-    return param;
+    return;
   }
 
   if (pid == sched::IDLE_PID) {
     debug<FATAL>("Cannot kill idle_proc\r\n");
-    return param;
+    return;
   }
 
   send_signal(pid, kill ? SIGKILL : SIGTERM);
-  return param;
 }
 
 proc_def_t pkill_cmd = {"pkill", _max<priority_t>, 32, pkill, nullptr};

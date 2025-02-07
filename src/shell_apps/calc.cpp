@@ -43,7 +43,7 @@ bool listener(char c)
   return false;
 }
 
-void *calc(void *param)
+void calc(void *param)
 {
   serial::listener_guard guard{listener};
   serial::clear_screen();
@@ -54,8 +54,6 @@ void *calc(void *param)
 
   serial::clear_screen();
   exit = false;
-
-  return param;
 }
 
 } // namespace

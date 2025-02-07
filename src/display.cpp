@@ -67,7 +67,7 @@ image_t image;
 } // namespace
 
 /* device driver for LED display */
-void *task(void *);
+void task(void *);
 
 /* set display from image */
 void show(const image_t img) { _memcpy(image, img, sizeof(image_t)); }
@@ -84,7 +84,7 @@ proc_def_t display{"display", 3, 128, display::task, nullptr};
 namespace display
 {
 
-void *task(void *)
+void task(void *)
 {
   recovery::set_rec_lev(rec_lev_t::RESET);
   recovery::store_data(procs::display);
@@ -101,8 +101,6 @@ void *task(void *)
     }
     sched::sleep(5);
   }
-
-  return nullptr;
 }
 
 } // namespace display

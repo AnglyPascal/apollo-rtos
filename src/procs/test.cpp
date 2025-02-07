@@ -8,11 +8,11 @@ void trigger_reset();
 namespace procs
 {
 
-void *test_proc(void *param);
+void test_proc(void *param);
 
 proc_def_t test{"test_proc", 10, 64, test_proc, nullptr};
 
-void *test_proc(void *param)
+void test_proc(void *param)
 {
   recovery::set_rec_lev(rec_lev_t::RESET);
   recovery::store_data(test);
@@ -24,8 +24,6 @@ void *test_proc(void *param)
     delay_loop(10000);
     sched::sleep(50);
   }
-
-  return param;
 }
 
 } // namespace procs

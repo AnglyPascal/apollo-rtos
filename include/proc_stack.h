@@ -49,7 +49,7 @@ class stack_t
 
 public:
   inline void acquire(proc_t *proc, size_t stk_sz, runnable_t func, void *param,
-                      void (*ret)(void *))
+                      void (*ret)())
   {
     stk_sz = roundup(stk_sz, alignment);
     stk_sz += debug_depth + timer_depth;

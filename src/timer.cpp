@@ -52,8 +52,12 @@ __always_inline__
 inline void sched_invoke()
 {
   if (MILLIS - sched::last_checked > sched::invoke_interval) {
-    debug<FATAL>("scheduler invoked. proc: %s\r\n",
-                 sched::curr_proc_name().str);
+    volatile uint32_t *fault_stack = (uint32_t *)get_msp();
+    uint32_t pc = fault_stack[5]; // Program Counter
+    /* uint32_t lr = fault_stack[5]; // Link Register */
+
+    debug<FATAL>("scheduler invoked. proc: %s, pc: %x\r\n",
+                 sched::curr_proc_name().str, pc);
     sched::last_checked = MILLIS;
     if (sched::needs_swap())
       pendsv_handler();

@@ -11,7 +11,7 @@
 namespace procs
 {
 
-void *accel_func(void *param);
+void accel_func(void *param);
 
 proc_def_t accel{"accel_bg", 32, 256, accel_func, nullptr};
 
@@ -31,7 +31,7 @@ static_assert(sizeof(buffer) <= pg_sz - sizeof(page_guard_t));
 int n __recover_section__ = 100;
 } // namespace
 
-void *accel_func(void *param)
+void accel_func(void *param)
 {
   recovery::set_rec_lev(rec_lev_t::RESET);
   recovery::store_data(accel);
@@ -51,8 +51,6 @@ void *accel_func(void *param)
 
     sched::sleep(200);
   }
-
-  return param;
 }
 
 } // namespace procs

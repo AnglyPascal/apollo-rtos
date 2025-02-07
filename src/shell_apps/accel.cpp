@@ -93,7 +93,7 @@ const image_t dirs[3][3] = {
     },
 };
 
-void *accel(void *param)
+void accel(void *param)
 {
   swap_handler(SIGTERM, []() { exit = true; });
 
@@ -126,8 +126,6 @@ void *accel(void *param)
 
   exit = false;
   display::reset();
-
-  return param;
 }
 
 } // namespace

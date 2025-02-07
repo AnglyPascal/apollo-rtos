@@ -22,16 +22,8 @@ void *malloc(size_t sz)
   auto chunk = (chunk_t *)(ptr - sizeof(chunk_t));
 
   auto used_hd = sched::curr_proc_used_hd();
+  used_hd->insert_next(chunk);
 
-  chunk->next = used_hd->next;
-  chunk->prev = used_hd;
-  chunk->sz = sz;
-
-  if (used_hd->next != nullptr)
-    used_hd->next->prev = chunk;
-  used_hd->next = chunk;
-
-  kprintf("malloc: %x\r\n", ptr);
   return ptr;
 }
 
@@ -41,11 +33,8 @@ void free(void *ptr)
     return;
 
   auto chunk = (chunk_t *)((byte_t *)ptr - sizeof(chunk_t));
-  chunk->prev->next = chunk->next;
-  if (chunk->next != nullptr)
-    chunk->next->prev = chunk->prev;
+  chunk->detach();
 
-  kprintf("free: %x\r\n", ptr);
   pool.dealloc((byte_t *)ptr);
 }
 
@@ -53,8 +42,10 @@ void cleanup(chunk_t *hd)
 {
   debug<TRACE>("heap cleanup for current proc\r\n");
   while (hd->next != nullptr) {
+    assert(hd->next != hd);
+    hd->next->detach();
+
     auto ptr = (byte_t *)hd->next + sizeof(chunk_t);
-    hd = hd->next;
     pool.dealloc(ptr);
   }
 }
@@ -70,4 +61,21 @@ void trace()
 void *operator new(size_t sz) { return heap::malloc(sz); }
 
 void operator delete(void *ptr) { return heap::free(ptr); }
+
+namespace kmem
+{
+namespace
+{
+allocator<alloc_heap, 4> pool;
+}
+
+void *kmalloc(size_t sz) { return pool.alloc(sz); }
+
+void kfree(void *ptr)
+{
+  if (ptr == nullptr)
+    return;
+  pool.dealloc((byte_t *)ptr);
+}
+} // namespace kmem
 
