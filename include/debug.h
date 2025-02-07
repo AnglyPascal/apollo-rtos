@@ -2,6 +2,7 @@
 
 #include "lib.h"
 #include "serial.h"
+#include "types.h"
 
 enum debug_t {
   FATAL,
@@ -40,7 +41,7 @@ inline void __assert(bool ex, const char *src, const char *func,
   if (!ex) {
     debug<FATAL>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
                  file, line);
-    asm("udf #0");
+    trigger_hardfault();
   }
 #endif
 }
@@ -55,7 +56,7 @@ inline void __assert(bool ex, const char *src, const char *func,
     debug<FATAL>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
                  file, line);
     debug<FATAL>(fmt, args...);
-    asm("udf #0");
+    trigger_hardfault();
   }
 #endif
 }

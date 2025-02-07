@@ -816,3 +816,4 @@ inline void set_msp(void *stk_ptr)
 {
   asm volatile("msr msp, %[stk]" : : [stk] "r"(stk_ptr));
 }
+

@@ -90,12 +90,12 @@ constexpr T min(T t, T s)
   return t < s ? t : s;
 }
 
-constexpr auto abs(auto t) {
-  return t > 0 ? t : -t;
-}
+constexpr auto abs(auto t) { return t > 0 ? t : -t; }
 
 inline void *operator new(size_t, void *where) { return where; }
 
 inline constexpr size_t pg_sz = 1024;
 
 #define MEMORY_FENCE() asm volatile("" ::: "memory")
+
+inline void trigger_hardfault() { asm("udf #0"); }

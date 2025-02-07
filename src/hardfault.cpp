@@ -9,17 +9,13 @@ __extern_C__
 void trigger_reset(void);
 
 __extern_C__
-void hardfault_handler(void)
+void hardfault_handler_body(uint32_t *fault_stack)
 {
   serial::putc = serial::busy_putc;
 
-  debug<FATAL>("!!! WTF !!!\r\n");
-
-  volatile uint32_t *fault_stack = (uint32_t *)get_msp();
-  uint32_t pc = fault_stack[10]; // Program Counter
-  uint32_t lr = fault_stack[9];  // Link Register
-
-  debug<FATAL>("pc: %x, lr: %x\r\n", pc, lr);
+  uint32_t pc = fault_stack[6];
+  uint32_t lr = fault_stack[5];
+  debug<FATAL>("hardfault\r\npc: %x, lr: %x\r\n", pc, lr);
 
   while (1) {
     char ch = serial::getc();

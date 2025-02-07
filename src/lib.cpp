@@ -41,6 +41,17 @@ void itoa(int32_t n, char *p)
   utoa(n, p);
 }
 
+void btoa(uint8_t n, char *p)
+{
+  p[10] = '\0';
+  p[0] = '0';
+  p[1] = 'b';
+  for (int i = 9; i > 1; i--) {
+    p[i] = '0' + (n & 1);
+    n >>= 1;
+  }
+}
+
 void xtoa(uint32_t n, char *p)
 {
   const char *hex = "0123456789abcdef";
@@ -78,6 +89,15 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         int32_t n = va_arg(args, int32_t);
         auto p = int_buff;
         itoa(n, p);
+        while (*p != '\0')
+          putc(*p++);
+        break;
+      }
+
+      case 'b': {
+        uint8_t n = (uint8_t)va_arg(args, uint32_t);
+        auto p = int_buff;
+        btoa(n, p);
         while (*p != '\0')
           putc(*p++);
         break;
