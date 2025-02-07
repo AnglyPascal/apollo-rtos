@@ -9,25 +9,11 @@
 #include "signal.h"
 #include "waitlist.h"
 
-/* A simple driver for the micro:bit LEDs with the same interface on
-V1 and V2. */
 namespace display
 {
 
 namespace
 {
-
-/* Note that blank is not the same as an image that is all zeroes, because it
- * has the row bits set.  Copying blank and then setting (actually, clearing)
- * column bits for each row results in an image that displays properly. */
-constexpr image_t blank = IMAGE(0, 0, 0, 0, 0, //
-                                0, 0, 0, 0, 0, //
-                                0, 0, 0, 0, 0, //
-                                0, 0, 0, 0, 0, //
-                                0, 0, 0, 0, 0);
-
-void image_clear(image_t img) { _memcpy(img, blank, sizeof(image_t)); }
-
 /* encode a pair of integers in one integer */
 #define PAIR(x, y) (((x) << 5) | (y))
 #define XPART(p) ((p) >> 5)
@@ -45,7 +31,6 @@ static uint32_t img_map[5][5] = {
 
 /* find logical row and column for a pixel */
 static uint32_t map_pixel(int x, int y) { return img_map[y][x]; }
-
 } // namespace
 
 /* switch on a single pixel in an image */
@@ -59,17 +44,19 @@ void image_set(int x, int y, image_t img)
 
 namespace
 {
-/* image is a shared variable between the client and the display driver task,
- * but it is read-only in the task.  Partial updates don't really matter,
- * because they will cause only a momentary glitch in the display when it is
- * changing anyway. */
+/* Note that blank is not the same as an image that is all zeroes, because it
+ * has the row bits set.  Copying blank and then setting (actually, clearing)
+ * column bits for each row results in an image that displays properly. */
+constexpr image_t blank = IMAGE(0, 0, 0, 0, 0, //
+                                0, 0, 0, 0, 0, //
+                                0, 0, 0, 0, 0, //
+                                0, 0, 0, 0, 0, //
+                                0, 0, 0, 0, 0);
 image_t image;
 } // namespace
 
-/* device driver for LED display */
 void task(void *);
 
-/* set display from image */
 void show(const image_t img) { _memcpy(image, img, sizeof(image_t)); }
 
 void reset() { show(blank); }
@@ -90,10 +77,9 @@ void task(void *)
   recovery::store_data(procs::display);
 
   GPIO.DIR = LED_MASK;
-  image_clear(image);
+  reset();
 
   while (1) {
-    /* Carefully change LED bits and leave other bits alone */
     int n = 0;
     while (n < 3) {
       GPIO.OUT = image[n++];

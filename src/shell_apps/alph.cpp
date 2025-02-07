@@ -163,7 +163,7 @@ const image_t period = IMAGE(0, 0, 0, 0, 0, //
 
 void show(void *param)
 {
-  auto buf = (buffer *)param;
+  auto buf = (args_buffer_t *)param;
   auto str = buf->args;
 
   while (*str != '\0') {

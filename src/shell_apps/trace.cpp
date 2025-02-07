@@ -33,7 +33,7 @@ inline void do_trace()
 
 void trace(void *param)
 {
-  buffer &buf = *(buffer *)param;
+  args_buffer_t &buf = *(args_buffer_t *)param;
   auto args = buf.args;
 
   bool resume = false;

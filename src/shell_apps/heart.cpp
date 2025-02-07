@@ -29,7 +29,7 @@ void heart(void *param)
 {
   swap_handler(SIGTERM, []() { exit = true; });
 
-  auto buf = (buffer *)param;
+  auto buf = (args_buffer_t *)param;
   auto str = buf->args;
 
   auto n = (*str == '\0') ? 100 : atoi(str);

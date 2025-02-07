@@ -1,4 +1,3 @@
-#include "accel.h"
 #include "debug.h"
 #include "display.h"
 #include "fs.h"
@@ -52,7 +51,6 @@ inline void __start(void)
 
   i2c::init();
   shell::init();
-
 
   debug_addr();
 

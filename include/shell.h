@@ -8,7 +8,7 @@ namespace shell
 
 constexpr size_t args_len = 64;
 
-struct buffer {
+struct args_buffer_t {
   char str[args_len] = {'\0'};
   size_t sz = 0;
 
@@ -29,7 +29,7 @@ struct buffer {
       sz--;
   }
 
-  void reset() { *this = buffer{}; }
+  void reset() { *this = args_buffer_t{}; }
 };
 
 void init();

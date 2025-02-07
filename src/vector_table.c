@@ -3,15 +3,14 @@
 extern uint8_t __stack[];
 void __reset(void);
 
-/*  INTERRUPT VECTORS */
+//  INTERRUPT VECTORS
 
-/* We use the linker script to define each handler name as an alias
-for default_handler if it is not defined elsewhere.  Applications can
-subsitute their own definitions for individual handler names like
-uart_handler(). */
+/* We use the linker script to define each handler name as an alias for
+ * default_handler if it is not defined elsewhere. Applications can subsitute
+ * their own definitions for individual handler names like uart_handler(). */
 
-/* The linker script makes all these handlers into weak aliases for */
-/* default_handler. */
+/* The linker script makes all these handlers into weak aliases for
+ * default_handler. */
 
 void nmi_handler(void);
 void hardfault_handler(void);
@@ -44,23 +43,72 @@ void swi3_handler(void);
 void swi4_handler(void);
 void swi5_handler(void);
 
-/* This vector table is placed at address 0 in the flash by directives
-in the linker script. */
+/* This vector table is placed at address 0 in the flash by directives in the
+ * linker script. */
 
 __attribute((section(".vectors"))) void *__vectors[] = {
-    __stack,                                    /* -16 */
-    __reset, nmi_handler, hardfault_handler, 0, /* -12 */
-    0, 0, 0, 0,                                 /*  -8 */
-    0, 0, svc_handler, 0,                       /* -4 */
-    0, pendsv_handler, systick_handler,
+    __stack, // -16: Initial Main Stack Pointer (MSP) value
+    __reset, // Reset Handler: Entry point after power-up or reset
 
-    /* external interrupts */
-    power_clock_handler,                                               /*  0 */
-    radio_handler, uart_handler, i2c0_spi0_handler, i2c1_spi1_handler, /*  4 */
-    0, gpiote_handler, adc_handler, timer0_handler,                    /*  8 */
-    timer1_handler, timer2_handler, rtc0_handler, temp_handler,        /* 12 */
-    rng_handler, ecb_handler, ccm_aar_handler, wdt_handler,            /* 16 */
-    rtc1_handler, qdec_handler, lpcomp_handler, swi0_handler,          /* 20 */
-    swi1_handler, swi2_handler, swi3_handler, swi4_handler,            /* 24 */
-    swi5_handler, 0, 0, 0,                                             /* 28 */
-    0, 0, 0};
+    nmi_handler,       // Non-Maskable Interrupt (NMI) Handler
+    hardfault_handler, // Hard Fault Handler
+
+    // -12
+    0, // Reserved (must be 0)
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+
+    svc_handler, // Supervisor Call (SVC) Handler
+
+    // -4
+    0, // Reserved (Debug Monitor, not present in Cortex-M0)
+    0, // Reserved
+
+    pendsv_handler,  // PendSV Handler (used for context switching in RTOS)
+    systick_handler, // SysTick Timer Handler (used for periodic interrupts)
+
+    // External interrupt handlers (specific to the Nordic nRF51822 chip)
+    power_clock_handler, // Power and clock control events
+    radio_handler,       // Radio interrupt (Bluetooth Low Energy)
+    uart_handler,        // UART (serial communication) interrupt
+
+    i2c0_spi0_handler, // I2C0 / SPI0 interrupt
+    i2c1_spi1_handler, // I2C1 / SPI1 interrupt
+
+    0, // Reserved
+
+    gpiote_handler, // GPIO Task and Event Handler
+    adc_handler,    // Analog-to-Digital Converter (ADC) interrupt
+
+    timer0_handler, // Timer 0 interrupt
+    timer1_handler, // Timer 1 interrupt
+    timer2_handler, // Timer 2 interrupt
+
+    rtc0_handler,    // Real-Time Counter 0 interrupt
+    temp_handler,    // Temperature sensor interrupt
+    rng_handler,     // Random Number Generator (RNG) interrupt
+    ecb_handler,     // AES Electronic Codebook (ECB) encryption interrupt
+    ccm_aar_handler, // AES CCM and Address Resolution interrupt
+    wdt_handler,     // Watchdog Timer (WDT) interrupt
+    rtc1_handler,    // Real-Time Counter 1 interrupt
+    qdec_handler,    // Quadrature Decoder (used for rotary encoders)
+    lpcomp_handler,  // Low Power Comparator interrupt
+
+    swi0_handler, // Software interrupt 0
+    swi1_handler, // Software interrupt 1
+    swi2_handler, // Software interrupt 2
+    swi3_handler, // Software interrupt 3
+    swi4_handler, // Software interrupt 4
+    swi5_handler, // Software interrupt 5
+
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+    0, // Reserved
+};

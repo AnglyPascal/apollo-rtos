@@ -18,7 +18,7 @@ void calculator(const char *str)
   printf("= %s\r\n", str);
 }
 
-buffer buf{};
+args_buffer_t buf{};
 
 bool listener(char c)
 {

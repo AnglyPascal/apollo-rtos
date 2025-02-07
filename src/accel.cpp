@@ -28,11 +28,10 @@ void read(int *x, int *y, int *z)
 void init(void)
 {
   /* Find chip and set to 50Hz, 8 bit, Active */
-  if (i2c::probe(ACC) == I2C_OK) {
+  if (i2c::probe(ACC) == I2C_OK)
     i2c::write_reg(ACC, ACC_CTRL_REG1, 0x23);
-  } else {
+  else
     debug<FATAL>("Can't find accelerometer");
-  }
 }
 
 } // namespace accel

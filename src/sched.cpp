@@ -268,7 +268,7 @@ namespace shell
 {
 void pkill(void *param)
 {
-  auto buf = (shell::buffer *)param;
+  auto buf = (shell::args_buffer_t *)param;
   auto args = buf->args;
 
   bool kill = args[0] == '-' && args[1] == '9';

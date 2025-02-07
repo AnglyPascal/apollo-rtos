@@ -16,7 +16,7 @@ namespace shell
 
 void proc(void *param)
 {
-  auto &buf = *(buffer *)param;
+  auto &buf = *(args_buffer_t *)param;
 
   size_t idx = 0;
   while (idx < buf.sz && buf[idx] != ' ') {
@@ -54,7 +54,7 @@ void proc(void *param)
 
 namespace
 {
-buffer *buf;
+args_buffer_t *buf;
 
 bool listener(char c)
 {
@@ -80,7 +80,7 @@ bool listener(char c)
   kprintf("\r\n");
   sched::reg_proc("shell", _max<priority_t>, 256, proc, buf);
 
-  buf = (buffer *)kmem::kmalloc(sizeof(buffer));
+  buf = (args_buffer_t *)kmem::kmalloc(sizeof(args_buffer_t));
   buf->reset();
 
   return true;
@@ -89,7 +89,7 @@ bool listener(char c)
 
 void init()
 {
-  buf = (buffer *)kmem::kmalloc(sizeof(buffer));
+  buf = (args_buffer_t *)kmem::kmalloc(sizeof(args_buffer_t));
   buf->reset();
 
   serial::register_listener(listener);

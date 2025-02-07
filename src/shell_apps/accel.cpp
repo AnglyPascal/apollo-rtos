@@ -100,7 +100,7 @@ void accel(void *param)
   auto file = fs::open(accel::fn, sizeof(buffer), O_CREATE);
   auto val = (buffer *)*file;
 
-  bool run_bg = ((shell::buffer *)param)->run_bg;
+  bool run_bg = ((shell::args_buffer_t *)param)->run_bg;
   serial::listener_guard guard{listener, !run_bg};
 
   constexpr int threshold = 10;
