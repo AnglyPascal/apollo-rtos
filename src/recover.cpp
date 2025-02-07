@@ -43,7 +43,7 @@ namespace recovery
 {
 void *rec_data()
 {
-  size_t entry_id = sched::curr_proc_rec_entry_id();
+  size_t entry_id = curr_proc::rec_entry_id();
   return rec_tbl.tbl[entry_id].data;
 }
 
@@ -57,7 +57,7 @@ void set_rec_lev(rec_lev_t lev) { set_rec_lev(lev, def_rec_func); }
 
 void set_rec_lev(rec_lev_t lev, rec_func_t rec_func)
 {
-  size_t entry_id = sched::curr_proc_rec_entry_id();
+  size_t entry_id = curr_proc::rec_entry_id();
   auto &entry = rec_tbl.tbl[entry_id];
   entry.rec_lev = lev;
   entry.rec_func = rec_func;

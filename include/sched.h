@@ -45,11 +45,15 @@ void notify(chan_t *);
 
 void trace();
 
-pid_t curr_pid();
-size_t curr_proc_rec_entry_id();
-
-void give_up_param();
+void transfer_param(void *param);
 
 extern volatile time_t last_checked;
 
 } // namespace sched
+
+namespace curr_proc
+{
+pid_t pid();
+size_t rec_entry_id();
+string name();
+} // namespace curr_proc

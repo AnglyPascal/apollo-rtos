@@ -49,7 +49,7 @@ void proc(void *param)
   sched::reg_proc(cmd_def);
   cmd_def->param = nullptr;
 
-  sched::give_up_param();
+  sched::transfer_param(param);
 }
 
 namespace

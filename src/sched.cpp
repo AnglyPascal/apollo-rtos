@@ -179,11 +179,6 @@ void trace()
   procs.trace();
 }
 
-pid_t curr_pid() { return procs.pid(cpu.curr_proc); }
-
-// TODO: write doc for these, or rename
-chunk_t *curr_proc_used_hd() { return &cpu.curr_proc->used_hd; }
-
 void default_alarm(void *ptr)
 {
   auto proc = (proc_t *)ptr;
@@ -201,7 +196,7 @@ void sleep(time_t period)
 
 void wait(chan_t *chan)
 {
-  chan->pid = curr_pid();
+  chan->pid = curr_proc::pid();
   decr_priority(-cpu.curr_proc->priority);
 }
 
@@ -212,11 +207,22 @@ void notify(chan_t *chan)
   incr_priority(proc, -proc->priority);
 }
 
-string curr_proc_name() { return cpu.curr_proc->name; }
-
-void give_up_param() { cpu.curr_proc->param = nullptr; }
+void transfer_param(void *param)
+{
+  assert(param == cpu.curr_proc->param);
+  cpu.curr_proc->param = nullptr;
+}
 
 } // namespace sched
+
+namespace curr_proc
+{
+using namespace sched;
+pid_t pid() { return procs.pid(cpu.curr_proc); }
+size_t rec_entry_id() { return cpu.curr_proc->rec_entry_id; }
+string name() { return cpu.curr_proc->name; }
+chunk_t *used_hd() { return &cpu.curr_proc->used_hd; }
+} // namespace curr_proc
 
 ///////////////
 /// SIGNALS ///

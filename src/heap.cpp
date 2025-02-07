@@ -3,9 +3,9 @@
 #include "sched.h"
 #include "serial.h"
 
-namespace sched
+namespace curr_proc
 {
-chunk_t *curr_proc_used_hd();
+chunk_t *used_hd();
 }
 
 namespace heap
@@ -21,7 +21,7 @@ void *malloc(size_t sz)
   auto ptr = pool.alloc(sz);
   auto chunk = (chunk_t *)(ptr - sizeof(chunk_t));
 
-  auto used_hd = sched::curr_proc_used_hd();
+  auto used_hd = curr_proc::used_hd();
   used_hd->insert_next(chunk);
 
   return ptr;
