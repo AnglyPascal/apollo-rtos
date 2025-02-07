@@ -13,7 +13,7 @@ namespace procs
 
 void accel_func(void *param);
 
-proc_def_t accel{"accel_bg", 32, 256, accel_func, nullptr};
+proc_def_t accel{"accel_bg", HIGH3, 256, accel_func};
 
 namespace
 {

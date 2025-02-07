@@ -65,7 +65,7 @@ void reset() { show(blank); }
 
 namespace procs
 {
-proc_def_t display{"display", 3, 128, display::task, nullptr};
+proc_def_t display{"display", LOW2, 128, display::task};
 }
 
 namespace display

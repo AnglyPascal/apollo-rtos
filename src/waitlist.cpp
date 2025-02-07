@@ -2,10 +2,6 @@
 #include "allocator.h"
 #include "debug.h"
 #include "irq.h"
-#include "memory.h"
-#include "serial.h"
-
-#include <utility>
 
 namespace waitlist
 {
@@ -15,7 +11,7 @@ namespace
 struct waitlist_t {
   string name;
   time_t remaining = 0;
-  void (*func)(void *) = nullptr;
+  runnable_t func = nullptr;
   void *param = nullptr;
 
   waitlist_t *next = nullptr;
@@ -23,8 +19,10 @@ struct waitlist_t {
 
 constexpr uint8_t N_WAITLIST = 16;
 waitlist_t store[N_WAITLIST];
-int i = 0;
-waitlist_t freelist_head{};
+size_t i = 0;
+
+waitlist_t freelist_hd{};
+waitlist_t waitlist_hd{};
 
 inline waitlist_t *alloc()
 {
@@ -32,9 +30,9 @@ inline waitlist_t *alloc()
     return nullptr;
   }
 
-  if (freelist_head.next != nullptr) {
-    auto ptr = freelist_head.next;
-    freelist_head.next = ptr->next;
+  if (freelist_hd.next != nullptr) {
+    auto ptr = freelist_hd.next;
+    freelist_hd.next = ptr->next;
     return ptr;
   }
 
@@ -43,21 +41,19 @@ inline waitlist_t *alloc()
 
 inline void dealloc(waitlist_t *ptr)
 {
-  ptr->next = freelist_head.next;
-  freelist_head.next = ptr;
+  ptr->next = freelist_hd.next;
+  freelist_hd.next = ptr;
 }
-
-waitlist_t list_head{};
 } // namespace
 
-void reg(string name, time_t interval, void (*func)(void *), void *param)
+void reg(string name, time_t interval, runnable_t func, void *param)
 {
   auto task = alloc();
   assert(task != nullptr);
 
   interval = roundup(interval, update_interval);
 
-  auto head = &list_head;
+  auto head = &waitlist_hd;
   time_t prev = 0;
   while (head->next != nullptr && prev + head->next->remaining <= interval) {
     prev += head->next->remaining;
@@ -78,7 +74,7 @@ void run()
 {
   intr_guard guard;
 
-  auto head = &list_head;
+  auto head = &waitlist_hd;
   if (head->next != nullptr)
     head->next->remaining -= update_interval;
 
@@ -94,12 +90,12 @@ void run()
 
 void trace()
 {
-  if (list_head.next == nullptr)
+  if (waitlist_hd.next == nullptr)
     debug<INFO>("  waitlist: NONE\r\n");
   else
     debug<INFO>("  waitlist:\r\n");
 
-  for (auto head = &list_head; head->next != nullptr; head = head->next) {
+  for (auto head = &waitlist_hd; head->next != nullptr; head = head->next) {
     debug<INFO>("  |  %s\r\n  |    interval: %u\r\n", head->next->name.str,
                 head->next->remaining);
   }

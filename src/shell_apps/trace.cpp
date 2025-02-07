@@ -42,6 +42,9 @@ void trace(void *param)
 
   serial::listener_guard guard{listener, resume};
 
+  if (resume)
+    sched::decr_priority(LOW3);
+
   if (resume) {
     while (!exit) {
       serial::clear_screen();
@@ -57,6 +60,6 @@ void trace(void *param)
 
 } // namespace
 
-proc_def_t trace_cmd = {"trace", 2, 128, trace, nullptr};
+proc_def_t trace_cmd = {"trace", MID4, 128, trace};
 
 } // namespace shell

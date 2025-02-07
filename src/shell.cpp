@@ -13,6 +13,8 @@ void trigger_reset();
 
 namespace shell
 {
+namespace
+{
 
 void proc(void *param)
 {
@@ -45,16 +47,12 @@ void proc(void *param)
     return;
   }
 
-  cmd_def->param = param;
-  sched::reg_proc(cmd_def);
-  cmd_def->param = nullptr;
-
+  sched::reg_proc(cmd_def, param);
   sched::transfer_param(param);
 }
 
-namespace
-{
 args_buffer_t *buf;
+proc_def_t proc_def = {"shell", URGENT1, 256, proc};
 
 bool listener(char c)
 {
@@ -78,7 +76,8 @@ bool listener(char c)
   }
 
   kprintf("\r\n");
-  sched::reg_proc("shell", _max<priority_t>, 256, proc, buf);
+
+  sched::reg_proc(&proc_def, buf);
 
   buf = (args_buffer_t *)kmem::kmalloc(sizeof(args_buffer_t));
   buf->reset();

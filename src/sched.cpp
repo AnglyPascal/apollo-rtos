@@ -17,8 +17,6 @@ namespace sched
 
 namespace
 {
-constexpr priority_t IDLE_PRIORITY = 1;
-
 procs_t<N_PROCS> procs;
 stack_t stack;
 
@@ -46,17 +44,12 @@ void exit()
   decr_priority(0);
 }
 
-proc_t *reg_proc(proc_def_t *proc_def)
-{
-  auto [name, priority, stk_sz, func, param] = *proc_def;
-  return reg_proc(name, priority, stk_sz, func, param);
-}
-
 size_t curr_proc_rec_entry_id() { return cpu.curr_proc->rec_entry_id; }
 
-proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
-                 runnable_t func, void *param)
+proc_t *reg_proc(proc_def_t *proc_def, void *param)
 {
+  auto [name, priority, stk_sz, func] = *proc_def;
+
   assert(priority > 0, "%s\r\n", name.str);
 
   intr_guard guard;
@@ -139,6 +132,9 @@ void decr_priority(priority_t priority)
   change_proc();
 }
 
+namespace
+{
+
 static pid_t IDLE_PID = 0;
 
 void idle_task(void *)
@@ -147,6 +143,9 @@ void idle_task(void *)
     change_proc(); // NOTE: comment to test invoker
   }
 }
+
+proc_def_t idle_proc_def = {"idle_proc", IDLE, 0, idle_task};
+} // namespace
 
 /* enter idle_task with specified stack (see mpx.s) */
 __extern_C__
@@ -158,7 +157,7 @@ void setup_procs(void);
  * enter the idle_task in thread mode */
 void init()
 {
-  auto idle_proc = reg_proc("idle_proc", IDLE_PRIORITY, 0, idle_task, nullptr);
+  auto idle_proc = reg_proc(&idle_proc_def, nullptr);
   IDLE_PID = procs.pid(idle_proc);
   cpu.curr_proc = idle_proc;
 
@@ -301,5 +300,5 @@ void pkill(void *param)
   send_signal(pid, kill ? SIGKILL : SIGTERM);
 }
 
-proc_def_t pkill_cmd = {"pkill", _max<priority_t>, 32, pkill, nullptr};
+proc_def_t pkill_cmd = {"pkill", HIGHEST, 32, pkill};
 } // namespace shell

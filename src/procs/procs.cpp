@@ -21,7 +21,7 @@ namespace sched
 void setup_procs(void)
 {
   for (auto proc_def : procs::proc_defs) {
-    reg_proc(proc_def);
+    reg_proc(proc_def, nullptr);
   }
 }
 } // namespace sched

@@ -50,7 +50,7 @@ void *rec_data()
 inline void def_rec_func(void *data)
 {
   auto proc_def = (proc_def_t *)data;
-  sched::reg_proc(proc_def);
+  sched::reg_proc(proc_def, nullptr);
 }
 
 void set_rec_lev(rec_lev_t lev) { set_rec_lev(lev, def_rec_func); }

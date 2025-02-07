@@ -13,10 +13,7 @@ namespace
 volatile bool exit = false;
 
 // FIXME: will run even when the process is not running, kind of a bummer
-void calculator(const char *str)
-{
-  printf("= %s\r\n", str);
-}
+void calculator(const char *str) { printf("= %s\r\n", str); }
 
 args_buffer_t buf{};
 
@@ -58,6 +55,6 @@ void calc(void *param)
 
 } // namespace
 
-proc_def_t calc_cmd = {"calc", 4, 128, calc, nullptr};
+proc_def_t calc_cmd = {"calc", HIGH1, 128, calc};
 
 } // namespace shell

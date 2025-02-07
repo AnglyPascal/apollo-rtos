@@ -183,6 +183,6 @@ void show(void *param)
 
 } // namespace
 
-proc_def_t show_cmd = {"show", 3, 68, show, nullptr};
+proc_def_t show_cmd = {"show", MID2, 68, show};
 
 } // namespace shell

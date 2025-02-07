@@ -256,7 +256,7 @@ namespace
 {
 constexpr fn_t free_fn = NFILES;
 constexpr fn_t files_fn = NFILES + 1;
-constexpr fn_t null_fn = _max<fn_t>;
+constexpr fn_t null_fn = MAX<fn_t>;
 } // namespace
 
 inline void init()

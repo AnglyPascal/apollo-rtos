@@ -18,7 +18,6 @@ struct proc_def_t {
   priority_t priority;
   size_t stk_sz;
   runnable_t func;
-  void *param;
 };
 
 namespace sched
@@ -32,9 +31,7 @@ inline constexpr time_t invoke_interval = 2048;
 bool needs_swap();
 void change_proc();
 
-proc_t *reg_proc(proc_def_t *proc_def);
-proc_t *reg_proc(string name, priority_t priority, size_t stk_sz,
-                 runnable_t func, void *param);
+proc_t *reg_proc(proc_def_t *proc_def, void *param);
 
 void init();
 

@@ -10,18 +10,44 @@
 #define __extern_C__ extern "C"
 
 template <typename T>
-constexpr T _max = std::numeric_limits<T>::max();
+constexpr T MAX = std::numeric_limits<T>::max();
 
 using size_t = std::size_t;
 using runnable_t = void (*)(void *);
 
 using pid_t = uint8_t;
-inline constexpr pid_t null_pid = _max<pid_t>;
+inline constexpr pid_t null_pid = MAX<pid_t>;
 
 using priority_t = int32_t;
 
+enum priorities : priority_t {
+  EMPTY,
+
+  IDLE = 1,
+
+  LOW1 = 2,
+  LOW2,
+  LOW3,
+  LOW4,
+
+  MID1 = 16,
+  MID2,
+  MID3,
+  MID4,
+
+  HIGH1 = 64,
+  HIGH2,
+  HIGH3,
+  HIGH4,
+
+  URGENT1 = 128,
+  URGENT2,
+  URGENT3,
+
+  HIGHEST = MAX<priority_t>,
+};
+
 using word_t = uint32_t;
-/* using byte_t = uint8_t; */
 using byte_t = std::byte;
 
 using time_t = uint32_t;
@@ -52,106 +78,6 @@ struct string {
   }
 };
 
-template <typename T1, typename T2>
-struct pair {
-  T1 first;
-  T2 second;
-};
-
-template <typename T>
-struct node {
-  T *val = nullptr;
-  node *next = nullptr;
-};
-
-template <typename T>
-class list
-{
-  node<T> head = {nullptr, nullptr};
-
-  class iterator
-  {
-    const node<T> *head;
-
-  public:
-    iterator(const node<T> *head) : head(head) {}
-
-    T &operator*() const { return *head->next->val; }
-
-    T *operator->() const { return head->next->val; }
-
-    iterator operator++() const { return iterator{head->next}; }
-
-    bool operator==(const iterator &other) const { return head == other.head; }
-
-    bool operator!=(const iterator &other) const { return head != other.head; }
-  };
-
-  using const_iterator = const iterator;
-
-public:
-  void push_front(node<T> *nd)
-  {
-    nd->next = head.next;
-    head.next = nd;
-  }
-
-  iterator begin() const { return iterator{&head}; }
-
-  iterator end() const { return iterator{nullptr}; }
-};
-
-template <typename T, size_t len>
-class stack
-{
-  T arr[len];
-  size_t sz = 0;
-
-  class iterator
-  {
-    T *arr;
-
-  public:
-    iterator() : arr{nullptr} {}
-    iterator(T *arr) : arr{arr} {}
-    iterator(const iterator &other) : arr{other.arr} {}
-
-    T &operator*() const { return *arr; }
-
-    T *operator->() const { return arr; }
-
-    iterator operator++() { return iterator{++arr}; }
-
-    iterator &operator++(int)
-    {
-      ++arr;
-      return *this;
-    }
-
-    bool operator==(const iterator &other) const { return arr == other.arr; }
-
-    bool operator!=(const iterator &other) const { return arr != other.arr; }
-  };
-
-public:
-  bool full() { return sz == len; }
-
-  bool empty() { return sz == 0; }
-
-  void push(T val)
-  {
-    if (sz == len)
-      return;
-    arr[sz++] = val;
-  }
-
-  T pop() { return arr[sz--]; }
-
-  iterator begin() { return iterator{arr}; }
-
-  iterator end() { return iterator{arr + len}; }
-};
-
 template <typename T>
 constexpr T max(T t, T s)
 {
@@ -164,8 +90,12 @@ constexpr T min(T t, T s)
   return t < s ? t : s;
 }
 
+constexpr auto abs(auto t) {
+  return t > 0 ? t : -t;
+}
+
 inline void *operator new(size_t, void *where) { return where; }
 
-#define pg_sz (size_t)1024
+inline constexpr size_t pg_sz = 1024;
 
 #define MEMORY_FENCE() asm volatile("" ::: "memory")

@@ -1,5 +1,5 @@
-#include "memory.h"
 #include "display.h"
+#include "memory.h"
 #include "serial.h"
 #include "shell.h"
 #include "types.h"
@@ -24,7 +24,7 @@ void clear(void *param)
 
 } // namespace
 
-proc_def_t echo_cmd = {"echo", 4, 128, echo, nullptr};
-proc_def_t clear_cmd = {"clear", 4, 24, clear, nullptr};
+proc_def_t echo_cmd = {"echo", MID4, 128, echo};
+proc_def_t clear_cmd = {"clear", MID4, 24, clear};
 
 } // namespace shell
