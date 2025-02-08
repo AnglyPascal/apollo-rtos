@@ -1,12 +1,12 @@
-#include "accel.h"
-#include "circular_buffer.h"
-#include "fs.h"
-#include "irq.h"
-#include "nvm.h"
-#include "recover.h"
-#include "sched.h"
-#include "serial.h"
-#include "waitlist.h"
+#include "drivers/accel.h"
+#include "core/fs.h"
+#include "core/irq.h"
+#include "core/recover.h"
+#include "core/sched.h"
+#include "core/waitlist.h"
+#include "drivers/flash.h"
+#include "drivers/serial.h"
+#include "utility/circular_buffer.h"
 
 namespace procs
 {

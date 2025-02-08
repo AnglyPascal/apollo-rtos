@@ -1,4 +1,4 @@
-#include "shell.h"
+#include "core/shell.h"
 
 namespace shell
 {

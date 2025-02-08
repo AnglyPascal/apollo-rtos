@@ -1,9 +1,9 @@
-#include "display.h"
-#include "lib.h"
-#include "serial.h"
-#include "shell.h"
-#include "signal.h"
-#include "types.h"
+#include "core/shell.h"
+#include "core/signal.h"
+#include "core/types.h"
+#include "drivers/display.h"
+#include "drivers/serial.h"
+#include "utility/lib.h"
 
 namespace shell
 {
@@ -53,6 +53,6 @@ void heart(void *param)
 
 } // namespace
 
-proc_def_t heart_cmd = {"heart", LOW3, 128, heart};
+proc_def_t heart_cmd = {"core/heart", LOW3, 128, heart};
 
 } // namespace shell

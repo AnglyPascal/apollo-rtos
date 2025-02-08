@@ -1,6 +1,6 @@
-#include "irq.h"
-#include "recover.h"
-#include "sched.h"
+#include "core/irq.h"
+#include "core/recover.h"
+#include "core/sched.h"
 
 __extern_C__
 void trigger_reset();

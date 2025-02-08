@@ -2,7 +2,7 @@
 --target=arm-none-eabi
 %h -x
 %h c++-header
-%cpp -std=c++20
+%cpp -std=c++20 -Wno-error=naked
 %h -std=c++20
 -isystem/usr/arm-none-eabi/include/c++/14.2.0
 -isystem/usr/arm-none-eabi/include/c++/14.2.0/arm-none-eabi
