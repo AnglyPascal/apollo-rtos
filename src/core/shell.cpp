@@ -1,8 +1,8 @@
 #include "core/shell.h"
+
 #include "core/memory.h"
 #include "core/sched.h"
 #include "core/types.h"
-#include "core/waitlist.h"
 #include "drivers/serial.h"
 #include "utility/debug.h"
 
@@ -75,7 +75,7 @@ bool listener(char c)
     return true;
   }
 
-  kprintf("\r\n");
+  printf("\r\n");
 
   sched::reg_proc(&proc_def, buf);
 

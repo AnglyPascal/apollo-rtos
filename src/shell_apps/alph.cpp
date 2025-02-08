@@ -1,8 +1,6 @@
 #include "core/shell.h"
 #include "core/types.h"
 #include "drivers/display.h"
-#include "drivers/serial.h"
-#include "utility/lib.h"
 
 namespace shell
 {

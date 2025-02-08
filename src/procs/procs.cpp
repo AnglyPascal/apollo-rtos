@@ -1,5 +1,4 @@
 #include "core/sched.h"
-#include "drivers/display.h"
 
 namespace procs
 {

@@ -1,14 +1,12 @@
-#include "utility/debug.h"
-#include "drivers/display.h"
 #include "core/fs.h"
 #include "core/hardware.h"
-#include "drivers/i2c.h"
-#include "core/irq.h"
-#include "core/recover.h"
 #include "core/sched.h"
-#include "drivers/serial.h"
 #include "core/shell.h"
+#include "drivers/display.h"
+#include "drivers/i2c.h"
+#include "drivers/serial.h"
 #include "drivers/timer.h"
+#include "utility/debug.h"
 
 __extern_C__
 byte_t __data_start[],
@@ -19,19 +17,20 @@ __extern_C__
 byte_t __recover_load[],
     __recover_start[], __recover_end[];
 
+template <debug_t debug_lev>
 inline void debug_addr()
 {
-  debug<TRACE>("\tetext:      %x\r\n", __etext);
-  debug<TRACE>("\tdata_start: %x\r\n", __data_start);
-  debug<TRACE>("\tdata_end:   %x\r\n", __data_end);
+  debug<debug_lev>("\tetext:      %x\r\n", __etext);
+  debug<debug_lev>("\tdata_start: %x\r\n", __data_start);
+  debug<debug_lev>("\tdata_end:   %x\r\n", __data_end);
 
-  debug<TRACE>("\tend:        %x\r\n", __end);
-  debug<TRACE>("\tstack:      %x\r\n", __stack);
+  debug<debug_lev>("\tend:        %x\r\n", __end);
+  debug<debug_lev>("\tstack:      %x\r\n", __stack);
 
-  debug<TRACE>("\tbss_start:  %x\r\n", __bss_start);
-  debug<TRACE>("\tbss_end:    %x\r\n", __bss_end);
-  debug<TRACE>("\tnvm_start:  %x\r\n", __nvm_start);
-  debug<TRACE>("\tnvm_end:    %x\r\n", __nvm_end);
+  debug<debug_lev>("\tbss_start:  %x\r\n", __bss_start);
+  debug<debug_lev>("\tbss_end:    %x\r\n", __bss_end);
+  debug<debug_lev>("\tnvm_start:  %x\r\n", __nvm_start);
+  debug<debug_lev>("\tnvm_end:    %x\r\n", __nvm_end);
 }
 
 bool is_reset();
@@ -52,7 +51,7 @@ inline void __start(void)
   i2c::init();
   shell::init();
 
-  debug_addr();
+  debug_addr<TRACE>();
 
   if (!is_reset()) {
     kprintf("boot\r\n");

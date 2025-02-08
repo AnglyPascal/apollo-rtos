@@ -2,7 +2,6 @@
 #include "core/hardware.h"
 #include "core/irq.h"
 #include "utility/circular_buffer.h"
-#include "utility/debug.h"
 
 namespace serial
 {
@@ -16,8 +15,7 @@ constexpr auto RX = USB_RX;
 static volatile int txidle; /* Whether UART is idle */
 
 static constexpr size_t NBUF = 64; /* Buffer size */
-using buffer = circular_buffer<char, NBUF>;
-buffer buf;
+circular_buffer<char, NBUF> buf;
 
 } // namespace
 

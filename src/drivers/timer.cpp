@@ -1,3 +1,5 @@
+#include "drivers/timer.h"
+
 #include "core/hardware.h"
 #include "core/irq.h"
 #include "core/sched.h"

@@ -2,12 +2,10 @@
 /* Copyright (c) 2020 J. M. Spivey */
 
 #include "drivers/display.h"
-#include "core/irq.h"
+
 #include "core/memory.h"
 #include "core/recover.h"
 #include "core/sched.h"
-#include "core/signal.h"
-#include "core/waitlist.h"
 
 namespace display
 {

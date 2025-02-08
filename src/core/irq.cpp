@@ -2,6 +2,7 @@
 /* Copyright (c) 2018 J. M. Spivey */
 
 #include "core/irq.h"
+
 #include "core/hardware.h"
 #include "core/types.h"
 

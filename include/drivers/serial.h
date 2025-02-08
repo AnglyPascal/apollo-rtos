@@ -2,7 +2,6 @@
 
 #include "core/hardware.h"
 #include "core/irq.h"
-#include "core/types.h"
 #include "utility/lib.h"
 
 #define CTRL(x) ((x) & 0x1f)

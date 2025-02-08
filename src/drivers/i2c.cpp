@@ -1,9 +1,9 @@
 #include "drivers/i2c.h"
+
 #include "core/hardware.h"
 #include "core/irq.h"
 #include "core/sched.h"
 #include "drivers/gpio.h"
-#include "utility/circular_buffer.h"
 #include "utility/debug.h"
 
 #include "i2c_blocking.h"

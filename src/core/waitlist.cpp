@@ -1,6 +1,7 @@
 #include "core/waitlist.h"
+
 #include "core/irq.h"
-#include "utility/allocator.h"
+#include "core/types.h"
 #include "utility/debug.h"
 
 namespace waitlist

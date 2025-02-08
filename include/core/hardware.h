@@ -777,23 +777,6 @@ struct adc_t {
 
 extern volatile adc_t ADC;
 
-/* GPIO convenience */
-
-/* gpio_dir -- set GPIO direction */
-void gpio_dir(uint32_t pin, uint32_t dir);
-
-/* gpio_connect -- connect pin for input */
-void gpio_connect(uint32_t pin);
-
-/* gpio_drive -- set GPIO drive strength */
-void gpio_drive(uint32_t pin, uint32_t mode);
-
-/* gpio_out -- set GPIO output value */
-void gpio_out(uint32_t pin, uint32_t value);
-
-/* gpio_in -- get GPIO input bit */
-uint32_t gpio_in(uint32_t pin);
-
 /* A few assembler macros for single instructions. */
 #define pause() asm volatile("wfe")
 #define get_primask()                                                          \

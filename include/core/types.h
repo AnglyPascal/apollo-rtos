@@ -16,6 +16,11 @@ constexpr T MAX = std::numeric_limits<T>::max();
 using size_t = std::size_t;
 using runnable_t = void (*)(void *);
 
+using word_t = uint32_t;
+using byte_t = std::byte;
+
+using time_t = uint32_t;
+
 using pid_t = uint8_t;
 inline constexpr pid_t null_pid = MAX<pid_t>;
 
@@ -47,11 +52,6 @@ enum priorities : priority_t {
 
   HIGHEST = MAX<priority_t>,
 };
-
-using word_t = uint32_t;
-using byte_t = std::byte;
-
-using time_t = uint32_t;
 
 struct string {
   const char *str;
@@ -100,3 +100,8 @@ inline constexpr size_t pg_sz = 1024;
 #define MEMORY_FENCE() asm volatile("" ::: "memory")
 
 inline void trigger_hardfault() { asm("udf #0"); }
+
+constexpr size_t roundup(size_t sz, size_t align)
+{
+  return (sz + align - 1) & ~(align - 1);
+}

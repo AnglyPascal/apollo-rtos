@@ -1,9 +1,9 @@
-#include "utility/debug.h"
 #include "core/fs.h"
 #include "core/sched.h"
-#include "drivers/serial.h"
 #include "core/types.h"
 #include "core/waitlist.h"
+#include "drivers/serial.h"
+#include "utility/debug.h"
 
 __extern_C__
 void trigger_reset(void);
@@ -19,6 +19,7 @@ void hardfault_handler_body(uint32_t *fault_stack)
 
   while (1) {
     char ch = serial::getc();
+    serial::putc(ch);
 
     switch (ch) {
     case CTRL('d'):
@@ -26,13 +27,14 @@ void hardfault_handler_body(uint32_t *fault_stack)
       break;
 
     case '?':
+      kprintf("\r\n");
       sched::trace();
       waitlist::trace();
       fs::trace();
       break;
 
     default:
-      serial::putc(ch);
+      break;
     }
   }
 }

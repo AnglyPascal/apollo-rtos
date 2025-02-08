@@ -1,8 +1,9 @@
 #include "core/fs.h"
-#include "utility/debug.h"
+
 #include "core/hardware.h"
-#include "drivers/timer.h"
 #include "core/types.h"
+#include "drivers/timer.h"
+#include "utility/debug.h"
 
 __extern_C__
 byte_t __nvm_start[],

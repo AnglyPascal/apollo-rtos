@@ -1,7 +1,5 @@
-#include "core/memory.h"
 #include "core/shell.h"
 #include "core/types.h"
-#include "core/waitlist.h"
 #include "drivers/serial.h"
 
 namespace shell

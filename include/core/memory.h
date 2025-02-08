@@ -32,11 +32,6 @@ struct chunk_t {
   }
 };
 
-constexpr size_t roundup(size_t sz, size_t align)
-{
-  return (sz + align - 1) & ~(align - 1);
-}
-
 /* allocate space at the bottom of the heap */
 byte_t *alloc_heap(size_t sz);
 

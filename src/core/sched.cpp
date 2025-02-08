@@ -1,4 +1,5 @@
 #include "core/sched.h"
+
 #include "core/irq.h"
 #include "core/recover.h"
 #include "core/shell.h"
@@ -6,7 +7,6 @@
 #include "core/waitlist.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
-#include "utility/circular_buffer.h"
 #include "utility/debug.h"
 #include "utility/lib.h"
 

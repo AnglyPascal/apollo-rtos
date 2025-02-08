@@ -2,8 +2,6 @@
 #include "core/signal.h"
 #include "core/types.h"
 #include "drivers/display.h"
-#include "drivers/serial.h"
-#include "utility/lib.h"
 
 namespace shell
 {

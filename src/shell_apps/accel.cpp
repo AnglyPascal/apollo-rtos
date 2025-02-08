@@ -1,11 +1,9 @@
 #include "drivers/accel.h"
 #include "core/fs.h"
-#include "core/memory.h"
 #include "core/shell.h"
 #include "core/signal.h"
 #include "core/types.h"
 #include "drivers/display.h"
-#include "drivers/flash.h"
 #include "drivers/serial.h"
 #include "utility/circular_buffer.h"
 

@@ -1,6 +1,6 @@
 #include "drivers/flash.h"
+
 #include "core/hardware.h"
-#include "core/memory.h"
 #include "utility/debug.h"
 
 /** If CPU is halted during write/erase operations, why do we need to busy wait?
