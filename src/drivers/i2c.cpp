@@ -13,26 +13,28 @@ namespace i2c
 {
 using namespace i2c_non_blocking;
 
-void read_bytes(uint8_t addr, uint8_t cmd, uint8_t *buf, size_t n)
+void read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
+                size_t n)
 {
-  xfer<true>(addr, (uint8_t *)&cmd, 1, buf, n);
+  xfer<true>(addr, cmd, cmd_sz, buf, n);
 }
 
-uint8_t read_reg(uint8_t addr, uint8_t cmd)
+uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz)
 {
   uint8_t byte{};
-  read_bytes(addr, cmd, &byte, 1);
+  read_bytes(addr, cmd, cmd_sz, &byte, 1);
   return byte;
 }
 
-void write_bytes(uint8_t addr, uint8_t cmd, uint8_t *buf, size_t n)
+void write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
+                 size_t n)
 {
-  xfer<false>(addr, (uint8_t *)&cmd, 1, buf, n);
+  xfer<false>(addr, cmd, cmd_sz, buf, n);
 }
 
-void write_reg(uint8_t addr, uint8_t cmd, uint8_t val)
+void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val)
 {
-  write_bytes(addr, cmd, (uint8_t *)&val, 1);
+  write_bytes(addr, cmd, cmd_sz, (uint8_t *)&val, 1);
 }
 
 int probe(uint8_t addr)
@@ -44,8 +46,8 @@ int probe(uint8_t addr)
 void init()
 {
   /* Configure pins -- thanks to friends at University of Cantabria */
-  gpio_drive(I2C0_SCL, GPIO_DRIVE_S0D1);
-  gpio_drive(I2C0_SDA, GPIO_DRIVE_S0D1);
+  gpio::drive(I2C0_SCL, GPIO_DRIVE_S0D1);
+  gpio::drive(I2C0_SDA, GPIO_DRIVE_S0D1);
 
   /* Configure I2C hardware */
   I2C0.PSELSCL = I2C0_SCL;

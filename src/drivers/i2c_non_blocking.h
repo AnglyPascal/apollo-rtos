@@ -43,7 +43,10 @@ struct state_t {
   flag_t flag = flag_t::NONE;
 
   uint8_t dev_addr = 0;
-  uint8_t cmd = 0;
+
+  uint8_t *cmd = nullptr;
+  size_t cmd_sz = 0;
+  size_t cmd_idx = 0;
 
   uint8_t *data = nullptr;
   size_t data_sz = 0;
@@ -86,23 +89,23 @@ void handler(void)
   if (state.stage == stage_t::W_CMD) {
     clear_event(I2C0.TXDSENT);
 
-    if (state.data_sz == 0) {
+    if (state.cmd_idx < state.cmd_sz) {
+      I2C0.TXD = state.cmd[state.cmd_idx++];
+    } else if (state.data_sz == 0) {
       state.stage = stage_t::NACK;
       I2C0.STOP = 1;
+    } else if (state.mode == mode_t::WRITE) {
+      state.stage = stage_t::TX_DATA;
+      I2C0.TXD = state.data[state.data_idx++];
     } else {
-      if (state.mode == mode_t::WRITE) {
-        state.stage = stage_t::TX_DATA;
-        I2C0.TXD = state.data[state.data_idx++];
-      } else {
-        state.stage = stage_t::RX_DATA;
+      state.stage = stage_t::RX_DATA;
 
-        if (state.data_idx < state.data_sz - 1)
-          I2C0.SHORTS = BIT(I2C_BB_SUSPEND);
-        else
-          I2C0.SHORTS = BIT(I2C_BB_STOP);
+      if (state.data_idx < state.data_sz - 1)
+        I2C0.SHORTS = BIT(I2C_BB_SUSPEND);
+      else
+        I2C0.SHORTS = BIT(I2C_BB_STOP);
 
-        I2C0.STARTRX = 1;
-      }
+      I2C0.STARTRX = 1;
     }
 
     goto clear_intr;
@@ -170,10 +173,15 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 
   state.mode = is_read ? mode_t::READ : mode_t::WRITE;
 
-  state.stage = stage_t::W_CMD;
   state.data = buf;
   state.data_sz = n;
   state.data_idx = 0;
+
+  state.cmd = cmd + 1;
+  state.cmd_sz = cmd_sz - 1;
+  state.cmd_idx = 0;
+
+  state.stage = stage_t::W_CMD;
 
   I2C0.ADDRESS = addr;
 

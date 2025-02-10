@@ -19,8 +19,8 @@ namespace accel
 
 void read(int *x, int *y, int *z)
 {
-  int8_t buf[3];
-  i2c::read_bytes(ACC, ACC_X_DATA, (uint8_t *)buf, 3);
+  int8_t buf[3] = {ACC_X_DATA};
+  i2c::read_bytes(ACC, (uint8_t *)buf, 1, (uint8_t *)buf, 3);
   *x = -buf[0];
   *y = buf[1];
   *z = -buf[2];
@@ -29,10 +29,12 @@ void read(int *x, int *y, int *z)
 void init(void)
 {
   /* Find chip and set to 50Hz, 8 bit, Active */
-  if (i2c::probe(ACC) == I2C_OK)
-    i2c::write_reg(ACC, ACC_CTRL_REG1, 0x23);
-  else
+  if (i2c::probe(ACC) == I2C_OK) {
+    uint8_t cmd = ACC_CTRL_REG1;
+    i2c::write_reg(ACC, &cmd, 1, 0x23);
+  } else {
     debug<FATAL>("Can't find accelerometer");
+  }
 }
 
 } // namespace accel
