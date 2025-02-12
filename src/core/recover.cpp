@@ -80,14 +80,14 @@ static word_t *rec_tbl_addr = (word_t *)__recover_pg;
 
 void store()
 {
-  nvm_t nvm{rec_tbl_addr, (word_t *)&rec_tbl, sizeof(rec_tbl)};
-  nvm.store();
+  /* nvm_t nvm{rec_tbl_addr, (word_t *)&rec_tbl, sizeof(rec_tbl)}; */
+  /* nvm.store(); */
 }
 
 void load()
 {
-  nvm_t nvm{rec_tbl_addr, (word_t *)&rec_tbl, sizeof(rec_tbl)};
-  nvm.load();
+  /* nvm_t nvm{rec_tbl_addr, (word_t *)&rec_tbl, sizeof(rec_tbl)}; */
+  /* nvm.load(); */
 }
 
 } // namespace recovery

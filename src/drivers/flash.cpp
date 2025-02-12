@@ -12,30 +12,27 @@ inline void wait()
     ;
 }
 
-void nvm_t::load() const
+namespace flash
 {
-  for (size_t i = 0; i < sz / sizeof(uint32_t); i++) {
-    rt_addr[i] = pg_addr[i];
-    wait();
-  }
-}
-
-void nvm_t::erase() const
+void erase(addr_t pg_addr)
 {
   NVMC.CONFIG = NVMC_CONFIG_EEN;
   wait();
-  NVMC.ERASEPAGE = pg_addr;
+  NVMC.ERASEPAGE = (void *)pg_addr;
   wait();
   NVMC.CONFIG = NVMC_CONFIG_REN;
   wait();
 }
 
-void nvm_t::store() const
+void write(addr_t addr, uint8_t *buf, size_t sz)
 {
-  erase();
+  erase(addr);
 
   NVMC.CONFIG = NVMC_CONFIG_WEN;
   wait();
+
+  auto pg_addr = (word_t *)addr;
+  auto rt_addr = (word_t *)buf;
 
   for (size_t i = 0; i < sz / sizeof(uint32_t); i++) {
     pg_addr[i] = rt_addr[i];
@@ -46,26 +43,14 @@ void nvm_t::store() const
   wait();
 }
 
-void *nvm_t::operator*() const { return rt_addr; }
-
-#define PG_MAGIC 0xbebebebe;
-
-void pg_t::load() const
+void read(addr_t addr, uint8_t *buf, size_t sz)
 {
-  if (is_valid())
-    nvm_t::load();
-}
+  auto pg_addr = (word_t *)addr;
+  auto rt_addr = (word_t *)buf;
 
-bool pg_t::is_valid() const
-{
-  auto addr = (page_guard_t *)((uint32_t)pg_addr + pg_sz) - 1;
-  assert((uint32_t)addr % sizeof(word_t) == 0);
-  return *addr == PG_MAGIC;
+  for (size_t i = 0; i < sz / sizeof(uint32_t); i++) {
+    rt_addr[i] = pg_addr[i];
+    wait();
+  }
 }
-
-void pg_t::store() const
-{
-  nvm_t::store();
-  auto addr = (page_guard_t *)((uint32_t)pg_addr + pg_sz) - 1;
-  *addr = PG_MAGIC;
-}
+} // namespace flash

@@ -95,8 +95,8 @@ void accel(void *param)
 {
   swap_handler(SIGTERM, []() { exit = true; });
 
-  auto file = fs::open(accel::fn, sizeof(buffer), O_CREATE);
-  auto val = (buffer *)*file;
+  auto file = flash::open(accel::fn, sizeof(buffer), O_CREATE);
+  auto val = flash::mmap<buffer>(file);
 
   bool run_bg = ((shell::args_buffer_t *)param)->run_bg;
   serial::listener_guard guard{listener, !run_bg};

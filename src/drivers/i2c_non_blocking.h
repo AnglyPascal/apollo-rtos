@@ -56,7 +56,7 @@ struct state_t {
   uint8_t err_src = I2C_OK;
 };
 
-inline state_t state{};
+inline volatile state_t state{};
 
 __always_inline__
 inline void clear_event(volatile uint32_t &event)
@@ -65,7 +65,8 @@ inline void clear_event(volatile uint32_t &event)
   event = 0;
 }
 
-inline chan_t intr_chan;
+inline chan_t<1> intr_chan;
+inline chan_t wait_chan;
 
 template <typename T = void>
 void handler(void)
@@ -152,6 +153,10 @@ void handler(void)
       I2C0.SHORTS = 0;
 
     state.flag = flag_t::NONE;
+
+    // wake up any waiting process first
+    sched::notify(&wait_chan);
+    // then wake up the currently working process
     sched::notify(&intr_chan);
 
     goto clear_intr;
@@ -165,10 +170,10 @@ clear_intr:
 template <bool is_read>
 int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 {
-  if (state.flag == flag_t::BUSY) {
-    state.fault = fault_t::BUSY;
-    return I2C_BUSY;
+  while (state.flag == flag_t::BUSY) {
+    sched::wait(&wait_chan);
   }
+
   state.flag = flag_t::BUSY;
 
   state.mode = is_read ? mode_t::READ : mode_t::WRITE;

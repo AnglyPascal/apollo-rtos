@@ -1,16 +1,20 @@
 #pragma once
 
 #include "core/types.h"
+#include "utility/circular_buffer.h"
 
 inline constexpr size_t N_PROCS = 16;
 struct proc_t;
 
+inline constexpr size_t N_PROCS_WAIT = 4;
+template <size_t chan_len = N_PROCS_WAIT>
 struct chan_t {
-  pid_t pid = N_PROCS;
-  volatile uint32_t *event = nullptr;
+  pid_t dequeue() { return pids.dequeue(); }
+  void enqueue(pid_t pid) { pids.enqueue(pid); }
+  bool empty() const { return pids.empty(); }
 
-  chan_t() {}
-  chan_t(volatile uint32_t *event) : pid(N_PROCS), event(event) {}
+private:
+  circular_buffer<pid_t, chan_len> pids;
 };
 
 struct proc_def_t {
@@ -19,6 +23,13 @@ struct proc_def_t {
   size_t stk_sz;
   runnable_t func;
 };
+
+namespace curr_proc
+{
+pid_t pid();
+size_t rec_entry_id();
+string name();
+} // namespace curr_proc
 
 namespace sched
 {
@@ -37,8 +48,25 @@ void init();
 
 void sleep(time_t period);
 
-void wait(chan_t *);
-void notify(chan_t *);
+void sleep();
+void wakeup(pid_t pid);
+
+template <size_t chan_len>
+void wait(chan_t<chan_len> *chan)
+{
+  chan->enqueue(curr_proc::pid());
+  sleep();
+}
+
+template <size_t chan_len>
+void notify(chan_t<chan_len> *chan)
+{
+  if (chan->empty())
+    return;
+
+  auto pid = chan->dequeue();
+  wakeup(pid);
+}
 
 void trace();
 
@@ -47,10 +75,3 @@ void transfer_param(void *param);
 extern volatile time_t last_checked;
 
 } // namespace sched
-
-namespace curr_proc
-{
-pid_t pid();
-size_t rec_entry_id();
-string name();
-} // namespace curr_proc

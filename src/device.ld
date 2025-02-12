@@ -71,15 +71,15 @@ SECTIONS {
     /* Check if data + stack exceeds RAM limit */
     ASSERT((__stack_limit >= __end), "region RAM overlaps with stack")
 
-    __page_sz = 1024;
-    __npages = 220;
-    __nvm_end = ORIGIN(FLASH) + LENGTH(FLASH) - 2 * __page_sz;
-    __nvm_start = __nvm_end - (__npages * __page_sz);
+    /* __page_sz = 1024; */
+    /* __npages = 220; */
+    /* __nvm_end = ORIGIN(FLASH) + LENGTH(FLASH) - 2 * __page_sz; */
+    /* __nvm_start = __nvm_end - (__npages * __page_sz); */
 
-    __fs_pg = __nvm_end;
-    __recover_pg = __nvm_end + __page_sz; 
+    /* __fs_pg = __nvm_end; */
+    /* __recover_pg = __nvm_end + __page_sz; */ 
 
-    ASSERT((__nvm_start > __etext), "filesystem region overlaps with code")
+    /* ASSERT((__nvm_start > __etext), "filesystem region overlaps with code") */
 }
 
 /* Interrupt handlers are aliases for default_handler if not

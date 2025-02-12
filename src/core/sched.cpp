@@ -194,16 +194,11 @@ void sleep(time_t period)
   decr_priority(-proc->priority);
 }
 
-void wait(chan_t *chan)
-{
-  chan->pid = curr_proc::pid();
-  decr_priority(-cpu.curr_proc->priority);
-}
+void sleep() { decr_priority(-cpu.curr_proc->priority); }
 
-void notify(chan_t *chan)
+void wakeup(pid_t pid)
 {
-  assert(*chan->event);
-  auto proc = procs[chan->pid];
+  auto proc = procs[pid];
   incr_priority(proc, -proc->priority);
 }
 

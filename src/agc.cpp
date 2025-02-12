@@ -1,5 +1,6 @@
 #include "core/fs.h"
 #include "core/hardware.h"
+#include "core/memory.h"
 #include "core/sched.h"
 #include "core/shell.h"
 #include "drivers/display.h"
@@ -7,6 +8,8 @@
 #include "drivers/serial.h"
 #include "drivers/timer.h"
 #include "utility/debug.h"
+
+#include "utility/bitset.h"
 
 __extern_C__
 byte_t __data_start[],
@@ -33,6 +36,29 @@ inline void debug_addr()
   debug<debug_lev>("\tnvm_end:    %x\r\n", __nvm_end);
 }
 
+struct flash_t {
+  uint32_t magic;
+  uint32_t n_reset;
+  enum {
+    MAGIC = 0xDEADDEAD,
+  };
+};
+
+inline void fs_test()
+{
+  auto file = flash::open(1, sizeof(flash_t), O_CREATE | O_WRITE);
+  auto bt = flash::mmap<flash_t>(file);
+  if (bt->magic != flash_t::MAGIC) {
+    bt->magic = flash_t::MAGIC;
+    bt->n_reset = 0;
+  } else {
+    bt->n_reset++;
+  }
+  kprintf("n_reset: %d\r\n", bt->n_reset);
+  flash::store(file);
+  flash::unmap(file);
+}
+
 bool is_reset();
 void set_boot();
 
@@ -45,12 +71,13 @@ inline void __start(void)
   serial::init();
   serial::clear_screen();
 
-  fs::mount();
+  flash::format();
   timer::init();
 
   i2c::init();
   shell::init();
 
+  fs_test();
   debug_addr<TRACE>();
 
   if (!is_reset()) {

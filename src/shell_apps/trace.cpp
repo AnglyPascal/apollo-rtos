@@ -27,7 +27,7 @@ inline void do_trace()
 {
   sched::trace();
   waitlist::trace();
-  fs::trace();
+  /* fs::trace(); */
   heap::trace();
 }
 

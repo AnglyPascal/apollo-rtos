@@ -13,8 +13,8 @@ class circular_buffer
   struct iterator {
     using difference_type = size_t;
     using value_type = T;
-    using pointer = value_type *;   // or also value_type*
-    using reference = value_type &; // or also value_type&
+    using pointer = value_type *;
+    using reference = value_type &;
 
     reference operator*() const { return arr[i]; }
 
@@ -79,21 +79,21 @@ public:
     return t;
   }
 
-  const T &peek()
+  const T &peek() const
   {
     assert(sz > 0);
     auto arr = (T *)store;
     return arr[_start];
   }
 
-  T front()
+  T front() const
   {
     assert(sz > 0);
     auto arr = (T *)store;
     return arr[_start];
   }
 
-  T back()
+  T back() const
   {
     assert(sz > 0);
     auto i = _end == 0 ? N - 1 : _end - 1;
@@ -101,14 +101,11 @@ public:
     return arr[i];
   }
 
-  bool empty() { return sz == 0; }
-
-  size_t size() { return sz; }
-
-  size_t capacity() { return N; }
+  bool empty() const { return sz == 0; }
+  size_t size() const { return sz; }
+  size_t capacity() const { return N; }
 
   iterator begin() { return iterator{(T *)store, _start, sz}; }
-
   iterator end() { return iterator{(T *)store, _end, 0}; }
 };
 

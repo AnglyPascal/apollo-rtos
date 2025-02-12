@@ -1,59 +1,26 @@
 #pragma once
 
-#include "core/memory.h"
-#include "core/types.h"
+#include "core/file.h"
 #include "drivers/flash.h"
 
-using fn_t = uint8_t;
-
-struct inode_t {
-  fn_t fn;
-  fn_t next;
-  fn_t prev;
-
-  uint8_t in_use;
-  size_t sz;
-};
-
-class file_t;
-
-#define O_CREATE 0x00000001
-#define O_WRITE 0x00000002
-
-namespace fs
+namespace flash
 {
-
 void mount();
-void store();
+void format();
 
 file_t open(fn_t fn, size_t sz, uint32_t flags);
 
-void trace();
+void *mmap(file_t &file, size_t sz);
+void unmap(file_t &file);
 
-} // namespace fs
-
-class fd_t;
-
-class file_t
+template <typename T>
+T *mmap(file_t &file)
 {
-public:
-  fn_t fn;
+  return (T *)mmap(file, sizeof(T));
+}
 
-private:
-  fd_t *fd;
-  bool w_en;
+void load(file_t &file);
+void store(file_t &file);
 
-  friend file_t fs::open(fn_t fn, size_t sz, uint32_t flags);
-
-public:
-  file_t(fn_t fn, fd_t *fd, bool w_en);
-
-  void load();
-  void store();
-  void erase();
-  void *operator*();
-  bool is_valid() const;
-
-  ~file_t();
-};
+} // namespace flash
 

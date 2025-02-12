@@ -1,49 +1,42 @@
 #pragma once
 
-#include "core/memory.h"
+#include "core/file.h"
 #include "core/types.h"
-#include "utility/debug.h"
+#include "drivers/fs_desc.h"
 
-// runtime representation of a nvm page
-class nvm_t
+namespace flash
 {
-protected:
-  word_t *pg_addr = nullptr;
-  word_t *rt_addr = nullptr;
-  size_t sz = 0;
+using addr_t = uint32_t;
 
-public:
-  nvm_t() {}
+using fn_t = uint8_t;
+using blk_addr_t = uint8_t;
+using addr_t = uint32_t;
+using nblks_t = uint8_t;
 
-  nvm_t(word_t *pg_addr, word_t *rt_addr, size_t sz)
-      : pg_addr{pg_addr}, rt_addr{rt_addr}, sz{sz}
-  {
-    assert((word_t)pg_addr % sizeof(word_t) == 0);
-    assert(sz % sizeof(word_t) == 0, "%d\r\n", sz);
-  }
+void write(addr_t addr, uint8_t *buf, size_t buf_sz);
+void read(addr_t addr, uint8_t *buf, size_t buf_sz);
 
-  void load() const;
-  void erase() const;
-  void store() const;
-  void *operator*() const;
+static constexpr size_t PAGE_SZ = 1 << 10;
+static constexpr addr_t FLASH_END = 256 * PAGE_SZ;
+static constexpr size_t N_PAGES = 180;
+
+static constexpr size_t blk_sz = PAGE_SZ;
+using desc_t = fs_desc_t<fn_t, blk_addr_t, addr_t, nblks_t, blk_sz>;
+
+inline constexpr desc_t desc = {
+    .write = flash::write,
+    .read = flash::read,
+
+    .start = FLASH_END - N_PAGES * PAGE_SZ,
+    .end = FLASH_END,
+
+    .fs_hd_addr = N_PAGES - 1,
+    .fs_hd_sz = PAGE_SZ,
+
+    .max_num_blks = 8,
+    .n_inodes = 32,
 };
 
-using page_guard_t = uint32_t;
+using file_t = _file_t<desc_t>;
 
-class pg_t : nvm_t
-{
-public:
-  pg_t() : nvm_t{} {}
-
-  pg_t(word_t *pg_addr, word_t *rt_addr, size_t sz)
-      : nvm_t{pg_addr, rt_addr, sz}
-  {
-    assert((uint32_t)pg_addr % pg_sz == 0);
-  }
-
-  void load() const;
-  void store() const;
-  using nvm_t::erase;
-
-  bool is_valid() const;
-};
+} // namespace flash

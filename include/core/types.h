@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 // arm gcc specific attributes
@@ -25,6 +26,8 @@ using pid_t = uint8_t;
 inline constexpr pid_t null_pid = MAX<pid_t>;
 
 using priority_t = int32_t;
+
+using std::pair;
 
 enum priorities : priority_t {
   EMPTY,
@@ -52,6 +55,14 @@ enum priorities : priority_t {
 
   HIGHEST = MAX<priority_t>,
 };
+
+// FIXME: where should we put this?
+enum {
+  O_CREATE = 1 << 0,
+  O_WRITE = 1 << 1,
+  O_CHAR_FILE = 1 << 2,
+};
+using fn_t = uint8_t;
 
 struct string {
   const char *str;
@@ -105,3 +116,4 @@ constexpr size_t roundup(size_t sz, size_t align)
 {
   return (sz + align - 1) & ~(align - 1);
 }
+
