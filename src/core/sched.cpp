@@ -38,20 +38,18 @@ void exit()
   heap::cleanup(&cpu.curr_proc->used_hd);
 
   if constexpr (kill) {
-    recovery::set_rec_lev(rec_lev_t::NONE);
+    recover::set_rec(rec_lev_t::NONE);
   }
 
   intr_disable();
   decr_priority(0);
 }
 
-size_t curr_proc_rec_entry_id() { return cpu.curr_proc->rec_entry_id; }
-
 proc_t *reg_proc(proc_def_t *proc_def, void *param)
 {
   auto [name, priority, stk_sz, func] = *proc_def;
 
-  assert(priority > 0, "%s\r\n", name.str);
+  assert(priority > 0, "%x, %s\r\n", priority, name.str);
 
   intr_guard guard;
 
@@ -60,8 +58,8 @@ proc_t *reg_proc(proc_def_t *proc_def, void *param)
 
   proc->name = name;
   proc->param = param;
+  proc->def = proc_def;
 
-  proc->rec_entry_id = recovery::get_rec_entry_id();
   stack_allocator.acquire(proc, stk_sz, func, param, exit<true>);
 
   incr_priority(proc, priority);
@@ -152,8 +150,6 @@ proc_def_t idle_proc_def = {"idle_proc", IDLE, 0, idle_task};
 __extern_C__
 void __run(runnable_t task, byte_t **stk_ptr);
 
-void setup_procs(void);
-
 /* assign idle_task to the main process, sets up all the other processes, then
  * enter the idle_task in thread mode */
 void init()
@@ -162,12 +158,7 @@ void init()
   IDLE_PID = procs.pid(idle_proc);
   cpu.curr_proc = idle_proc;
 
-  if (is_first_boot()) {
-    setup_procs();
-  } else {
-    recover();
-  }
-
+  recover::init();
   last_checked = timer::now();
 
   __run(idle_task, &idle_proc->stk_ptr);
@@ -214,9 +205,9 @@ namespace curr_proc
 {
 using namespace sched;
 pid_t pid() { return procs.pid(cpu.curr_proc); }
-size_t rec_entry_id() { return cpu.curr_proc->rec_entry_id; }
 string name() { return cpu.curr_proc->name; }
 chunk_t *used_hd() { return &cpu.curr_proc->used_hd; }
+proc_def_t *def() { return cpu.curr_proc->def; }
 } // namespace curr_proc
 
 ///////////////

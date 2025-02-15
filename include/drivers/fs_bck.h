@@ -119,6 +119,8 @@ public:
 
   static constexpr auto blk_sz = desc_t::blk_sz;
 
+  bool first_boot = false;
+
 private:
   using fs_hd_t = _fs_hd_t<desc_t, desc>;
   fs_hd_t fs_hd;
@@ -134,32 +136,37 @@ private:
     return addr;
   }
 
+  inline void store_hd() const
+  {
+    write(desc.fs_hd_addr, (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+  }
+
 public:
-  bool valid() { return fs_hd.valid(); }
+  bool valid() const { return fs_hd.valid(); }
 
   void format()
   {
     fs_hd.format();
-    write(desc.fs_hd_addr, (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+    store_hd();
   }
 
   void mount()
   {
-    if (!valid())
-      read(desc.fs_hd_addr, (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+    read(desc.fs_hd_addr, (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+    first_boot = !valid();
     if (!valid())
       format();
   }
 
-  void umount() { write(desc.fs_hd_addr, (uint8_t *)&fs_hd, sizeof(fs_hd_t)); }
+  void umount() const { store_hd(); }
 
-  static void write(blk_addr_t blk_addr, uint8_t *buf, size_t buf_sz)
+  static inline void write(blk_addr_t blk_addr, uint8_t *buf, size_t buf_sz)
   {
     addr_t addr = paddr(blk_addr);
     desc.write(addr, buf, buf_sz);
   }
 
-  static void read(blk_addr_t blk_addr, uint8_t *buf, size_t buf_sz)
+  static inline void read(blk_addr_t blk_addr, uint8_t *buf, size_t buf_sz)
   {
     addr_t addr = paddr(blk_addr);
     desc.read(addr, buf, buf_sz);
@@ -196,6 +203,8 @@ public:
 
       inode.start = 0;
       inode.curr = 0;
+
+      store_hd();
     }
 
     return &inode;

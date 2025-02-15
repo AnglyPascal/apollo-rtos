@@ -14,8 +14,7 @@ proc_def_t test{"test_proc", MID1, 64, test_proc};
 
 void test_proc(void *param)
 {
-  recovery::set_rec_lev(rec_lev_t::RESET);
-  recovery::store_data(test);
+  recover::set_rec(rec_lev_t::RESET);
 
   delay_loop(1000);
   sched::decr_priority(LOW4);

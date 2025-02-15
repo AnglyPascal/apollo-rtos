@@ -71,8 +71,7 @@ namespace display
 
 void task(void *)
 {
-  recovery::set_rec_lev(rec_lev_t::RESET);
-  recovery::store_data(procs::display);
+  recover::set_rec(rec_lev_t::BOOT);
 
   GPIO.DIR = LED_MASK;
   reset();

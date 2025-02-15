@@ -52,15 +52,17 @@ class _file_t
   using inode_t = _inode_t<desc_t>;
 
 private:
-  fd_t &fd;
+  fd_t *fd = nullptr;
 
 public:
-  const bool w_en;
-  const file_type_t ft;
-  size_t fsz;
+  bool w_en = false;
+  file_type_t ft = file_type_t::BIN;
+  size_t fsz = 0;
 
 public:
-  _file_t(fd_t &fd, bool w_en) : fd{fd}, w_en{w_en}, ft{fd.ft()}, fsz{fd.fsz()}
+  _file_t() {}
+
+  _file_t(fd_t &fd, bool w_en) : fd{&fd}, w_en{w_en}, ft{fd.ft()}, fsz{fd.fsz()}
   {
   }
 
@@ -68,20 +70,20 @@ public:
 
   void mmap(void *buf, size_t buf_sz)
   {
-    fd.mmap_buf = buf;
-    fd.mmap_buf_sz = buf_sz;
+    fd->mmap_buf = buf;
+    fd->mmap_buf_sz = buf_sz;
   }
 
   void *unmap()
   {
-    auto buf = fd.mmap_buf;
-    fd.mmap_buf = nullptr;
-    fd.mmap_buf_sz = 0;
+    auto buf = fd->mmap_buf;
+    fd->mmap_buf = nullptr;
+    fd->mmap_buf_sz = 0;
     return buf;
   }
 
-  const inode_t *inode() const { return fd.inode; }
-  void *mmap_buf() const { return fd.mmap_buf; }
-  size_t mmap_buf_sz() const { return fd.mmap_buf_sz; }
+  const inode_t *inode() const { return fd->inode; }
+  void *mmap_buf() const { return fd->mmap_buf; }
+  size_t mmap_buf_sz() const { return fd->mmap_buf_sz; }
 };
 

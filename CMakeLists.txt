@@ -25,7 +25,7 @@ include_directories(include)
 
 set(ARCH "-mcpu=cortex-m0 -mthumb")
 set(OPT "-O3 -g -Wall")
-set(STACK_USAGE "-fstack-usage -fdump-tree-optimized-graph")
+set(STACK_USAGE "-fstack-usage -fdump-tree-optimized-graph -fdump-ipa-cgraph")
 set(EMBED "-ffreestanding -nostartfiles")
 set(EMBED_CXX "-fno-exceptions -fno-unwind-tables -fno-rtti -std=c++20")
 set(NEWLIB "--specs=nano.specs --specs=nosys.specs")
@@ -81,3 +81,16 @@ add_custom_command(
   COMMAND sudo minicom -D /dev/ttyACM0 -b 9600
   COMMENT "Running minicom...")
 
+# Post-build step to generate graphs
+add_custom_target(gen ALL
+    COMMAND ${CMAKE_COMMAND} -E make_directory callgraphs
+    COMMAND bash -c "for f in \$(find . -name '*.cgraph'); do
+        base=\$(basename \$f .cgraph);
+        echo 'digraph G {' > callgraphs/\$base.dot;
+        cat \$f | grep 'Node' | awk '{print \"  \"$2\" -> \"$4\";\"}' >> callgraphs/\$base.dot;
+        echo '}' >> callgraphs/\$base.dot;
+        dot -Tpng callgraphs/\$base.dot -o callgraphs/\$base.png;
+     done"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    COMMENT "Generating call graphs..."
+)

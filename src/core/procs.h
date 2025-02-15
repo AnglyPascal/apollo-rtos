@@ -20,6 +20,8 @@ const char *priority_levels[] = {
 };
 } // namespace
 
+struct proc_def_t;
+
 struct proc_t {
   string name = {};
   priority_t priority = EMPTY;
@@ -33,12 +35,47 @@ struct proc_t {
 
   size_t rec_entry_id = 0;
   signals_t signals = {};
+
+  proc_def_t *def;
+
+  void trace(pid_t pid)
+  {
+    int state = 0;
+    if (priority > 0)
+      state = 1;
+    else if (priority < 0)
+      state = 2;
+
+    auto prio = abs(priority);
+    int prio_lev;
+    if (prio < LOW1)
+      prio_lev = 0;
+    else if (prio < MID1)
+      prio_lev = 1;
+    else if (prio < HIGH1)
+      prio_lev = 2;
+    else if (prio < URGENT1)
+      prio_lev = 3;
+    else if (prio < HIGHEST)
+      prio_lev = 4;
+    else
+      prio_lev = 5;
+
+    debug<INFO>("  |  %d. %s : (%s), %s\r\n", pid, name.str,
+                priority_levels[prio_lev], states[state]);
+    debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", stack, stk_sz,
+                 stk_ptr);
+    debug<TRACE>("  |    heap usage:\r\n");
+    for (auto ptr = &used_hd; ptr->next != nullptr; ptr = ptr->next) {
+      debug<TRACE>("  |      %x: %d\r\n", ptr->next, ptr->next->sz);
+    }
+  }
 };
 
 template <uint8_t N_PROCS>
 class procs_t
 {
-  proc_t procs[N_PROCS] = {{}};
+  proc_t procs[N_PROCS] = {};
 
 public:
   inline proc_t *alloc()
@@ -75,43 +112,10 @@ public:
   void trace()
   {
     for (auto proc = procs; proc < procs + N_PROCS; proc++) {
-      if (proc->priority != EMPTY)
-        proc_trace(proc);
-    }
-  }
-
-  inline void proc_trace(proc_t *proc)
-  {
-    auto pid = proc - procs;
-
-    int state = 0;
-    if (proc->priority > 0)
-      state = 1;
-    else if (proc->priority < 0)
-      state = 2;
-
-    auto priority = abs(proc->priority);
-    int prio_lev;
-    if (priority < LOW1)
-      prio_lev = 0;
-    else if (priority < MID1)
-      prio_lev = 1;
-    else if (priority < HIGH1)
-      prio_lev = 2;
-    else if (priority < URGENT1)
-      prio_lev = 3;
-    else if (priority < HIGHEST)
-      prio_lev = 4;
-    else
-      prio_lev = 5;
-
-    debug<INFO>("  |  %d. %s : (%s), %s\r\n", pid, proc->name.str,
-                priority_levels[prio_lev], states[state]);
-    debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", proc->stack,
-                 proc->stk_sz, proc->stk_ptr);
-    debug<TRACE>("  |    heap usage:\r\n");
-    for (auto ptr = &proc->used_hd; ptr->next != nullptr; ptr = ptr->next) {
-      debug<TRACE>("  |      %x: %d\r\n", ptr->next, ptr->next->sz);
+      if (proc->priority != EMPTY) {
+        auto _pid = pid(proc);
+        proc->trace(_pid);
+      }
     }
   }
 

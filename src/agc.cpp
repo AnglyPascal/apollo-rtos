@@ -1,6 +1,7 @@
 #include "core/fs.h"
 #include "core/hardware.h"
 #include "core/memory.h"
+#include "core/recover.h"
 #include "core/sched.h"
 #include "core/shell.h"
 #include "drivers/display.h"
@@ -14,11 +15,7 @@
 __extern_C__
 byte_t __data_start[],
     __data_end[], __bss_start[], __bss_end[], __end[], __etext[], __stack[],
-    __stack_limit, __nvm_end[], __nvm_start[];
-
-__extern_C__
-byte_t __recover_load[],
-    __recover_start[], __recover_end[];
+    __stack_limit;
 
 template <debug_t debug_lev>
 inline void debug_addr()
@@ -32,8 +29,6 @@ inline void debug_addr()
 
   debug<debug_lev>("\tbss_start:  %x\r\n", __bss_start);
   debug<debug_lev>("\tbss_end:    %x\r\n", __bss_end);
-  debug<debug_lev>("\tnvm_start:  %x\r\n", __nvm_start);
-  debug<debug_lev>("\tnvm_end:    %x\r\n", __nvm_end);
 }
 
 struct flash_t {
@@ -59,9 +54,6 @@ inline void fs_test()
   flash::unmap(file);
 }
 
-bool is_reset();
-void set_boot();
-
 inline void __start(void)
 {
   _memcpy(__data_start, __etext, __data_end - __data_start);
@@ -71,7 +63,9 @@ inline void __start(void)
   serial::init();
   serial::clear_screen();
 
-  flash::format();
+  fs::init();
+  boot::init();
+
   timer::init();
 
   i2c::init();
@@ -79,18 +73,6 @@ inline void __start(void)
 
   fs_test();
   debug_addr<TRACE>();
-
-  if (!is_reset()) {
-    kprintf("boot\r\n");
-
-    // initialize recovery section
-    _memcpy(__recover_start, __recover_load, __recover_end - __recover_start);
-
-    // set boot value to true
-    set_boot();
-  } else {
-    kprintf("reset\r\n");
-  }
 
   sched::init();
 

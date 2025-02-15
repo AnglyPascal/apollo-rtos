@@ -55,7 +55,7 @@ void *_memcpy(void *dest, const void *src, uint32_t n)
   auto q = (const uint32_t *)src;
   while (n >= sizeof(uint32_t)) {
     *p++ = *q++;
-    n -= 4;
+    n -= sizeof(uint32_t);
   }
 
   auto pb = (uint8_t *)p;

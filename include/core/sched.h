@@ -52,19 +52,19 @@ void sleep();
 void wakeup(pid_t pid);
 
 template <size_t chan_len>
-void wait(chan_t<chan_len> *chan)
+void wait(chan_t<chan_len> &chan)
 {
-  chan->enqueue(curr_proc::pid());
+  chan.enqueue(curr_proc::pid());
   sleep();
 }
 
 template <size_t chan_len>
-void notify(chan_t<chan_len> *chan)
+void notify(chan_t<chan_len> &chan)
 {
-  if (chan->empty())
+  if (chan.empty())
     return;
 
-  auto pid = chan->dequeue();
+  auto pid = chan.dequeue();
   wakeup(pid);
 }
 

@@ -5,37 +5,38 @@
 #define __recover_section__                                                    \
   __attribute__((section(".recover"))) __attribute__((__used__))
 
-inline constexpr size_t N_REC_DATA = 48;
+inline constexpr size_t N_REC_DATA = 40;
+using rec_func_t = void (*)(void *);
 
 enum class rec_lev_t {
   NONE,
-  INIT,
   RESET,
   BOOT,
 };
 
-using rec_func_t = void (*)(void *);
-
-namespace recovery
+namespace recover
 {
-void *rec_data();
+void init();
+
+void set_rec(rec_lev_t rec_lev, const uint8_t *data = nullptr,
+             size_t data_sz = 0);
 
 template <typename T>
-void store_data(T &src)
+void set_rec(rec_lev_t rec_lev, const T &data)
 {
-  *(T *)rec_data() = src;
+  set_rec(rec_lev, (const uint8_t *)&data, sizeof(T));
 }
+} // namespace recover
 
-void set_rec_lev(rec_lev_t lev);
-void set_rec_lev(rec_lev_t lev, rec_func_t rec_func);
+enum class boot_lev_t {
+  FLASH,
+  BOOT,
+  RESET,
+};
 
-size_t get_rec_entry_id();
-
-void load();
-void store();
-
-} // namespace recovery
-
-void recover();
-
-bool is_first_boot();
+namespace boot
+{
+bool first_boot();
+boot_lev_t lev();
+void init();
+} // namespace boot

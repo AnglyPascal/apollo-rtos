@@ -1,111 +1,173 @@
 #include "core/recover.h"
 
+#include "core/fs.h"
+#include "core/memory.h"
 #include "core/sched.h"
-#include "drivers/flash.h"
-
-__extern_C__
-uint8_t __recover_pg[];
+#include "utility/debug.h"
 
 #define REC_MAGIC 0xbabedadd
 
+__extern_C__
+byte_t __recover_load[],
+    __recover_start[], __recover_end[];
+
+namespace fs
+{
+bool first_boot();
+}
+
+namespace boot
+{
 namespace
 {
-struct alignas(word_t) entry_t {
-  rec_func_t rec_func = nullptr;
-
-  rec_lev_t rec_lev = rec_lev_t::NONE;
-  uint8_t data[N_REC_DATA];
-};
-
-struct recover_table_t {
-  uint32_t magic = REC_MAGIC;
-  uint32_t n_used = 0;
-
-  entry_t tbl[N_PROCS] = {{}};
-};
-
-static_assert(sizeof(recover_table_t) <= pg_sz);
-
-recover_table_t rec_tbl __recover_section__ = {};
-bool first_boot = false;
-
+bool power_on = false;
+uint32_t power_magic __recover_section__ = REC_MAGIC;
 } // namespace
 
-/** this shouldn't be needed,
- *  but we need it to indicate to sched that this is the first boot,
- *  because by then, in agc, we had already set the magic by initialization
+void init()
+{
+  power_on = power_magic != REC_MAGIC;
+  power_magic = REC_MAGIC;
+
+  auto _lev = lev();
+  if (_lev == boot_lev_t::RESET)
+    kprintf("reset\r\n");
+  else if (_lev == boot_lev_t::FLASH)
+    kprintf("flash\r\n");
+  else
+    kprintf("boot\r\n");
+
+  // initialize recovery section
+  if (boot::lev() != boot_lev_t::RESET)
+    _memcpy(__recover_start, __recover_load, __recover_end - __recover_start);
+}
+
+boot_lev_t lev()
+{
+  if (fs::first_boot())
+    return boot_lev_t::FLASH;
+  return power_on ? boot_lev_t::BOOT : boot_lev_t::RESET;
+}
+} // namespace boot
+
+class entry_t
+{
+  bool valid = false;
+  proc_def_t proc_def;
+  uint8_t data[N_REC_DATA] = {0xFF};
+
+public:
+  void recover()
+  {
+    if (valid)
+      sched::reg_proc(&proc_def, data);
+    valid = false;
+  }
+
+  void set(const proc_def_t *def, const uint8_t *buf, size_t sz)
+  {
+    assert(sz <= N_REC_DATA);
+
+    valid = true;
+    proc_def = *def;
+
+    if (buf != nullptr)
+      _memcpy(data, buf, sz);
+  }
+
+  void reset() { valid = false; }
+};
+
+class recover_table_t
+{
+public:
+  uint32_t magic = REC_MAGIC;
+
+private:
+  entry_t tbl[N_PROCS] = {{}};
+
+public:
+  void recover()
+  {
+    for (auto &entry : tbl)
+      entry.recover();
+  }
+
+  void set_entry(pid_t pid, const proc_def_t *def, const uint8_t *data,
+                 size_t data_sz)
+  {
+    tbl[pid].set(def, data, data_sz);
+  }
+
+  void reset_entry(pid_t pid) { tbl[pid].reset(); }
+};
+
+
+namespace sched
+{
+void setup_procs(void);
+}
+
+namespace curr_proc
+{
+proc_def_t *def();
+}
+
+namespace recover
+{
+namespace
+{
+recover_table_t reset_table __recover_section__;
+recover_table_t boot_table __recover_section__;
+
+constexpr fn_t recover_fn = 0;
+flash::file_t file;
+} // namespace
+
+void init()
+{
+  auto boot_lev = boot::lev();
+
+  file = flash::open(recover_fn, sizeof(recover_table_t), O_WRITE | O_CREATE);
+  flash::mmap(file, boot_table);
+  if (boot_lev == boot_lev_t::FLASH) {
+    boot_table = recover_table_t{};
+    flash::store(file);
+  }
+
+  if (boot_lev == boot_lev_t::FLASH)
+    sched::setup_procs();
+  else if (boot_lev == boot_lev_t::BOOT)
+    boot_table.recover();
+  else
+    reset_table.recover();
+}
+
+void set_rec(rec_lev_t rec_lev, const uint8_t *data, size_t data_sz)
+{
+  auto pid = curr_proc::pid();
+
+  if (rec_lev == rec_lev_t::NONE) {
+    reset_table.reset_entry(pid);
+
+    boot_table.reset_entry(pid);
+    flash::store(file);
+  } else {
+    auto proc_def = curr_proc::def();
+
+    reset_table.set_entry(pid, proc_def, data, data_sz);
+
+    if (rec_lev == rec_lev_t::BOOT) {
+      boot_table.set_entry(pid, proc_def, data, data_sz);
+      flash::store(file);
+    }
+  }
+}
+
+/** To be able to remove a process altogether feels too scary
+ *  Maybe there should be a way to indicate a process to always run
+ *  and also, maybe count "pin reset" as an actual restart, so it should call
+ *  setup_procs
  * */
-void set_boot() { first_boot = true; }
-bool is_first_boot() { return first_boot; }
 
-bool is_reset() { return rec_tbl.magic == REC_MAGIC; }
-
-namespace recovery
-{
-void *rec_data()
-{
-  size_t entry_id = curr_proc::rec_entry_id();
-  return rec_tbl.tbl[entry_id].data;
-}
-
-inline void def_rec_func(void *data)
-{
-  auto proc_def = (proc_def_t *)data;
-  sched::reg_proc(proc_def, nullptr);
-}
-
-void set_rec_lev(rec_lev_t lev) { set_rec_lev(lev, def_rec_func); }
-
-void set_rec_lev(rec_lev_t lev, rec_func_t rec_func)
-{
-  size_t entry_id = curr_proc::rec_entry_id();
-  auto &entry = rec_tbl.tbl[entry_id];
-  entry.rec_lev = lev;
-  entry.rec_func = rec_func;
-}
-
-size_t get_rec_entry_id()
-{
-  for (size_t entry_id = 0; entry_id < N_PROCS; entry_id++) {
-    auto &rec_lev = rec_tbl.tbl[entry_id].rec_lev;
-    if (rec_lev == rec_lev_t::NONE) {
-      rec_lev = rec_lev_t::INIT;
-      return entry_id;
-    }
-  }
-  return N_PROCS;
-}
-
-static word_t *rec_tbl_addr = (word_t *)__recover_pg;
-
-void store()
-{
-  /* nvm_t nvm{rec_tbl_addr, (word_t *)&rec_tbl, sizeof(rec_tbl)}; */
-  /* nvm.store(); */
-}
-
-void load()
-{
-  /* nvm_t nvm{rec_tbl_addr, (word_t *)&rec_tbl, sizeof(rec_tbl)}; */
-  /* nvm.load(); */
-}
-
-} // namespace recovery
-
-// FIXME: set a recover id. Every reset, id gets incremented. So previous
-// recover entries with INIT gets reused
-void recover()
-{
-  for (auto &[rec_func, rec_lev, data] : rec_tbl.tbl) {
-    if (rec_lev == rec_lev_t::INIT) {
-      rec_lev = rec_lev_t::NONE;
-      continue;
-    }
-
-    if (rec_lev != rec_lev_t::NONE) {
-      rec_lev = rec_lev_t::NONE;
-      rec_func(data);
-    }
-  }
-}
-
+} // namespace recover

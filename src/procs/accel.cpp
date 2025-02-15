@@ -31,8 +31,7 @@ int n __recover_section__ = 100;
 
 void accel_func(void *param)
 {
-  recovery::set_rec_lev(rec_lev_t::RESET);
-  recovery::store_data(accel);
+  recover::set_rec(rec_lev_t::BOOT);
 
   auto file = flash::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE);
   auto ptr = flash::mmap<buffer>(file);

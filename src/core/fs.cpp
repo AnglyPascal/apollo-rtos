@@ -74,6 +74,18 @@ public:
     return buf;
   }
 
+  void mmap(file_t &file, uint8_t *ptr, size_t buf_sz)
+  {
+    void *buf = file.mmap_buf();
+    if (buf != nullptr) {
+      // TODO: free buf
+    }
+
+    buf = ptr;
+    file.mmap(buf, buf_sz);
+    load(file);
+  }
+
   void unmap(file_t &file)
   {
     auto buf = file.unmap();
@@ -82,6 +94,8 @@ public:
 
   void mount() { fs.mount(); }
   void format() { fs.format(); }
+
+  bool first_boot() const { return fs.first_boot; }
 
   void load(file_t &file) const
   {
@@ -98,6 +112,8 @@ public:
   }
 };
 
+// TODO: FIXME: multi page files are not working at the moment
+
 namespace flash
 {
 namespace
@@ -112,6 +128,10 @@ file_t open(fn_t fn, size_t sz, uint32_t flags)
 }
 
 void *mmap(file_t &file, size_t buf_sz) { return fs_impl.mmap(file, buf_sz); }
+void mmap(file_t &file, uint8_t *buf, size_t buf_sz)
+{
+  return fs_impl.mmap(file, buf, buf_sz);
+}
 void unmap(file_t &file) { return fs_impl.unmap(file); }
 
 void mount() { fs_impl.mount(); }
@@ -121,3 +141,16 @@ void load(file_t &file) { fs_impl.load(file); }
 void store(file_t &file) { fs_impl.store(file); }
 
 } // namespace flash
+
+namespace fs
+{
+static volatile bool _first_boot = false;
+bool first_boot() { return _first_boot; }
+
+void init()
+{
+  flash::mount();
+  // fram::mount();
+  _first_boot = flash::fs_impl.first_boot();
+}
+} // namespace fs

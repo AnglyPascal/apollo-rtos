@@ -155,9 +155,9 @@ void handler(void)
     state.flag = flag_t::NONE;
 
     // wake up any waiting process first
-    sched::notify(&wait_chan);
+    sched::notify(wait_chan);
     // then wake up the currently working process
-    sched::notify(&intr_chan);
+    sched::notify(intr_chan);
 
     goto clear_intr;
   }
@@ -171,7 +171,7 @@ template <bool is_read>
 int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 {
   while (state.flag == flag_t::BUSY) {
-    sched::wait(&wait_chan);
+    sched::wait(wait_chan);
   }
 
   state.flag = flag_t::BUSY;
@@ -195,7 +195,7 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
   I2C0.STARTTX = 1;
   I2C0.TXD = *cmd;
 
-  sched::wait(&intr_chan);
+  sched::wait(intr_chan);
 
   if (state.fault == fault_t::NONE)
     return I2C_OK;
