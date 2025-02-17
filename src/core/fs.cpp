@@ -70,7 +70,6 @@ public:
     buf = pool.alloc(buf_sz);
     file.mmap(buf, buf_sz);
     load(file);
-
     return buf;
   }
 
@@ -78,7 +77,7 @@ public:
   {
     void *buf = file.mmap_buf();
     if (buf != nullptr) {
-      // TODO: free buf
+      pool.dealloc((byte_t *)buf);
     }
 
     buf = ptr;

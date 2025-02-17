@@ -45,6 +45,7 @@ class stack_allocator_t
   static constexpr size_t timer_depth = 32;
   static constexpr size_t recover_depth = 64;
   static constexpr size_t fs_depth = 80;
+  static constexpr size_t signal_depth = 32;
 
   static constexpr uint32_t alignment = 16;
 
@@ -55,16 +56,17 @@ public:
                       void (*ret)())
   {
     stk_sz = roundup(stk_sz, alignment);
-    stk_sz += debug_depth + timer_depth + recover_depth;
+    stk_sz += debug_depth + timer_depth + recover_depth + signal_depth +
+              sizeof(context_t);
 
-    proc->stack = (byte_t *)pool.alloc(stk_sz + sizeof(context_t));
+    proc->stack = (byte_t *)pool.alloc(stk_sz);
 
     if (proc->stack == nullptr) {
       debug<FATAL>("!! STACK NULLPTR\r\n");
       return;
     }
 
-    auto stk_ptr = (context_t *)(proc->stack + stk_sz);
+    auto stk_ptr = (context_t *)(proc->stack + stk_sz - sizeof(context_t));
 
     // setup initial stack frame
     *stk_ptr = {0};

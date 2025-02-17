@@ -11,8 +11,8 @@ namespace
 
 void echo(void *param)
 {
-  auto buf = (args_buffer_t *)param;
-  printf(">> %s\r\n", buf->args);
+  auto buf = (args_t *)param;
+  printf(">> %s\r\n", buf->str);
 }
 
 void clear(void *param)

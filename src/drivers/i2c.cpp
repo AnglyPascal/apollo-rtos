@@ -64,6 +64,15 @@ void init()
   irq_priority(I2C0_IRQ, IRQ_PRIO_M1);
 }
 
+void scan()
+{
+  kprintf("i2c devices:\r\n");
+  int i = 0;
+  for (uint8_t addr = 0x03; addr <= 0x77; addr++)
+    if (probe(addr) == I2C_OK)
+      kprintf("| %d: %x\r\n", i++, addr);
+}
+
 __extern_C__
 void i2c0_spi0_handler(void)
 {

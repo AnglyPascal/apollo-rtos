@@ -126,7 +126,7 @@ private:
   fs_hd_t fs_hd;
   static_assert(sizeof(fs_hd_t) <= desc.fs_hd_sz);
 
-  mutable mutex<N_PROCS_WAIT> w_mtx;
+  mutable mutex<N_PROCS_WAIT> w_mtx{"fs mtx"};
   mutable uint8_t temp_blk[(desc.max_num_blks + 1) * sizeof(blk_addr_t)];
 
   static constexpr addr_t paddr(blk_addr_t blk_addr)
@@ -176,7 +176,7 @@ public:
   {
     assert(sz > 0 && fn >= 0 && fn < desc.n_inodes);
 
-    lock_guard guard{w_mtx};
+    /* lock_guard guard{w_mtx}; */
 
     auto &inode = fs_hd.open(fn);
     if (!inode.flag.in_use()) {
@@ -217,7 +217,7 @@ private:
     assert(inode->ft() == BIN);
     auto func = to_read ? read : write;
 
-    lock_guard guard{w_mtx};
+    /* lock_guard guard{w_mtx}; */
 
     auto fst_blk = inode->addr;
     auto nblks = inode->nblks;

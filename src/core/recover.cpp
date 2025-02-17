@@ -55,6 +55,8 @@ class entry_t
   bool valid = false;
   proc_def_t proc_def;
   uint8_t data[N_REC_DATA] = {0xFF};
+  // FIXME: try increasing N_REC_DATA to demonstrate that multi-blk files are
+  // not working
 
 public:
   void recover()
@@ -102,7 +104,6 @@ public:
   void reset_entry(pid_t pid) { tbl[pid].reset(); }
 };
 
-
 namespace sched
 {
 void setup_procs(void);
@@ -124,6 +125,10 @@ constexpr fn_t recover_fn = 0;
 flash::file_t file;
 } // namespace
 
+// FIXME: need to set it up so that a recover entry is a resource
+// and it needs to be acquired. Because, once killed, a proc's pid can be
+// re-used by another pid, and that then overrides the recover entry for that
+// previous proc
 void init()
 {
   auto boot_lev = boot::lev();
@@ -138,9 +143,11 @@ void init()
   if (boot_lev == boot_lev_t::FLASH)
     sched::setup_procs();
   else if (boot_lev == boot_lev_t::BOOT)
-    boot_table.recover();
+    /* boot_table.recover(); */
+    sched::setup_procs();
   else
-    reset_table.recover();
+    /* reset_table.recover(); */
+    sched::setup_procs();
 }
 
 void set_rec(rec_lev_t rec_lev, const uint8_t *data, size_t data_sz)

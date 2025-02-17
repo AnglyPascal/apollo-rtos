@@ -24,8 +24,6 @@ struct accel_t {
 constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
 using buffer = circular_buffer<accel_t, len>;
 
-/* static_assert(sizeof(buffer) <= pg_sz - sizeof(page_guard_t)); */
-
 int n __recover_section__ = 100;
 } // namespace
 

@@ -6,11 +6,13 @@
 template <size_t chan_len = N_PROCS_WAIT>
 class mutex
 {
-private:
+/* private: */
+
+public:
+  string name;
   chan_t<chan_len> lock_chan;
   bool busy = false;
 
-public:
   void lock()
   {
     while (busy) {
@@ -21,6 +23,7 @@ public:
 
   void unlock()
   {
+    assert(busy);
     busy = false;
     sched::notify(lock_chan);
   }

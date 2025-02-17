@@ -5,6 +5,7 @@
 #include "core/shell.h"
 #include "core/types.h"
 #include "core/waitlist.h"
+#include "drivers/i2c.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
 #include "utility/debug.h"
@@ -138,12 +139,13 @@ static pid_t IDLE_PID = 0;
 
 void idle_task(void *)
 {
+  intr_enable();
   while (true) {
     change_proc(); // NOTE: comment to test invoker
   }
 }
 
-proc_def_t idle_proc_def = {"idle_proc", IDLE, 0, idle_task};
+proc_def_t idle_proc_def = {"idle_proc", IDLE, 8, idle_task};
 } // namespace
 
 /* enter idle_task with specified stack (see mpx.s) */
@@ -154,13 +156,19 @@ void __run(runnable_t task, byte_t **stk_ptr);
  * enter the idle_task in thread mode */
 void init()
 {
+  intr_disable();
+
   auto idle_proc = reg_proc(&idle_proc_def, nullptr);
   IDLE_PID = procs.pid(idle_proc);
   cpu.curr_proc = idle_proc;
 
   recover::init();
+  shell::init();
+
+  timer::init();
   last_checked = timer::now();
 
+  idle_proc->stk_ptr = idle_proc->stack + idle_proc->stk_sz - 16;
   __run(idle_task, &idle_proc->stk_ptr);
 }
 
@@ -197,6 +205,19 @@ void transfer_param(void *param)
 {
   assert(param == cpu.curr_proc->param);
   cpu.curr_proc->param = nullptr;
+}
+
+void assert_stack()
+{
+  if (cpu.curr_proc == nullptr)
+    return;
+
+  auto stack = (void *)cpu.curr_proc->stack;
+  auto stack_end = (uint8_t *)stack + cpu.curr_proc->stk_sz;
+  auto curr_stk = (void *)get_msp();
+  assert_dump(stack <= curr_stk && curr_stk <= stack_end,
+              "stack: %x, curr_stk: %x, stack_end: %x\r\n", stack, curr_stk,
+              stack_end);
 }
 
 } // namespace sched
@@ -254,8 +275,8 @@ namespace shell
 {
 void pkill(void *param)
 {
-  auto buf = (shell::args_buffer_t *)param;
-  auto args = buf->args;
+  auto buf = (shell::args_t *)param;
+  auto args = buf->str;
 
   bool kill = args[0] == '-' && args[1] == '9';
   if (kill) {
@@ -266,7 +287,7 @@ void pkill(void *param)
 
   pid_t pid;
   if (*args <= '9' && *args >= '0') {
-    pid = atoi(buf->args);
+    pid = atoi(buf->str);
   } else {
     for (pid = 0; pid < N_PROCS; pid++) {
       if (sched::procs[pid]->name == string{args})

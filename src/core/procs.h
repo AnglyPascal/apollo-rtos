@@ -30,13 +30,12 @@ struct proc_t {
   byte_t *stack = nullptr;
   size_t stk_sz = 0;
 
+  proc_def_t *def;
   void *param;
   chunk_t used_hd = {};
 
   size_t rec_entry_id = 0;
   signals_t signals = {};
-
-  proc_def_t *def;
 
   void trace(pid_t pid)
   {

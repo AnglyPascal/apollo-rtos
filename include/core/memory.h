@@ -65,4 +65,11 @@ namespace kmem
 {
 void *kmalloc(size_t sz) __attribute__((malloc));
 void kfree(void *);
+
+template <typename T, typename... Args>
+T *knew(Args &&...args)
+{
+  auto ptr = kmalloc(sizeof(T));
+  return new (ptr) T{std::forward<Args>(args)...};
+}
 } // namespace kmem

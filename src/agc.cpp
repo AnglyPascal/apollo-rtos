@@ -34,17 +34,18 @@ inline void debug_addr()
 struct flash_t {
   uint32_t magic;
   uint32_t n_reset;
-  enum {
-    MAGIC = 0xDEADDEAD,
-  };
+};
+
+enum {
+  MAGIC = 0xDEADDEAD,
 };
 
 inline void fs_test()
 {
   auto file = flash::open(1, sizeof(flash_t), O_CREATE | O_WRITE);
   auto bt = flash::mmap<flash_t>(file);
-  if (bt->magic != flash_t::MAGIC) {
-    bt->magic = flash_t::MAGIC;
+  if (bt->magic != MAGIC) {
+    bt->magic = MAGIC;
     bt->n_reset = 0;
   } else {
     bt->n_reset++;
@@ -66,11 +67,29 @@ inline void __start(void)
   fs::init();
   boot::init();
 
-  timer::init();
-
   i2c::init();
-  shell::init();
 
+  /* shell::init(); */
+
+  // FIXME:
+  /** Without this: no heap problem
+   *
+   *  flash
+   *  alloc heap: 0x2000140c
+   *  0x20001418, 0
+   *  hello
+   *  alloc heap: 0x20001468
+   *
+   *
+   * with this: very heap problem
+   *
+   *  flash
+   *  alloc heap: 0x2000140c
+   *  n_reset: 0
+   *  alloc heap: 0x20001420
+   *  0x2000142c, 0
+   *  hello
+   */
   fs_test();
   debug_addr<TRACE>();
 

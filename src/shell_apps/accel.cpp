@@ -98,7 +98,7 @@ void accel(void *param)
   auto file = flash::open(accel::fn, sizeof(buffer), O_CREATE);
   auto val = flash::mmap<buffer>(file);
 
-  bool run_bg = ((shell::args_buffer_t *)param)->run_bg;
+  bool run_bg = ((shell::args_t *)param)->run_bg;
   serial::listener_guard guard{listener, !run_bg};
 
   constexpr int threshold = 10;

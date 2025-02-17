@@ -23,15 +23,15 @@ public:
 
     sz = roundup(sz, alignment);
     auto chnk_sz = header_sz + sz;
-    chunk_t *chunk = nullptr;
 
     auto ptr = &free_hd;
     while (ptr->next != nullptr) {
-      chunk = ptr->next;
-      if (chunk->sz >= sz)
+      if (ptr->next->sz >= sz)
         break;
-      ptr = chunk;
+      ptr = ptr->next;
     }
+
+    chunk_t *chunk = ptr->next;
 
     if (chunk == nullptr) {
       chunk = (chunk_t *)alloc_func(chnk_sz);

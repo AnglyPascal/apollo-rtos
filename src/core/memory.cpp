@@ -14,34 +14,26 @@ volatile uint8_t *memtop = __stack_limit;
 constexpr uint32_t BLANK_WORD = 0xdeadbeef;
 } // namespace
 
-byte_t *alloc_heap(size_t sz)
+byte_t *alloc_heap(size_t nbytes)
 {
-  membot = (uint8_t *)roundup((size_t)membot, 8);
-
-  if (sz > (size_t)(memtop - membot)) {
+  if (nbytes > (size_t)(memtop - membot))
     return nullptr;
-  }
 
   auto ptr = membot;
-  membot += sz;
+  membot += nbytes;
 
-  // pollute the stack
-  for (uint32_t *p = (uint32_t *)ptr; p < (uint32_t *)membot; p++) {
-    *p = BLANK_WORD;
-  }
-
-  debug<TRACE>("alloc heap: %x\n", ptr);
+  debug<TRACE>("alloc heap: %x\r\n", ptr);
   return (byte_t *)ptr;
 }
 
-byte_t *alloc_stack(size_t sz)
+byte_t *alloc_stack(size_t nbytes)
 {
-  if (sz > (size_t)(memtop - membot))
+  if (nbytes > (size_t)(memtop - membot))
     return nullptr;
 
-  memtop -= sz;
+  memtop -= nbytes;
 
-  for (uint32_t *p = (uint32_t *)memtop; p < (uint32_t *)(memtop + sz); p++) {
+  for (auto p = (uint32_t *)memtop; p < (uint32_t *)(memtop + nbytes); p++) {
     *p = BLANK_WORD;
   }
 
@@ -166,16 +158,16 @@ namespace kmem
 {
 namespace
 {
-allocator<alloc_heap, 4> pool;
+allocator<alloc_heap, 8> kpool;
 }
 
-void *kmalloc(size_t sz) { return pool.alloc(sz); }
+void *kmalloc(size_t sz) { return kpool.alloc(sz); }
 
 void kfree(void *ptr)
 {
   if (ptr == nullptr)
     return;
-  pool.dealloc((byte_t *)ptr);
+  kpool.dealloc((byte_t *)ptr);
 }
 } // namespace kmem
 

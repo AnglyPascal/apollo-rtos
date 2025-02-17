@@ -5,6 +5,7 @@
 #include "core/sched.h"
 #include "drivers/i2c.h"
 #include "utility/debug.h"
+#include "utility/mutex.h"
 
 namespace i2c_non_blocking
 {
@@ -66,7 +67,7 @@ inline void clear_event(volatile uint32_t &event)
 }
 
 inline chan_t<1> intr_chan;
-inline chan_t wait_chan;
+inline mutex mtx;
 
 template <typename T = void>
 void handler(void)
@@ -91,13 +92,18 @@ void handler(void)
     clear_event(I2C0.TXDSENT);
 
     if (state.cmd_idx < state.cmd_sz) {
-      I2C0.TXD = state.cmd[state.cmd_idx++];
+      auto cmd_idx = state.cmd_idx;
+      I2C0.TXD = state.cmd[cmd_idx++];
+      state.cmd_idx = cmd_idx;
     } else if (state.data_sz == 0) {
       state.stage = stage_t::NACK;
       I2C0.STOP = 1;
     } else if (state.mode == mode_t::WRITE) {
       state.stage = stage_t::TX_DATA;
-      I2C0.TXD = state.data[state.data_idx++];
+
+      auto data_idx = state.data_idx;
+      I2C0.TXD = state.data[data_idx++];
+      state.data_idx = data_idx;
     } else {
       state.stage = stage_t::RX_DATA;
 
@@ -119,7 +125,10 @@ void handler(void)
       I2C0.STOP = 1;
     } else {
       state.stage = stage_t::TX_DATA;
-      I2C0.TXD = state.data[state.data_idx++];
+
+      auto data_idx = state.data_idx;
+      I2C0.TXD = state.data[data_idx++];
+      state.data_idx = data_idx;
     }
 
     goto clear_intr;
@@ -128,7 +137,9 @@ void handler(void)
   if (state.stage == stage_t::RX_DATA) {
     clear_event(I2C0.RXDREADY);
 
-    state.data[state.data_idx++] = (uint8_t)I2C0.RXD;
+    auto data_idx = state.data_idx;
+    state.data[data_idx++] = (uint8_t)I2C0.RXD;
+    state.data_idx = data_idx;
 
     if (state.data_idx == state.data_sz) {
       state.stage = stage_t::NACK;
@@ -154,8 +165,8 @@ void handler(void)
 
     state.flag = flag_t::NONE;
 
-    // wake up any waiting process first
-    sched::notify(wait_chan);
+    mtx.unlock();
+
     // then wake up the currently working process
     sched::notify(intr_chan);
 
@@ -170,9 +181,7 @@ clear_intr:
 template <bool is_read>
 int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 {
-  while (state.flag == flag_t::BUSY) {
-    sched::wait(wait_chan);
-  }
+  mtx.lock();
 
   state.flag = flag_t::BUSY;
 

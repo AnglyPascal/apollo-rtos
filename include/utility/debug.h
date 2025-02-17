@@ -33,30 +33,31 @@ void debug(const char *fmt, Args... args)
 __extern_C__
 void spin(void);
 
+template <debug_t lev = TRACE>
 __always_inline__
 inline void __assert(bool ex, const char *src, const char *func,
                      const char *file, int line)
 {
 #ifndef NDEBUG
   if (!ex) {
-    debug<FATAL>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
-                 file, line);
-    trigger_hardfault();
+    debug<lev>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
+               file, line);
+    return trigger_hardfault();
   }
 #endif
 }
 
-template <typename... Args>
+template <debug_t lev = TRACE, typename... Args>
 __always_inline__
 inline void __assert(bool ex, const char *src, const char *func,
                      const char *file, int line, const char *fmt, Args... args)
 {
 #ifndef NDEBUG
   if (!ex) {
-    debug<FATAL>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
-                 file, line);
-    debug<FATAL>(fmt, args...);
-    trigger_hardfault();
+    debug<lev>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
+               file, line);
+    debug<lev>(fmt, args...);
+    return trigger_hardfault();
   }
 #endif
 }
@@ -64,3 +65,5 @@ inline void __assert(bool ex, const char *src, const char *func,
 #define assert(EX, ...)                                                        \
   __assert((EX), #EX, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
 
+#define assert_dump(EX, ...)                                                        \
+  __assert<ERROR>((EX), #EX, __func__, __FILE__, __LINE__, ##__VA_ARGS__)

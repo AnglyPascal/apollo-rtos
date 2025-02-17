@@ -33,8 +33,8 @@ inline void do_trace()
 
 void trace(void *param)
 {
-  args_buffer_t &buf = *(args_buffer_t *)param;
-  auto args = buf.args;
+  auto &buf = *(args_t *)param;
+  auto args = buf.str;
 
   bool resume = false;
   if (*args++ == '-' && *args++ == 'r')

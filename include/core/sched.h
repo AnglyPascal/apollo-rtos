@@ -54,6 +54,7 @@ void wakeup(pid_t pid);
 template <size_t chan_len>
 void wait(chan_t<chan_len> &chan)
 {
+  intr_guard guard;
   chan.enqueue(curr_proc::pid());
   sleep();
 }
@@ -61,6 +62,7 @@ void wait(chan_t<chan_len> &chan)
 template <size_t chan_len>
 void notify(chan_t<chan_len> &chan)
 {
+  intr_guard guard;
   if (chan.empty())
     return;
 

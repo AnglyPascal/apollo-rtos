@@ -2,6 +2,7 @@
 
 #include "core/sched.h"
 #include "core/types.h"
+#include "utility/debug.h"
 
 namespace shell
 {
@@ -9,11 +10,8 @@ namespace shell
 constexpr size_t args_len = 64;
 
 struct args_buffer_t {
-  char str[args_len] = {'\0'};
   size_t sz = 0;
-
-  char *args = nullptr;
-  bool run_bg = false;
+  char str[args_len] = {'\0'};
 
   char &operator[](size_t i) { return str[i]; }
 
@@ -29,7 +27,12 @@ struct args_buffer_t {
       sz--;
   }
 
-  void reset() { *this = args_buffer_t{}; }
+  void reset() { sz = 0; }
+};
+
+struct args_t {
+  char str[args_len];
+  bool run_bg;
 };
 
 void init();

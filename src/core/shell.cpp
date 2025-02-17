@@ -11,54 +11,88 @@ void delay_loop(uint32_t);
 __extern_C__
 void trigger_reset();
 
+// FIXME: this implementation of shell is the culprit
+//
+// implement it this way:
+//   have a shell process, that goes into sleep immediately
+//   have a uart listener, that pushes chars into a predefined buf
+//   have it wake up the shell process when it gets a \r or \n
+//   shell then allocates a new buffer, swaps it with the old one,
+//     and passes it to the new process (if it finds one)
+
 namespace shell
 {
 namespace
 {
+chan_t<1> chan;
+args_buffer_t buf;
 
-void proc(void *param)
+void shell_proc(void *)
 {
-  auto &buf = *(args_buffer_t *)param;
+  while ((volatile bool)true) {
+    sched::wait(chan);
 
-  size_t idx = 0;
-  while (idx < buf.sz && buf[idx] != ' ') {
+    auto str = buf.str;
+    auto sz = buf.sz;
+
+    if (sz == 0)
+      continue;
+
+    bool run_bg = false;
+
+    while (sz >= 0 && str[sz - 1] == ' ')
+      sz--;
+
+    if (str[sz - 1] == '&') {
+      run_bg = true;
+      sz--;
+    }
+
+    str[sz] = '\0';
+
+    size_t idx = 0;
+    while (idx < sz && str[idx] == ' ') {
+      idx++;
+    }
+    auto cmd = &str[idx];
+
+    while (idx < sz && str[idx] != ' ') {
+      idx++;
+    }
+    str[idx] = '\0';
+
     idx++;
+    while (idx < sz && str[idx] == ' ') {
+      idx++;
+    }
+    auto args = &str[idx];
+
+    auto cmd_def = match_cmd(cmd);
+    if (cmd_def == nullptr) {
+      debug<ERROR>("wrong command: \"%s\"\r\n", cmd);
+    } else {
+      auto param = kmem::knew<args_t>();
+      param->run_bg = run_bg;
+
+      size_t i = 0;
+      while (*args != '\0') {
+        param->str[i++] = *args++;
+      }
+      param->str[i++] = '\0';
+
+      sched::reg_proc(cmd_def, param);
+    }
+
+    printf("\r\n");
+    buf.reset();
   }
-
-  buf[idx] = '\0';
-
-  idx++;
-  while (idx < buf.sz && buf[idx] == ' ') {
-    idx++;
-  }
-  buf.args = &buf[idx];
-
-  if (buf[buf.sz - 1] == '&') {
-    buf.run_bg = true;
-
-    buf.pop();
-    buf.push('\0');
-  }
-
-  auto cmd = buf.str;
-  auto cmd_def = match_cmd(cmd);
-  if (cmd_def == nullptr) {
-    debug<ERROR>("wrong command: \"%s\"\r\n", cmd);
-    return;
-  }
-
-  sched::reg_proc(cmd_def, param);
-  sched::transfer_param(param);
 }
-
-args_buffer_t *buf;
-proc_def_t proc_def = {"shell", URGENT1, 256, proc};
 
 bool listener(char c)
 {
   if (c == 0177) {
     printf("\b \b");
-    buf->pop();
+    buf.pop();
     return true;
   }
 
@@ -71,27 +105,24 @@ bool listener(char c)
   serial::putc(c);
 
   if (c != '\r' && c != '\n') {
-    buf->push(c);
+    buf.push(c);
     return true;
   }
 
-  printf("\r\n");
-
-  sched::reg_proc(&proc_def, buf);
-
-  buf = (args_buffer_t *)kmem::kmalloc(sizeof(args_buffer_t));
-  buf->reset();
+  sched::notify(chan);
 
   return true;
 }
+
+proc_def_t proc_def = {"shell", HIGH1, 256, shell_proc};
+
 } // namespace
 
 void init()
 {
-  buf = (args_buffer_t *)kmem::kmalloc(sizeof(args_buffer_t));
-  buf->reset();
-
+  buf.reset();
   serial::register_listener(listener);
+  sched::reg_proc(&proc_def, nullptr);
 }
 
 } // namespace shell

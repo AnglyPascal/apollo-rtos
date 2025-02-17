@@ -27,8 +27,8 @@ void heart(void *param)
 {
   swap_handler(SIGTERM, []() { exit = true; });
 
-  auto buf = (args_buffer_t *)param;
-  auto str = buf->args;
+  auto buf = (args_t *)param;
+  auto str = buf->str;
 
   auto n = (*str == '\0') ? 100 : atoi(str);
 
@@ -51,6 +51,6 @@ void heart(void *param)
 
 } // namespace
 
-proc_def_t heart_cmd = {"core/heart", LOW3, 128, heart};
+proc_def_t heart_cmd = {"heart", LOW3, 128, heart};
 
 } // namespace shell

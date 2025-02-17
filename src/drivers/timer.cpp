@@ -6,6 +6,11 @@
 #include "core/waitlist.h"
 #include "utility/debug.h"
 
+namespace sched
+{
+void assert_stack();
+}
+
 namespace timer
 {
 
@@ -63,6 +68,8 @@ void timer1_handler(void)
     MILLIS += TICK;
     TIMER1.COMPARE[0] = 0;
   }
+
+  sched::assert_stack();
 
   if ((MILLIS & (waitlist::update_interval - 1)) == 0) {
     intr_guard guard;

@@ -1,9 +1,7 @@
 #include "core/irq.h"
 #include "core/recover.h"
 #include "core/sched.h"
-
-__extern_C__
-void trigger_reset();
+#include "drivers/i2c.h"
 
 namespace procs
 {
@@ -15,6 +13,9 @@ proc_def_t test{"test_proc", MID1, 64, test_proc};
 void test_proc(void *param)
 {
   recover::set_rec(rec_lev_t::RESET);
+
+  // FIXME: move from here
+  i2c::scan();
 
   delay_loop(1000);
   sched::decr_priority(LOW4);
