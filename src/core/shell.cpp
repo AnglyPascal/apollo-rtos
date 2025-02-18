@@ -13,8 +13,13 @@ namespace
 chan_t<1> chan;
 args_buffer_t buf;
 
+bool listener(char c);
+
 void shell_proc(void *)
 {
+  buf.reset();
+  serial::register_listener(listener);
+
   while ((volatile bool)true) {
     sched::wait(chan);
 
@@ -104,16 +109,10 @@ bool listener(char c)
   return true;
 }
 
-proc_def_t proc_def = {"shell", HIGH1, 256, shell_proc};
-
+proc_def_t shell_def = {"shell", HIGH1, 256, shell_proc};
 } // namespace
 
-void init()
-{
-  buf.reset();
-  serial::register_listener(listener);
-  sched::reg_proc(&proc_def, nullptr);
-}
+void init() { sched::reg_proc(&shell_def, nullptr); }
 
 } // namespace shell
 

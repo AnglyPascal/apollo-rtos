@@ -8,6 +8,9 @@
 inline constexpr size_t N_REC_DATA = 40;
 using rec_func_t = void (*)(void *);
 
+using rec_id_t = uint8_t;
+inline constexpr rec_id_t null_rec_id = MAX<rec_id_t>;
+
 enum class rec_lev_t {
   NONE,
   RESET,

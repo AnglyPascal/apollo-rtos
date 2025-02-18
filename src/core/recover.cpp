@@ -7,79 +7,71 @@
 
 #define REC_MAGIC 0xbabedadd
 
-class entry_t
-{
-  proc_def_t proc_def;
-  uint8_t data[N_REC_DATA] = {0xFF};
-  // FIXME: incr N_REC_DATA to demonstrate that multi-blk files are not working
-
-public:
-  pid_t pid = null_pid;
-
-  bool owned_by(pid_t _pid) const { return (uint8_t)pid == (uint8_t)_pid; }
-  bool empty() const { return pid == null_pid; }
-
-  void recover()
-  {
-    if (!empty())
-      sched::reg_proc(&proc_def, data);
-    reset();
-  }
-
-  void set(pid_t _pid, const proc_def_t *def, const uint8_t *_data, size_t sz)
-  {
-    pid = _pid;
-    proc_def = *def;
-
-    if (_data != nullptr) {
-      assert(sz <= N_REC_DATA);
-      _memcpy(data, _data, sz);
-    }
-  }
-
-  void reset() { pid = null_pid; }
-};
-
 class recover_table_t
 {
 private:
-  entry_t tbl[N_PROCS] = {{}};
+  enum state_t : uint8_t {
+    EMPTY,
+    ACQUIRED,
+    IN_USE,
+  };
+
+  struct entry_t {
+    state_t state = EMPTY;
+    proc_def_t proc_def;
+    uint8_t data[N_REC_DATA] = {0xFF};
+  };
+
+  // FIXME: incr N_PROCS to demonstrate that multi-blk files are not working
+  entry_t tbl[N_PROCS] = {};
+  static_assert(sizeof(tbl) < 1024);
 
 public:
-  void recover()
+  rec_id_t get_rec_id()
   {
-    for (auto &entry : tbl)
-      entry.recover();
-  }
-
-  void set_entry(pid_t pid, const proc_def_t *def, const uint8_t *data,
-                 size_t data_sz)
-  {
-    size_t empty_idx = 0;
-    for (size_t i = 0; i < N_PROCS; i++) {
-      auto &entry = tbl[i];
-
-      /* if (entry.owned_by(pid)) { */
-      /*   assert(pid == entry.pid); */
-      /*   kprintf("%d = %d == %d\r\n", pid == entry.pid, pid, entry.pid); */
-      /*   return entry.set(pid, def, data, data_sz); */
-      /* } */
-
-      if (entry.empty()) {
-        empty_idx = i;
-        break;
+    for (uint8_t i = 0; i < N_PROCS; i++) {
+      if (tbl[i].state == EMPTY) {
+        tbl[i].state = ACQUIRED;
+        return i;
       }
     }
-
-    tbl[empty_idx].set(pid, def, data, data_sz);
+    assert(false, "no recover table entry free\r\n");
+    return null_rec_id;
   }
 
-  void reset_entry(pid_t pid)
+  void recover()
   {
     for (auto &entry : tbl) {
-      if (entry.owned_by(pid))
-        return entry.reset();
+      if (entry.state == IN_USE) {
+        entry.state = EMPTY;
+        kprintf("recover: %s\r\n", entry.proc_def.name.str);
+        sched::reg_proc(&entry.proc_def, entry.data);
+      } else if (entry.state == ACQUIRED) {
+        entry.state = EMPTY;
+      }
     }
+  }
+
+  void set_entry(uint8_t entry_id, const proc_def_t *def, const uint8_t *data,
+                 size_t data_sz)
+  {
+    auto &entry = tbl[entry_id];
+    assert(entry.state != EMPTY, "%d, %s, %d\r\n", entry_id, def->name.str,
+           entry.state);
+
+    entry.state = IN_USE;
+    entry.proc_def = *def;
+
+    if (data != nullptr) {
+      assert(data_sz <= N_REC_DATA);
+      _memcpy(entry.data, data, data_sz);
+    }
+  }
+
+  void reset_entry(uint8_t entry_id)
+  {
+    auto &entry = tbl[entry_id];
+    entry.state = EMPTY;
   }
 };
 
@@ -91,51 +83,49 @@ void setup_procs(void);
 namespace curr_proc
 {
 proc_def_t *def();
-}
+uint8_t rec_id();
+void set_rec_id(rec_id_t id);
+} // namespace curr_proc
 
 namespace recover
 {
 namespace
 {
 recover_table_t reset_table __recover_section__;
-
 constexpr fn_t recover_fn = 0;
 flash::file_t file;
 } // namespace
 
-// FIXME: need to set it up so that a recover entry is a resource
-// and it needs to be acquired. Because, once killed, a proc's pid can be
-// re-used by another pid, and that then overrides the recover entry for that
-// previous proc
 void init()
 {
   auto boot_lev = boot::lev();
 
   file = flash::open(recover_fn, sizeof(recover_table_t), O_WRITE | O_CREATE);
   flash::mmap(file, reset_table);
-  if (boot_lev != boot_lev_t::RESET) {
-    reset_table = recover_table_t{};
-    flash::store(file);
-  }
 
-  // hardware restart if the recover table is corrupt
+  // TODO: hardware restart if the recover table is corrupt
   if (boot_lev == boot_lev_t::FLASH) {
+    reset_table = recover_table_t{};
     sched::setup_procs();
   } else {
-    /* reset_table.recover(); */
-    /* flash::store(file); */
-    sched::setup_procs();
+    reset_table.recover();
   }
+
+  flash::store(file);
 }
 
 void set_rec(rec_lev_t rec_lev, const uint8_t *data, size_t data_sz)
 {
-  auto pid = curr_proc::pid();
 
-  if (rec_lev == rec_lev_t::NONE)
-    reset_table.reset_entry(pid);
-  else
-    reset_table.set_entry(pid, curr_proc::def(), data, data_sz);
+  if (rec_lev == rec_lev_t::NONE) {
+    auto entry_id = curr_proc::rec_id();
+    if (entry_id != null_rec_id)
+      reset_table.reset_entry(entry_id);
+  } else {
+    auto entry_id = reset_table.get_rec_id();
+    curr_proc::set_rec_id(entry_id);
+    reset_table.set_entry(entry_id, curr_proc::def(), data, data_sz);
+  }
 
   flash::store(file);
 }

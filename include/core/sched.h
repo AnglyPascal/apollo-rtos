@@ -27,7 +27,6 @@ struct proc_def_t {
 namespace curr_proc
 {
 pid_t pid();
-size_t rec_entry_id();
 string name();
 } // namespace curr_proc
 

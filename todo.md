@@ -22,3 +22,4 @@
 - trace unification, and dump signal
 - disable intr before and after context switch??
 
+- why can you press ctrl-D and cause reset when the reset table is being set up??

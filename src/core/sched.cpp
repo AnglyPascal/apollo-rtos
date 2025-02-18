@@ -60,6 +60,7 @@ proc_t *reg_proc(proc_def_t *proc_def, void *param)
   proc->name = name;
   proc->param = param;
   proc->def = proc_def;
+  proc->rec_id = null_rec_id;
 
   stack_allocator.acquire(proc, stk_sz, func, param, exit<true>);
 
@@ -215,9 +216,9 @@ void assert_stack()
   auto stack = (void *)cpu.curr_proc->stack;
   auto stack_end = (uint8_t *)stack + cpu.curr_proc->stk_sz;
   auto curr_stk = (void *)get_msp();
-  assert_dump(stack <= curr_stk && curr_stk <= stack_end,
-              "stack: %x, curr_stk: %x, stack_end: %x\r\n", stack, curr_stk,
-              stack_end);
+  assert(stack <= curr_stk && curr_stk <= stack_end,
+         "stack: %x, curr_stk: %x, stack_end: %x\r\n", stack, curr_stk,
+         stack_end);
 }
 
 } // namespace sched
@@ -229,6 +230,9 @@ pid_t pid() { return procs.pid(cpu.curr_proc); }
 string name() { return cpu.curr_proc->name; }
 chunk_t *used_hd() { return &cpu.curr_proc->used_hd; }
 proc_def_t *def() { return cpu.curr_proc->def; }
+
+rec_id_t rec_id() { return cpu.curr_proc->rec_id; }
+void set_rec_id(rec_id_t id) { cpu.curr_proc->rec_id = id; }
 } // namespace curr_proc
 
 ///////////////
