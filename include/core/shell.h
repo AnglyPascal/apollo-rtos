@@ -6,7 +6,6 @@
 
 namespace shell
 {
-
 constexpr size_t args_len = 64;
 
 struct args_buffer_t {

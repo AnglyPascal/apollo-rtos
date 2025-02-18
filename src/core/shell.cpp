@@ -6,20 +6,6 @@
 #include "drivers/serial.h"
 #include "utility/debug.h"
 
-void delay_loop(uint32_t);
-
-__extern_C__
-void trigger_reset();
-
-// FIXME: this implementation of shell is the culprit
-//
-// implement it this way:
-//   have a shell process, that goes into sleep immediately
-//   have a uart listener, that pushes chars into a predefined buf
-//   have it wake up the shell process when it gets a \r or \n
-//   shell then allocates a new buffer, swaps it with the old one,
-//     and passes it to the new process (if it finds one)
-
 namespace shell
 {
 namespace
@@ -40,53 +26,57 @@ void shell_proc(void *)
 
     bool run_bg = false;
 
+    // trim trailing spaces
     while (sz >= 0 && str[sz - 1] == ' ')
       sz--;
 
+    // run in background?
     if (str[sz - 1] == '&') {
       run_bg = true;
       sz--;
     }
-
     str[sz] = '\0';
 
+    // trim leading spaces
     size_t idx = 0;
-    while (idx < sz && str[idx] == ' ') {
+    while (idx < sz && str[idx] == ' ')
       idx++;
-    }
+
+    // find end of command
     auto cmd = &str[idx];
-
-    while (idx < sz && str[idx] != ' ') {
+    while (idx < sz && str[idx] != ' ')
       idx++;
-    }
     str[idx] = '\0';
-
-    idx++;
-    while (idx < sz && str[idx] == ' ') {
-      idx++;
-    }
-    auto args = &str[idx];
 
     auto cmd_def = match_cmd(cmd);
     if (cmd_def == nullptr) {
-      debug<ERROR>("wrong command: \"%s\"\r\n", cmd);
-    } else {
-      auto param = kmem::knew<args_t>();
-      param->run_bg = run_bg;
-
-      size_t i = 0;
-      while (*args != '\0') {
-        param->str[i++] = *args++;
-      }
-      param->str[i++] = '\0';
-
-      sched::reg_proc(cmd_def, param);
+      debug<ERROR>("\r\nwrong command: \"%s\"\r\n", cmd);
+      buf.reset();
+      continue;
     }
+
+    auto param = kmem::knew<args_t>();
+    param->run_bg = run_bg;
+
+    // trim leading spaces from args
+    idx++;
+    while (idx < sz && str[idx] == ' ')
+      idx++;
+
+    size_t i = 0;
+    while (idx < sz)
+      param->str[i++] = str[idx++];
+    param->str[i++] = '\0';
+
+    sched::reg_proc(cmd_def, param);
 
     printf("\r\n");
     buf.reset();
   }
 }
+
+__extern_C__
+void trigger_reset();
 
 bool listener(char c)
 {

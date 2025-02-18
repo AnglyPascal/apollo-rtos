@@ -69,8 +69,6 @@ inline void __start(void)
 
   i2c::init();
 
-  /* shell::init(); */
-
   // FIXME:
   /** Without this: no heap problem
    *

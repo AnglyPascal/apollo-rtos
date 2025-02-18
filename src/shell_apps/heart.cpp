@@ -21,7 +21,7 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
                                   0, 0, 1, 0, 0,  //
                                   0, 0, 0, 0, 0); //
 
-static bool exit = false;
+bool exit = false;
 
 void heart(void *param)
 {
@@ -30,7 +30,8 @@ void heart(void *param)
   auto buf = (args_t *)param;
   auto str = buf->str;
 
-  auto n = (*str == '\0') ? 100 : atoi(str);
+  auto n = (*str == '\0') ? 10 : atoi(str);
+  kprintf("\r\nheart: %d, %d, %s\r\n", exit, n, str);
 
   while (!exit && n-- > 0) {
     display::show(big_heart);
