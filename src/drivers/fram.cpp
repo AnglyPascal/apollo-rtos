@@ -1,9 +1,10 @@
-#include "drivers/fram.h"
+#include "core/fs.h"
+
 #include "drivers/i2c.h"
 
 #define FRAM 0x50
 
-namespace fram
+namespace _fram
 {
 void write(addr_t addr, uint8_t *buf, size_t buf_sz)
 {

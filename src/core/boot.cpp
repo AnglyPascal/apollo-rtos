@@ -1,3 +1,4 @@
+#include "core/fs.h"
 #include "core/memory.h"
 #include "core/recover.h"
 #include "utility/debug.h"

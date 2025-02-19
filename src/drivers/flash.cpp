@@ -1,4 +1,4 @@
-#include "drivers/flash.h"
+#include "core/fs.h"
 
 #include "core/hardware.h"
 #include "utility/debug.h"
@@ -12,7 +12,7 @@ inline void wait()
     ;
 }
 
-namespace flash
+namespace _flash
 {
 void erase(addr_t pg_addr)
 {
@@ -53,4 +53,4 @@ void read(addr_t addr, uint8_t *buf, size_t sz)
     wait();
   }
 }
-} // namespace flash
+} // namespace _flash

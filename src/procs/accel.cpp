@@ -2,7 +2,6 @@
 #include "core/fs.h"
 #include "core/recover.h"
 #include "core/sched.h"
-#include "drivers/flash.h"
 #include "drivers/serial.h"
 #include "utility/circular_buffer.h"
 

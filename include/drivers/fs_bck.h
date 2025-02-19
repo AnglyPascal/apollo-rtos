@@ -63,9 +63,9 @@ struct _fs_hd_t {
   uint32_t magic;
   inode_t inode_tbl[desc.n_inodes];
 
-  static constexpr blk_addr_t NBLKS = (desc.end - desc.start) / desc_t::blk_sz;
-  using free_set_t = bitset<blk_addr_t, NBLKS>;
-  free_set_t free_set;
+  static constexpr size_t N_BLKS = (desc.end - desc.start) / desc_t::blk_sz;
+  static_assert(N_BLKS <= (1 << 8));
+  bitset<N_BLKS> free_set;
 
   bool valid() const { return magic == BLK_MAGIC; }
 
@@ -117,7 +117,7 @@ public:
 
   using inode_t = _inode_t<desc_t>;
 
-  static constexpr auto blk_sz = desc_t::blk_sz;
+  static constexpr auto BLK_SZ = desc_t::blk_sz;
 
   bool first_boot = false;
 
@@ -131,7 +131,7 @@ private:
 
   static constexpr addr_t paddr(blk_addr_t blk_addr)
   {
-    auto addr = desc.start + (addr_t)blk_addr * blk_sz;
+    auto addr = desc.start + (addr_t)blk_addr * BLK_SZ;
     assert(desc.start <= addr && addr < desc.end);
     return addr;
   }
@@ -186,8 +186,8 @@ public:
       file_type_t ft = flags & O_CHAR_FILE ? CHAR : BIN;
 
       nblks_t nblks = 1;
-      if (sz > blk_sz)
-        nblks += roundup(sz, blk_sz) / blk_sz;
+      if (sz > BLK_SZ)
+        nblks += roundup(sz, BLK_SZ) / BLK_SZ;
       assert(nblks <= desc.max_num_blks + 1);
 
       blk_addr_t *blk = (blk_addr_t *)temp_blk;
@@ -222,7 +222,7 @@ private:
     auto fst_blk = inode->addr;
     auto nblks = inode->nblks;
 
-    size_t file_sz = nblks > 1 ? (nblks - 1) * blk_sz : blk_sz;
+    size_t file_sz = nblks > 1 ? (nblks - 1) * BLK_SZ : BLK_SZ;
     assert(file_sz >= buf_sz);
 
     if (nblks == 1) {
@@ -235,10 +235,10 @@ private:
 
     for (nblks_t i = 0; i < nblks - 2; i++) {
       auto blk_addr = blk[i];
-      func(blk_addr, buf, blk_sz);
+      func(blk_addr, buf, BLK_SZ);
 
-      buf += blk_sz;
-      buf_sz -= blk_sz;
+      buf += BLK_SZ;
+      buf_sz -= BLK_SZ;
     }
     func(blk[nblks - 2], buf, buf_sz);
   }
@@ -257,7 +257,22 @@ public:
 
   // TODO:
   // also using a call to free_set.size(), determine free space
-  void trace();
+  void trace()
+  {
+    auto free_blks = fs_hd.free_set.size();
+    auto free_sz = (size_t)free_blks * BLK_SZ;
+    auto used_sz = fs_hd_t::N_BLKS * BLK_SZ - free_sz;
+    debug<INFO>("  |  free_blks: %d, free: %d, in use: %d\r\n", free_blks, free_sz,
+                used_sz);
+
+    for (fn_t fn = 0; fn < desc.n_inodes; fn++) {
+      auto &inode = fs_hd.inode_tbl[fn];
+      if (!inode.flag.in_use())
+        continue;
+      debug<INFO>("  |  %d: size = %d, type = %s\r\n", fn, inode.fsz(),
+                  inode.ft() == CHAR ? "char" : "bin");
+    }
+  }
 
   // TODO:
   void flush();

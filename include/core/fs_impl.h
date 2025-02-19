@@ -1,7 +1,8 @@
-#include "core/fs.h"
+#pragma once
+
 #include "core/file.h"
+#include "core/fs.h"
 #include "core/memory.h"
-#include "drivers/flash.h"
 #include "drivers/fs_bck.h"
 #include "utility/allocator.h"
 #include "utility/debug.h"
@@ -12,6 +13,7 @@ class open_ftbl_t
 public:
   using fn_t = typename desc_t::fn_t;
   using fd_t = _fd_t<desc_t>;
+  using file_t = _file_t<desc_t>;
 
 private:
   fd_t open_files[N_OPEN_FILES] = {};
@@ -39,15 +41,15 @@ class fs_impl_t
 {
   using file_t = _file_t<desc_t>;
 
-  allocator<alloc_heap, 4> pool;
+  inline static allocator<alloc_heap, 4> pool;
 
   using fs_t = _fs_t<desc_t, desc>;
-  fs_t fs;
+  inline static fs_t fs;
 
-  open_ftbl_t<desc_t, N_OPEN_FILES> open_ftbl;
+  inline static open_ftbl_t<desc_t, N_OPEN_FILES> open_ftbl;
 
 public:
-  file_t open(fn_t fn, size_t sz, uint32_t flags)
+  static file_t open(fn_t fn, size_t sz, uint32_t flags)
   {
     auto fd = open_ftbl.find_fd(fn);
     if (fd == nullptr)
@@ -61,7 +63,7 @@ public:
     return {*fd, (bool)(flags & O_WRITE)};
   }
 
-  void *mmap(file_t &file, size_t buf_sz)
+  static void *mmap(file_t &file, size_t buf_sz)
   {
     void *buf = file.mmap_buf();
     if (buf != nullptr)
@@ -73,7 +75,7 @@ public:
     return buf;
   }
 
-  void mmap(file_t &file, uint8_t *ptr, size_t buf_sz)
+  static void mmap(file_t &file, uint8_t *ptr, size_t buf_sz)
   {
     void *buf = file.mmap_buf();
     if (buf != nullptr) {
@@ -85,71 +87,42 @@ public:
     load(file);
   }
 
-  void unmap(file_t &file)
+  template <typename T>
+  static T *mmap(file_t &file)
+  {
+    return (T *)mmap(file, sizeof(T));
+  }
+
+  template <typename T>
+  static void mmap(file_t &file, T &obj)
+  {
+    mmap(file, (uint8_t *)&obj, sizeof(T));
+  }
+
+  static void unmap(file_t &file)
   {
     auto buf = file.unmap();
     pool.dealloc((byte_t *)buf);
   }
 
-  void mount() { fs.mount(); }
-  void format() { fs.format(); }
+  static void mount() { fs.mount(); }
+  static void format() { fs.format(); }
 
-  bool first_boot() const { return fs.first_boot; }
+  static bool first_boot() { return fs.first_boot; }
 
-  void load(file_t &file) const
+  static void load(file_t &file)
   {
     assert(file.mmap_buf() != nullptr);
     auto inode = file.inode();
     fs.load(inode, (uint8_t *)file.mmap_buf(), file.mmap_buf_sz());
   }
 
-  void store(file_t &file) const
+  static void store(file_t &file)
   {
     assert(file.mmap_buf() != nullptr);
     auto inode = file.inode();
     fs.store(inode, (uint8_t *)file.mmap_buf(), file.mmap_buf_sz());
   }
+
+  static void trace() { fs.trace(); }
 };
-
-// TODO: FIXME: multi page files are not working at the moment
-
-namespace flash
-{
-namespace
-{
-static constexpr ft_func_t ft_func = [](uint32_t flag) { return CHAR; };
-fs_impl_t<desc_t, desc, 8, ft_func> fs_impl;
-} // namespace
-
-file_t open(fn_t fn, size_t sz, uint32_t flags)
-{
-  return fs_impl.open(fn, sz, flags);
-}
-
-void *mmap(file_t &file, size_t buf_sz) { return fs_impl.mmap(file, buf_sz); }
-void mmap(file_t &file, uint8_t *buf, size_t buf_sz)
-{
-  return fs_impl.mmap(file, buf, buf_sz);
-}
-void unmap(file_t &file) { return fs_impl.unmap(file); }
-
-void mount() { fs_impl.mount(); }
-void format() { fs_impl.format(); }
-
-void load(file_t &file) { fs_impl.load(file); }
-void store(file_t &file) { fs_impl.store(file); }
-
-} // namespace flash
-
-namespace fs
-{
-static volatile bool _first_boot = false;
-bool first_boot() { return _first_boot; }
-
-void init()
-{
-  flash::mount();
-  // fram::mount();
-  _first_boot = flash::fs_impl.first_boot();
-}
-} // namespace fs

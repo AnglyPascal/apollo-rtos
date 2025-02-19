@@ -44,7 +44,6 @@ public:
     for (auto &entry : tbl) {
       if (entry.state == IN_USE) {
         entry.state = EMPTY;
-        kprintf("recover: %s\r\n", entry.proc_def.name.str);
         sched::reg_proc(&entry.proc_def, entry.data);
       } else if (entry.state == ACQUIRED) {
         entry.state = EMPTY;
@@ -96,10 +95,11 @@ constexpr fn_t recover_fn = 0;
 flash::file_t file;
 } // namespace
 
-void init()
+void init() 
 {
   auto boot_lev = boot::lev();
 
+  // FIXME: wtf is this stack usage bruh
   file = flash::open(recover_fn, sizeof(recover_table_t), O_WRITE | O_CREATE);
   flash::mmap(file, reset_table);
 
