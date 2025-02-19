@@ -4,16 +4,18 @@
 #include "drivers/i2c.h"
 #include "utility/debug.h"
 
-namespace i2c_blocking
+namespace i2c
+{
+namespace sync
 {
 
 namespace
 {
-template <typename T = void>
-int wait(volatile uint32_t *event)
+inline int wait(volatile uint32_t *event)
 {
   while (!*event)
     ;
+  *event = 0;
   return I2C0.ERROR ? I2C0.ERRORSRC : I2C_OK;
 }
 
@@ -104,4 +106,5 @@ void handler(void)
   enable_irq(irq);
 }
 
-} // namespace i2c_blocking
+} // namespace sync
+} // namespace i2c

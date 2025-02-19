@@ -233,6 +233,8 @@ proc_def_t *def() { return cpu.curr_proc->def; }
 
 rec_id_t rec_id() { return cpu.curr_proc->rec_id; }
 void set_rec_id(rec_id_t id) { cpu.curr_proc->rec_id = id; }
+
+bool set_up() { return cpu.curr_proc != nullptr; }
 } // namespace curr_proc
 
 ///////////////

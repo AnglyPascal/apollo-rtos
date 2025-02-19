@@ -6,17 +6,19 @@
 #include "drivers/gpio.h"
 #include "utility/debug.h"
 
-#include "i2c_blocking.h"
-#include "i2c_non_blocking.h"
+#include "i2c_async.h"
+#include "i2c_sync.h"
 
 namespace i2c
 {
-using namespace i2c_non_blocking;
 
 void read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
                 size_t n)
 {
-  xfer<true>(addr, cmd, cmd_sz, buf, n);
+  if (curr_proc::set_up())
+    async::xfer<true>(addr, cmd, cmd_sz, buf, n);
+  else
+    sync::xfer<true>(addr, cmd, cmd_sz, buf, n);
 }
 
 uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz)
@@ -29,7 +31,10 @@ uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz)
 void write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
                  size_t n)
 {
-  xfer<false>(addr, cmd, cmd_sz, buf, n);
+  if (curr_proc::set_up())
+    async::xfer<false>(addr, cmd, cmd_sz, buf, n);
+  else
+    sync::xfer<false>(addr, cmd, cmd_sz, buf, n);
 }
 
 void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val)
@@ -40,7 +45,7 @@ void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val)
 int probe(uint8_t addr)
 {
   char buf = 0;
-  return xfer<false>(addr, (uint8_t *)&buf, 1, nullptr, 0);
+  return async::xfer<false>(addr, (uint8_t *)&buf, 1, nullptr, 0);
 }
 
 void init()
@@ -54,7 +59,10 @@ void init()
   I2C0.PSELSDA = I2C0_SDA;
   I2C0.FREQUENCY = I2C_FREQUENCY_100kHz;
   I2C0.ENABLE = I2C_ENABLE_Enabled;
+}
 
+void irq_en()
+{
   /* Enable interrupts */
   I2C0.INTEN = BIT(I2C_INT_RXDREADY) | BIT(I2C_INT_TXDSENT) |
                BIT(I2C_INT_STOPPED) | BIT(I2C_INT_ERROR);
@@ -76,6 +84,6 @@ void scan()
 __extern_C__
 void i2c0_spi0_handler(void)
 {
-  handler();
+  async::handler();
 }
 } // namespace i2c

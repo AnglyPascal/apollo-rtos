@@ -64,30 +64,12 @@ inline void __start(void)
   serial::init();
   serial::clear_screen();
 
+  i2c::init();
   fs::init();
+  i2c::irq_en();
+
   boot::init();
 
-  i2c::init();
-
-  // FIXME:
-  /** Without this: no heap problem
-   *
-   *  flash
-   *  alloc heap: 0x2000140c
-   *  0x20001418, 0
-   *  hello
-   *  alloc heap: 0x20001468
-   *
-   *
-   * with this: very heap problem
-   *
-   *  flash
-   *  alloc heap: 0x2000140c
-   *  n_reset: 0
-   *  alloc heap: 0x20001420
-   *  0x2000142c, 0
-   *  hello
-   */
   fs_test();
   debug_addr<TRACE>();
 

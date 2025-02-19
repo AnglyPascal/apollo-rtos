@@ -7,7 +7,9 @@
 #include "utility/debug.h"
 #include "utility/mutex.h"
 
-namespace i2c_non_blocking
+namespace i2c
+{
+namespace async
 {
 
 enum class stage_t {
@@ -218,4 +220,5 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
   return I2C_ERR;
 }
 
-} // namespace i2c_non_blocking
+} // namespace async
+} // namespace i2c

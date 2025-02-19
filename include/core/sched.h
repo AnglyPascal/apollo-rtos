@@ -28,6 +28,7 @@ namespace curr_proc
 {
 pid_t pid();
 string name();
+bool set_up();
 } // namespace curr_proc
 
 namespace sched
