@@ -24,18 +24,19 @@ set(OUTPUT_FILE "bare-metal")
 include_directories(include)
 
 set(ARCH "-mcpu=cortex-m0 -mthumb")
-set(OPT "-O3 -g -Wall")
+set(OPT "-O2 -g -Wall")
 set(STACK_USAGE "-fstack-usage -fdump-tree-optimized-graph")
 set(EMBED "-ffreestanding -nostartfiles")
 set(EMBED_CXX "-fno-exceptions -fno-unwind-tables -fno-rtti -std=c++20")
 set(NEWLIB "--specs=nano.specs --specs=nosys.specs")
+set(DEAD_CODE "-ffunction-sections -fdata-sections")
 
 set(ALL_FLAGS "${ARCH} ${OPT} ${STACK_USAGE}")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ALL_FLAGS} ${EMBED}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ALL_FLAGS} ${EMBED} ${EMBED_CXX}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ALL_FLAGS} ${EMBED} ${DEAD_CODE}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ALL_FLAGS} ${EMBED} ${EMBED_CXX} ${DEAD_CODE}")
 SET(CMAKE_ASM_FLAGS "${CFLAGS} ${ARCH}")
-set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKSCRIPT} -lgcc -lm")
+set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKSCRIPT} -lgcc -lm -Wl,--gc-sections")
 
 add_executable(bare-metal ${C_SRC} ${CXX_SRC} ${CXX_SUB_SRC} ${ASM_SRC})
 set_target_properties(bare-metal PROPERTIES OUTPUT_NAME "${OUTPUT_FILE}.elf")
