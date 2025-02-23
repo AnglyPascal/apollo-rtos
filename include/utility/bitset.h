@@ -106,7 +106,6 @@ public:
       store[idx] = msk;
     }
     sz = len;
-    kprintf("%d\r\n", sz);
   }
 
   iterator begin() const { return iterator{*this, 0, sz}; }

@@ -104,7 +104,7 @@ void init()
   flash::mmap(file, reset_table);
 
   // TODO: hardware restart if the recover table is corrupt
-  if (boot_lev == boot_lev_t::FLASH) {
+  if (boot_lev != boot_lev_t::RESET) {
     reset_table = recover_table_t{};
     sched::setup_procs();
   } else {

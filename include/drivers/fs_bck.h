@@ -78,7 +78,7 @@ struct _fs_hd_t {
     free_set.set_all();
   }
 
-  inode_t &open(fn_t fn)
+  inode_t &find(fn_t fn)
   {
     auto &inode = inode_tbl[fn];
     return inode;
@@ -176,9 +176,7 @@ public:
   {
     assert(sz > 0 && fn >= 0 && fn < desc.n_inodes);
 
-    /* lock_guard guard{w_mtx}; */
-
-    auto &inode = fs_hd.open(fn);
+    auto &inode = fs_hd.find(fn);
     if (!inode.flag.in_use()) {
       assert(flags & O_CREATE, "inode doesn't exist, but not creating\r\n");
       inode.flag.set_use();
@@ -216,8 +214,6 @@ private:
   {
     assert(inode->ft() == BIN);
     auto func = to_read ? read : write;
-
-    /* lock_guard guard{w_mtx}; */
 
     auto fst_blk = inode->addr;
     auto nblks = inode->nblks;
@@ -262,15 +258,28 @@ public:
     auto free_blks = fs_hd.free_set.size();
     auto free_sz = (size_t)free_blks * BLK_SZ;
     auto used_sz = fs_hd_t::N_BLKS * BLK_SZ - free_sz;
-    debug<INFO>("  |  free_blks: %d, free: %d, in use: %d\r\n", free_blks, free_sz,
-                used_sz);
+    debug<INFO>("  |  free_blks: %d, free: %d, in use: %d\r\n", free_blks,
+                free_sz, used_sz);
 
     for (fn_t fn = 0; fn < desc.n_inodes; fn++) {
       auto &inode = fs_hd.inode_tbl[fn];
       if (!inode.flag.in_use())
         continue;
-      debug<INFO>("  |  %d: size = %d, type = %s\r\n", fn, inode.fsz(),
+      debug<INFO>("  |  %d: size = %d, type = %s, blks: ", fn, inode.fsz(),
                   inode.ft() == CHAR ? "char" : "bin");
+
+      auto fst_blk = inode.addr;
+      auto nblks = inode.nblks;
+
+      if (nblks > 1) {
+        read(fst_blk, temp_blk, (nblks - 1) * sizeof(blk_addr_t));
+        auto blks = (blk_addr_t *)temp_blk;
+        for (auto i = 0; i < nblks - 1; i++) {
+          debug<INFO>("%u, ", blks[i]);
+        }
+      }
+
+      debug<INFO>("%u\r\n", fst_blk);
     }
   }
 
