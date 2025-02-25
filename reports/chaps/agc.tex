@@ -1,4 +1,11 @@
-\section{The Apollo Guidance Computer (AGC)}
+\section{The Apollo Guidance Computer: Historical Context}
+
+\begin{enumerate}
+    \item Brief history of the AGC development
+    \item Technical specifications and constraints
+    \item Key design principles and innovations
+    \item Notable features of the original operating system 
+\end{enumerate}
 
 The Apollo Guidance Computer (AGC) was a pioneering digital computer developed in the
 early 1960s to navigate and control the Apollo spacecraft during their missions to the
@@ -22,6 +29,17 @@ bulk of the software was on read-only rope memory and thus could not be changed 
 operation, but some key parts of the software were stored in standard read-write
 magnetic-core memory and could be overwritten by the astronauts using the DSKY
 interface, as was done on Apollo 14.
+
+
+\subsection{AGC Operating System Architecture}
+
+\begin{enumerate}
+    \item Core components and structure
+    \item Memory management approach
+    \item Executive system and task scheduler
+    \item Interrupt handling system
+    \item I/O subsystem 
+\end{enumerate}
 
 
 \subsection{Operating System}
@@ -68,7 +86,7 @@ The success of the AGC operating system relied on the cooperation between the ex
 jobs and waitlist tasks and it's robust recovery system.
 
 
-\section{The Executive}
+\subsection{The Executive}
 
 The \indef{Executive} in the Apollo Guidance Computer is a multiprocessing preemptive
 real-time operating system. It has a few features that set it apart from modern RTOS's,
@@ -88,3 +106,5 @@ In this section, we'll give a brief overview of the features of the Executive.
 
     \item Restart and recovery
 \end{itemize}
+
+

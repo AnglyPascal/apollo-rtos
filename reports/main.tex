@@ -1,66 +1,24 @@
-\documentclass[oxford, 11pt]{ahsan}
+\documentclass[memoir, fancy, 11pt]{ahsan}
+\usepackage{preamble}
 
-\usepackage[backend=biber,style=numeric,citestyle=numeric]{biblatex} 
-\addbibresource{references.bib} 
-
-% \doublespacing
-
-\title{Project report}
 
 \begin{document}
 
-\maketitle
+\preamble
+\input{chaps/intro}
+\input{chaps/agc}
+\input{chaps/microbit}
+\input{chaps/impl_overview}
+\input{chaps/impl}
+\input{chaps/eval}
+\input{chaps/future}
+\input{chaps/conclusion}
 
-The report should be considered to be a technical document designed to be readable by a
-computer scientist who is not a specialist in the topic, say one of your colleagues.
-The sort of structure that would suit many programming projects is as follows:  
-\begin{enumerate}
-    \item Abstract: a brief description of what you did; about 200 words.  
-    \item Contents.  
-    \item Chapters 1, 2, etc. Areas to cover: Introduction, Explanation of the Problem
-        or Context, Description of the Method, Account of the Work (several chapters,
-        the main body of the dissertation), Conclusions.  
-    \item A bibliography and list of reference
-\end{enumerate}
+\references
 
-\input{agc_summary}
-
-\section{Reinventing the wheels}
-
-The current implementation differs from the original design of the Executive in quite a
-few ways.
-
-\begin{itemize}
-    \item Processes are allocated dynamically
-    \item Dynamic memory management
-    \item 
-\end{itemize}
-
-
-\section{Scratch}
-
-\subsection{Progress}
-
-\begin{itemize}
-    \item waitlist
-    \item process switching
-    \item timer interrupts
-    \item debug mechanism
-\end{itemize}
-
-
-\subsection{Log}
-
-\begin{itemize}
-    \item Currently, working on designing the restart mechanism.
-\end{itemize}
-
-\subsection{To-Do}
-
-\begin{itemize}
-    \item Abstract out the setup functions, so that different applications can be
-        written independently.
-    \item Write a few examples to demonstrate.
-\end{itemize}
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+\renewcommand{\thesubsection}{\thesection.\Roman{subsection}}
+\input{chaps/appendix}
 
 \end{document}

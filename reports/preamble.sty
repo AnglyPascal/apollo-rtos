@@ -1,0 +1,91 @@
+\ProvidesPackage{preamble}
+
+% \usepackage[backend=biber,style=numeric,citestyle=numeric]{biblatex} 
+% \addbibresource{references.bib} 
+
+\usepackage[square,numbers]{natbib}
+\bibliographystyle{plainnat}
+
+\newcommand{\todo}[1]{}
+
+\title{% 
+    \huge \bfseries %
+    Recreating Apollo Guidance Computer\\
+    in ARM Cortex-M0 %
+} %
+\author{ %
+    \Large \textbf{M. Ahsan Al Mahir} \\[1em] 
+    Department of Computer Science\\ 
+    University of Oxford
+} %
+\date{%
+    \Large \textbf{Supervisor: Prof. Alex Rogers} \\[1cm] 
+    \normalsize A project report submitted for the degree of Master of Mathematics and
+    Computer Science \\[1em]
+    \textbf{Trinity 2025} %
+}
+
+\renewcommand{\maketitlehooka}{} %
+\renewcommand{\maketitlehookb}{ %
+    \vspace{2cm} %
+    \centering %
+    \includegraphics[width=4cm]{oxford-logo.pdf} %
+    \vspace{2cm} %
+} %
+\renewcommand{\maketitlehookc}{
+    \vspace{1cm} %
+}
+\renewcommand{\maketitlehookd}{%
+    \vspace{1cm}%
+    \input{wordcount} words (using \texttt{texcount}) %
+}
+
+% % Formatting title spacing
+\AddToHook{cmd/section/before}{\clearpage}
+\titleformat{\section}
+    {\normalfont\Large\bfseries}{\S\thesection}{2em}{}[]
+\titleformat{\subsection}
+    {\normalfont\large\bfseries}{\thesubsection}{1.5em}{}[]
+
+\renewcommand{\thesection}{\arabic{section}}
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+
+\let\l@subsection\l@section
+\let\l@section\l@chapter
+
+\AtBeginDocument{\addtocontents{toc}{\protect\thispagestyle{empty}}} 
+
+\newcommand{\preamble}{ %
+    \maketitle %
+    \thispagestyle{empty} %
+    \newpage %
+
+    \pagestyle{empty}
+    \input{chaps/abstract} %
+    \newpage %
+
+    \mainmatter %
+    \tableofcontents %
+
+    \pagestyle{fancy}
+    \newpage 
+}
+
+\renewcommand{\@memb@bchap}{%
+    \section*{Reference}%
+    \bibmark
+    \prebibhook
+}
+
+\newcommand{\references} {
+    % \renewcommand\bibname{Reference}
+    \fancyhf{}
+    \fancyhf[loh,reh]{Reference}
+    \fancyhf[leh,roh]{}
+
+    \bibliography{references}
+
+    \newpage
+    \fancyhf[loh,reh]{\leftmark}
+    \fancyhf[leh,roh]{\rightmark}
+}
