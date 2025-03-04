@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/memory.h"
-#include "core/recover.h"
 #include "core/signal.h"
 #include "core/types.h"
 #include "drivers/serial.h"
@@ -35,7 +34,6 @@ struct proc_t {
   void *param;
   chunk_t used_hd = {};
 
-  rec_id_t rec_id = null_rec_id;
   signals_t signals = {};
 
   void trace(pid_t pid)

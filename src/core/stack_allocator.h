@@ -57,7 +57,7 @@ public:
   {
     stk_sz = roundup(stk_sz, alignment);
     stk_sz += debug_depth + timer_depth + recover_depth + signal_depth +
-              sizeof(context_t);
+              fs_depth + sizeof(context_t);
 
     proc->stack = (byte_t *)pool.alloc(stk_sz);
 

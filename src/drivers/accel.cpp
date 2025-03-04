@@ -29,8 +29,6 @@ void read(int *x, int *y, int *z)
 void init(void)
 {
   /* Find chip and set to 50Hz, 8 bit, Active */
-  // FIXME: if we move it to idle_proc, where it actually belongs, it causes
-  // classhes with the reads from accel_read. wait chan impl is broken
   if (i2c::probe(ACC) == I2C_OK) {
     uint8_t cmd = ACC_CTRL_REG1;
     i2c::write_reg(ACC, &cmd, 1, 0x23);

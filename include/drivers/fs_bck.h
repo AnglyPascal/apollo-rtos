@@ -193,7 +193,8 @@ public:
       blk_addr_t first_blk_addr = blk[0];
 
       if (nblks > 1)
-        write(first_blk_addr, blk + 1, (nblks - 1) * sizeof(blk_addr_t));
+        write(first_blk_addr, (uint8_t *)(blk + 1),
+              (nblks - 1) * sizeof(blk_addr_t));
 
       inode.addr = first_blk_addr;
       inode.nblks = nblks;
@@ -251,8 +252,6 @@ public:
     xfer<false>(inode, buf, buf_sz);
   }
 
-  // TODO:
-  // also using a call to free_set.size(), determine free space
   void trace()
   {
     auto free_blks = fs_hd.free_set.size();

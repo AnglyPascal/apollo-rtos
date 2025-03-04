@@ -18,7 +18,7 @@ void read(addr_t addr, uint8_t *buf, size_t buf_sz)
   i2c::read_bytes(FRAM, cmd, 2, buf, buf_sz);
 }
 
-} // namespace fram
+} // namespace _fram
 
 // 15 bit addrs, 8 bits for a page, so 256 pages, 128 bytes long each
 // so a block will be 128 bytes

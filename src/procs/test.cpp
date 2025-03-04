@@ -42,18 +42,38 @@ void multi_blk_file_rw()
   fram::store(file);
 }
 
+__extern_C__
+void trigger_reset(void);
+
+int n_run __recover_section__ = 0;
+
+void reset_task_test()
+{
+  auto task = [](void *param) {
+    n_run = *(int *)param;
+    n_run++;
+  };
+
+  recover::guard_task guard{RESET, task, 0, n_run};
+  if (n_run < 1) {
+    trigger_reset();
+  }
+}
+
 void test_proc(void *param)
 {
-  recover::set_rec(rec_lev_t::RESET);
+  recover::guard_proc guard{RESET};
 
   // FIXME: move from here
-  i2c::scan();
+  /* i2c::scan(); */
 
   single_blk_file_rw();
   multi_blk_file_rw();
 
   delay_loop(1000);
-  sched::decr_priority(LOW4);
+  sched::decr_priority(LOW1);
+
+  reset_task_test();
 
   while (1) {
     delay_loop(10000);

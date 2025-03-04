@@ -25,7 +25,8 @@ stack_allocator_t stack_allocator;
 volatile struct {
   proc_t *hi_proc = nullptr;
   proc_t *curr_proc = nullptr;
-} cpu;
+  bool set_up = false;
+} cpu = {};
 } // namespace
 
 volatile time_t last_checked = 0;
@@ -37,10 +38,6 @@ void exit()
 
   kmem::kfree(cpu.curr_proc->param);
   heap::cleanup(&cpu.curr_proc->used_hd);
-
-  if constexpr (kill) {
-    recover::set_rec(rec_lev_t::NONE);
-  }
 
   intr_disable();
   decr_priority(0);
@@ -60,7 +57,6 @@ proc_t *reg_proc(proc_def_t *proc_def, void *param)
   proc->name = name;
   proc->param = param;
   proc->def = proc_def;
-  proc->rec_id = null_rec_id;
 
   stack_allocator.acquire(proc, stk_sz, func, param, exit<true>);
 
@@ -86,7 +82,9 @@ __extern_C__
 void *cxt_switch(void *stk_ptr)
 {
   assert(cpu.hi_proc->priority > 0);
-  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr);
+  assert_dump(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr,
+         "hi_proc: %x, stack: %x, stk_ptr:  %x\r\n", cpu.hi_proc,
+         cpu.hi_proc->stack, cpu.hi_proc->stk_ptr);
 
   debug<TRACE>("\t\t\t\t\"%s\" -> \"%s\"\r\n", cpu.curr_proc->name.str,
                cpu.hi_proc->name.str);
@@ -169,6 +167,7 @@ void init()
   timer::init();
   last_checked = timer::now();
 
+  cpu.set_up = true;
   idle_proc->stk_ptr = idle_proc->stack + idle_proc->stk_sz - 16;
   __run(idle_task, &idle_proc->stk_ptr);
 }
@@ -231,10 +230,7 @@ string name() { return cpu.curr_proc->name; }
 chunk_t *used_hd() { return &cpu.curr_proc->used_hd; }
 proc_def_t *def() { return cpu.curr_proc->def; }
 
-rec_id_t rec_id() { return cpu.curr_proc->rec_id; }
-void set_rec_id(rec_id_t id) { cpu.curr_proc->rec_id = id; }
-
-bool set_up() { return cpu.curr_proc != nullptr; }
+bool set_up() { return cpu.set_up; }
 } // namespace curr_proc
 
 ///////////////

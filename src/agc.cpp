@@ -31,7 +31,7 @@ inline void debug_addr()
   debug<debug_lev>("\tbss_end:    %x\r\n", __bss_end);
 }
 
-struct flash_t {
+struct data_t {
   uint32_t magic;
   uint32_t n_reset;
 };
@@ -40,10 +40,11 @@ enum {
   MAGIC = 0xDEADDEAD,
 };
 
+template <typename fs_type>
 inline void fs_test()
 {
-  auto file = flash::open(1, sizeof(flash_t), O_CREATE | O_WRITE);
-  auto bt = flash::mmap<flash_t>(file);
+  auto file = fs_type::open(1, sizeof(data_t), O_CREATE | O_WRITE);
+  auto bt = fs_type::template mmap<data_t>(file);
   if (bt->magic != MAGIC) {
     bt->magic = MAGIC;
     bt->n_reset = 0;
@@ -51,8 +52,8 @@ inline void fs_test()
     bt->n_reset++;
   }
   kprintf("n_reset: %d\r\n", bt->n_reset);
-  flash::store(file);
-  flash::unmap(file);
+  fs_type::store(file);
+  fs_type::unmap(file);
 }
 
 inline void __start(void)
@@ -70,7 +71,7 @@ inline void __start(void)
 
   boot::init();
 
-  fs_test();
+  fs_test<fram>();
   debug_addr<TRACE>();
 
   sched::init();
