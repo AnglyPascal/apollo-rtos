@@ -95,7 +95,7 @@ void accel(void *param)
 {
   swap_handler(SIGTERM, []() { exit = true; });
 
-  auto file = flash::open(accel::fn, sizeof(buffer), O_CREATE);
+  auto file = flash::open(accel::fn, sizeof(buffer), O_CREATE | O_SHARED);
   auto val = file.mmap<buffer>();
 
   bool run_bg = ((shell::args_t *)param)->run_bg;

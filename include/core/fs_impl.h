@@ -7,32 +7,43 @@
 #include "utility/debug.h"
 #include "utility/mutex.h"
 
+struct mmap_unit_t {
+  void *buf = nullptr;
+  size_t sz = 0;
+  bool pool = false;
+};
+
 template <typename desc_t>
 class _fd_t
 {
+  using inode_t = _inode_t<desc_t>;
+  using fn_t = typename desc_t::fn_t;
+
   uint8_t w_cnt = 0;
   uint8_t r_cnt = 0;
 
 public:
-  using fn_t = typename desc_t::fn_t;
   fn_t fn = null_fn;
   mutex<> mtx = {"fd"};
 
-  void acquire(fn_t _fn, bool w_en)
+  const inode_t *inode = nullptr;
+  mmap_unit_t mu = {};
+
+  void acquire(fn_t _fn, const inode_t *_inode, bool w_en)
   {
     assert(fn == null_fn || fn == _fn);
     r_cnt++;
     w_cnt += w_en;
     fn = _fn;
+    inode = _inode;
   }
 
   void release(bool w_en)
   {
     r_cnt--;
     w_cnt -= w_en;
-    if (r_cnt == 0) {
-      fn = null_fn;
-    }
+    if (r_cnt == 0)
+      new (this) _fd_t{};
   }
 };
 
@@ -67,18 +78,18 @@ public:
   {
     fd_t *fd = nullptr;
 
-    const inode_t *inode = nullptr;
+    mmap_unit_t mu;
 
-    void *mmap_buf = nullptr;
-    size_t mmap_buf_sz = 0;
-    bool mmap_pool = false;
+    const bool mmap_shared = false;
+    const bool w_en = false;
 
-    bool w_en = false;
+    mmap_unit_t &target_mu() { return mmap_shared ? fd->mu : mu; }
 
   public:
     file_t() {}
 
     file_t(fn_t fn, size_t _sz, uint32_t flags)
+        : mmap_shared{(bool)(flags & O_SHARED)}, w_en{(bool)(flags & O_WRITE)}
     {
       fd = find_fd(fn);
       if (fd == nullptr) {
@@ -86,10 +97,7 @@ public:
         return;
       }
 
-      w_en = flags & O_WRITE;
-
-      inode = fs.open(fn, _sz, flags);
-      fd->acquire(fn, w_en);
+      fd->acquire(fn, fs.open(fn, _sz, flags), w_en);
     }
 
     ~file_t() { close(); }
@@ -101,29 +109,31 @@ public:
     }
 
     fn_t fn() const { return fd->fn; }
-    auto ft() const { return inode->flag.ft(); }
-    auto fsz() const { return inode->fsz(); }
+    auto ft() const { return fd->inode->flag.ft(); }
+    auto fsz() const { return fd->inode->fsz(); }
 
     void *mmap(size_t buf_sz)
     {
-      if (mmap_buf != nullptr)
-        return mmap_buf;
+      auto &tmu = target_mu();
+      if (tmu.buf != nullptr)
+        return tmu.buf;
 
-      mmap_buf = pool.alloc(buf_sz);
-      mmap_buf_sz = buf_sz;
-      mmap_pool = true;
+      tmu.buf = pool.alloc(buf_sz);
+      tmu.sz = buf_sz;
+      tmu.pool = true;
 
       load();
-      return mmap_buf;
+      return tmu.buf;
     }
 
     void mmap(uint8_t *buf, size_t buf_sz)
     {
       unmap();
 
-      mmap_buf = buf;
-      mmap_buf_sz = buf_sz;
-      mmap_pool = false;
+      auto &tmu = target_mu();
+      tmu.buf = buf;
+      tmu.sz = buf_sz;
+      tmu.pool = false;
 
       load();
     }
@@ -142,26 +152,29 @@ public:
 
     void unmap()
     {
-      if (mmap_pool)
-        pool.dealloc((byte_t *)mmap_buf);
+      auto &tmu = target_mu();
+      if (tmu.pool)
+        pool.dealloc((byte_t *)tmu.buf);
 
-      mmap_buf = nullptr;
-      mmap_buf_sz = 0;
-      mmap_pool = false;
+      tmu.buf = nullptr;
+      tmu.sz = 0;
+      tmu.pool = false;
     }
 
     void load()
     {
-      assert(mmap_buf != nullptr);
+      auto &tmu = target_mu();
+      assert_dump(tmu.buf != nullptr, "%d\r\n", fd->fn);
       lock_guard guard{fd->mtx};
-      fs.load(inode, (uint8_t *)mmap_buf, mmap_buf_sz);
+      fs.load(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
     }
 
     void store()
     {
-      assert(mmap_buf != nullptr);
+      auto &tmu = target_mu();
+      assert(tmu.buf != nullptr);
       lock_guard guard{fd->mtx};
-      fs.store(inode, (uint8_t *)mmap_buf, mmap_buf_sz);
+      fs.store(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
     }
   };
 
@@ -176,6 +189,15 @@ public:
     new (&file) file_t{fn, sz, flags};
   }
 
+  static void remove(fn_t fn)
+  {
+    if (is_open(fn)) {
+      debug<ERROR>("fn %d is open, can't remove\r\n", fn);
+      return;
+    }
+    fs.remove(fn);
+  }
+
   static void mount()
   {
     fs.mount();
@@ -188,5 +210,11 @@ public:
 
   static bool first_boot() { return fs.first_boot; }
 
-  static void trace() { fs.trace(); }
+  static bool is_open(fn_t fn)
+  {
+    auto fd = find_fd(fn);
+    return fd != nullptr && fd->fn == fn;
+  }
+
+  static void trace() { fs.trace(is_open); }
 };

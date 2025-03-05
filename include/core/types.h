@@ -62,6 +62,7 @@ enum {
   O_WRITE = 1 << 1,
   O_CHAR_FILE = 1 << 2,
   O_PERM = 1 << 3,
+  O_SHARED = 1 << 4,
 };
 using fn_t = uint8_t;
 inline constexpr fn_t null_fn = MAX<fn_t>;

@@ -282,7 +282,7 @@ public:
     xfer<false>(inode, buf, buf_sz);
   }
 
-  void trace()
+  void trace(bool (*is_open)(fn_t))
   {
     auto free_blks = fs_hd.free_set.size();
     auto free_sz = (size_t)free_blks * BLK_SZ;
@@ -294,8 +294,9 @@ public:
       auto &inode = fs_hd.inode_tbl[fn];
       if (!inode.flag.in_use())
         continue;
-      debug<INFO>("  |  %d: size = %d, type = %s, blks: ", fn, inode.fsz(),
-                  inode.ft() == CHAR ? "char" : "bin");
+      debug<INFO>(
+          "  |  [%c] %d: size = %d, type = %s, blks: ", is_open(fn) ? 'O' : 'C',
+          fn, inode.fsz(), inode.ft() == CHAR ? "char" : "bin");
 
       auto fst_blk = inode.addr;
       auto nblks = inode.nblks;
