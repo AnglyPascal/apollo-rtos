@@ -13,6 +13,7 @@ set(CMAKE_CXX_COMPILER "arm-none-eabi-g++")
 set(CMAKE_ASM_COMPILER "arm-none-eabi-as")
 set(CMAKE_OBJCOPY "arm-none-eabi-objcopy")
 set(CMAKE_OBJDUMP "arm-none-eabi-objdump")
+set(PYTHON_EXECUTABLE "python3")
 
 file(GLOB LINKSCRIPT "src/device.ld")
 file(GLOB CXX_SRC "src/*.cpp")
@@ -52,6 +53,16 @@ add_custom_command(
   POST_BUILD
   COMMAND ${CMAKE_OBJDUMP} -S ${OUTPUT_FILE}.elf > ${OUTPUT_FILE}.S
   COMMENT "Converting ELF to assembly")
+
+add_custom_command(
+  TARGET bare-metal POST_BUILD
+  COMMAND ${PYTHON_EXECUTABLE} stack_usage_analysis.py CMakeFiles
+  COMMENT "Analyzing stack usage"
+  VERBATIM
+)
+
+# Ensure Python is available
+find_package(PythonInterp 3 REQUIRED)
 
 add_custom_target(copy COMMENT "copy hex to microbit")
 add_custom_command(
