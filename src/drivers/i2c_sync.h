@@ -13,9 +13,14 @@ namespace
 {
 inline int wait(volatile uint32_t *event)
 {
+  // disable i2c irq before waiting on an event to avoid
+  // the interrupt handler wiping out the event
+
+  disable_irq(I2C0_IRQ);
   while (!*event)
     ;
   *event = 0;
+  enable_irq(I2C0_IRQ);
   return I2C0.ERROR ? I2C0.ERRORSRC : I2C_OK;
 }
 
@@ -95,6 +100,7 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 
   int error = I2C0.ERRORSRC;
   I2C0.ERRORSRC = I2C_ERRORSRC_All;
+
   return error;
 }
 
@@ -103,7 +109,6 @@ void handler(void)
 {
   auto irq = I2C0_IRQ;
   clear_pending(irq);
-  enable_irq(irq);
 }
 
 } // namespace sync
