@@ -44,7 +44,7 @@ template <typename fs_type>
 inline void fs_test()
 {
   auto file = fs_type::open(1, sizeof(data_t), O_CREATE | O_WRITE);
-  auto bt = fs_type::template mmap<data_t>(file);
+  auto bt = file.template mmap<data_t>();
   if (bt->magic != MAGIC) {
     bt->magic = MAGIC;
     bt->n_reset = 0;
@@ -52,8 +52,7 @@ inline void fs_test()
     bt->n_reset++;
   }
   kprintf("n_reset: %d\r\n", bt->n_reset);
-  fs_type::store(file);
-  fs_type::unmap(file);
+  file.store();
 }
 
 inline void __start(void)
@@ -67,7 +66,6 @@ inline void __start(void)
 
   i2c::init();
   fs::init();
-  i2c::irq_en();
 
   boot::init();
 

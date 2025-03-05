@@ -115,14 +115,14 @@ guard_proc::guard_proc(lev_t lev, const uint8_t *data, size_t data_sz)
     _memcpy(entry.data, data, data_sz);
   }
 
-  fram::store(file);
+  file.store();
 }
 
 guard_proc::~guard_proc()
 {
   auto &entry = rec_tbl.proc_tbl[rec_id];
   entry.reset();
-  fram::store(file);
+  file.store();
 }
 
 guard_task::guard_task(lev_t lev, runnable_t task, time_t interval,
@@ -142,14 +142,14 @@ guard_task::guard_task(lev_t lev, runnable_t task, time_t interval,
     _memcpy(entry.data, data, data_sz);
   }
 
-  fram::store(file);
+  file.store();
 }
 
 guard_task::~guard_task()
 {
   auto &entry = rec_tbl.task_tbl[rec_id];
   entry.reset();
-  fram::store(file);
+  file.store();
 }
 
 inline void recover()
@@ -172,25 +172,23 @@ inline void recover()
     entry.reset();
   }
 
-  fram::store(file);
+  file.store();
 }
 
 void init()
 {
-  auto boot_lev = boot::lev();
-
-  file = fram::open(rec_fn, sizeof(rec_tbl_t), O_WRITE | O_CREATE);
-  fram::mmap(file, rec_tbl);
+  fram::open(file, rec_fn, sizeof(rec_tbl_t), O_WRITE | O_CREATE | O_PERM);
+  file.mmap(rec_tbl);
 
   // TODO: hardware restart if the recover table is corrupt
-  if (boot_lev != boot_lev_t::RESET) {
+  if (boot::lev() != boot_lev_t::RESET) {
     rec_tbl.reset();
     sched::setup_procs();
   } else {
     recover();
   }
 
-  fram::store(file);
+  file.store();
 }
 
 } // namespace recover

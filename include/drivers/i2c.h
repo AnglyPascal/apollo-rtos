@@ -23,7 +23,6 @@ void write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
 void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val);
 
 void init();
-void irq_en();
 
 void scan();
 } // namespace i2c

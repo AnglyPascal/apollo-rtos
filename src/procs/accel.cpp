@@ -31,7 +31,7 @@ void accel_func(void *param)
   recover::guard_proc guard{BOOT};
 
   auto file = flash::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE);
-  auto ptr = flash::mmap<buffer>(file);
+  auto ptr = file.mmap<buffer>();
   auto val = new (ptr) buffer{};
 
   accel::init();

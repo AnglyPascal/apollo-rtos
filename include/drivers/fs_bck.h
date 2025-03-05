@@ -11,9 +11,10 @@ enum file_type_t {
 };
 
 struct flag_t {
+  void reset() { _flag = 0; }
+
   bool in_use() const { return _flag & IN_USE; }
   void set_use() { _flag |= IN_USE; }
-  void unset_use() { _flag &= ~IN_USE; }
 
   file_type_t ft() const { return (_flag & IS_CHAR) ? CHAR : BIN; }
   void set_ft(file_type_t _ft)
@@ -24,11 +25,15 @@ struct flag_t {
       _flag &= ~IS_CHAR;
   }
 
+  bool is_perm() const { return _flag & IS_PERM; }
+  void set_perm() { _flag |= IS_PERM; }
+
 private:
-  uint8_t _flag;
+  uint8_t _flag = 0;
   enum {
     IN_USE = 1 << 0,
     IS_CHAR = 1 << 1,
+    IS_PERM = 1 << 2,
   };
 };
 
@@ -127,7 +132,7 @@ private:
   static_assert(sizeof(fs_hd_t) <= desc.fs_hd_sz);
 
   mutable mutex<N_PROCS_WAIT> w_mtx{"fs mtx"};
-  mutable uint8_t temp_blk[(desc.max_num_blks + 1) * sizeof(blk_addr_t)];
+  mutable blk_addr_t temp_blk[desc.max_num_blks + 1];
 
   static constexpr addr_t paddr(blk_addr_t blk_addr)
   {
@@ -188,17 +193,19 @@ public:
         nblks += roundup(sz, BLK_SZ) / BLK_SZ;
       assert(nblks <= desc.max_num_blks + 1);
 
-      blk_addr_t *blk = (blk_addr_t *)temp_blk;
-      fs_hd.alloc_blks(blk, nblks);
-      blk_addr_t first_blk_addr = blk[0];
+      fs_hd.alloc_blks(temp_blk, nblks);
+      blk_addr_t first_blk_addr = temp_blk[0];
 
       if (nblks > 1)
-        write(first_blk_addr, (uint8_t *)(blk + 1),
+        write(first_blk_addr, (uint8_t *)(temp_blk + 1),
               (nblks - 1) * sizeof(blk_addr_t));
 
       inode.addr = first_blk_addr;
       inode.nblks = nblks;
       inode.flag.set_ft(ft);
+
+      if (flags & O_PERM)
+        inode.flag.set_perm();
 
       inode.start = 0;
       inode.curr = 0;
@@ -207,6 +214,32 @@ public:
     }
 
     return &inode;
+  }
+
+  void remove(fn_t fn)
+  {
+    auto &inode = fs_hd.find(fn);
+
+    if (!inode.flag.in_use()) {
+      debug<WARN>("deleting non-existent file does nothing\r\n");
+      return;
+    }
+
+    if (inode.flag.is_perm()) {
+      debug<ERROR>("cannot delete permanent file\r\n");
+      return;
+    }
+
+    auto nblks = inode.nblks;
+    auto temp_blk[0] = inode.addr;
+    if (nblks > 1)
+      read(inode.addr, (uint8_t *)(temp_blk + 1),
+           (nblks - 1) * sizeof(blk_addr_t));
+
+    fs_hd.dealloc_blks(temp_blk, nblks);
+    inode.flag.reset();
+
+    store_hd();
   }
 
 private:
@@ -227,17 +260,16 @@ private:
       return;
     }
 
-    read(fst_blk, temp_blk, (nblks - 1) * sizeof(blk_addr_t));
-    blk_addr_t *blk = (blk_addr_t *)temp_blk;
+    read(fst_blk, (uint8_t *)temp_blk, (nblks - 1) * sizeof(blk_addr_t));
 
     for (nblks_t i = 0; i < nblks - 2; i++) {
-      auto blk_addr = blk[i];
+      auto blk_addr = temp_blk[i];
       func(blk_addr, buf, BLK_SZ);
 
       buf += BLK_SZ;
       buf_sz -= BLK_SZ;
     }
-    func(blk[nblks - 2], buf, buf_sz);
+    func(temp_blk[nblks - 2], buf, buf_sz);
   }
 
 public:

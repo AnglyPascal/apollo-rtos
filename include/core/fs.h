@@ -1,6 +1,5 @@
 #pragma once
 
-#include "core/file.h"
 #include "core/fs_impl.h"
 #include "drivers/fs_desc.h"
 
@@ -70,19 +69,15 @@ inline constexpr desc_t desc = {
     .n_inodes = 32,
 };
 
-using file_t = _file_t<desc_t>;
-
 inline file_type_t ft_func(uint32_t flag) { return CHAR; }
 
 } // namespace _fram
 
 struct flash
     : public fs_impl_t<_flash::desc_t, _flash::desc, 8, _flash::ft_func> {
-  using file_t = _file_t<_flash::desc_t>;
 };
 
 struct fram : public fs_impl_t<_fram::desc_t, _fram::desc, 16, _fram::ft_func> {
-  using file_t = _file_t<_fram::desc_t>;
 };
 
 namespace fs

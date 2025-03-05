@@ -27,7 +27,7 @@ set(ARCH "-mcpu=cortex-m0 -mthumb")
 set(OPT "-O2 -g -Wall")
 set(STACK_USAGE "-fstack-usage -fdump-tree-optimized-graph")
 set(EMBED "-ffreestanding -nostartfiles")
-set(EMBED_CXX "-fno-exceptions -fno-unwind-tables -fno-rtti -std=c++20")
+set(EMBED_CXX "-fno-exceptions -fno-unwind-tables -fno-rtti -std=c++20 -fno-use-cxa-atexit")
 set(NEWLIB "--specs=nano.specs --specs=nosys.specs")
 set(DEAD_CODE "-ffunction-sections -fdata-sections")
 

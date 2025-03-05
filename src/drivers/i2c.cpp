@@ -59,10 +59,7 @@ void init()
   I2C0.PSELSDA = I2C0_SDA;
   I2C0.FREQUENCY = I2C_FREQUENCY_100kHz;
   I2C0.ENABLE = I2C_ENABLE_Enabled;
-}
 
-void irq_en()
-{
   /* Enable interrupts */
   I2C0.INTEN = BIT(I2C_INT_RXDREADY) | BIT(I2C_INT_TXDSENT) |
                BIT(I2C_INT_STOPPED) | BIT(I2C_INT_ERROR);
