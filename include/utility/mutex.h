@@ -2,16 +2,19 @@
 
 #include "core/sched.h"
 #include "core/types.h"
+#include "utility/debug.h"
 
 template <size_t chan_len = N_PROCS_WAIT>
 class mutex
 {
-/* private: */
-
 public:
-  string name;
+  const char *name;
   chan_t<chan_len> lock_chan;
   bool busy = false;
+
+  mutex() : name{""}, lock_chan{}, busy{false} {}
+
+  mutex(const char *name) : name{name}, lock_chan{}, busy{false} {}
 
   void lock()
   {

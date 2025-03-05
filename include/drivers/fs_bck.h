@@ -3,7 +3,6 @@
 #include "core/types.h"
 #include "utility/bitset.h"
 #include "utility/debug.h"
-#include "utility/mutex.h"
 
 enum file_type_t {
   CHAR = 1 << 0,
@@ -131,7 +130,6 @@ private:
   fs_hd_t fs_hd;
   static_assert(sizeof(fs_hd_t) <= desc.fs_hd_sz);
 
-  mutable mutex<N_PROCS_WAIT> w_mtx{"fs mtx"};
   mutable blk_addr_t temp_blk[desc.max_num_blks + 1];
 
   static constexpr addr_t paddr(blk_addr_t blk_addr)

@@ -69,7 +69,7 @@ inline void clear_event(volatile uint32_t &event)
 }
 
 inline chan_t<1> intr_chan;
-inline mutex mtx;
+inline mutex<> mtx;
 
 template <typename T = void>
 void handler(void)

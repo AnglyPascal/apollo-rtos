@@ -5,6 +5,7 @@
 #include "drivers/fs_bck.h"
 #include "utility/allocator.h"
 #include "utility/debug.h"
+#include "utility/mutex.h"
 
 template <typename desc_t>
 class _fd_t
@@ -15,10 +16,11 @@ class _fd_t
 public:
   using fn_t = typename desc_t::fn_t;
   fn_t fn = null_fn;
+  mutex<> mtx = {"fd"};
 
   void acquire(fn_t _fn, bool w_en)
   {
-    assert_dump(fn == null_fn || fn == _fn);
+    assert(fn == null_fn || fn == _fn);
     r_cnt++;
     w_cnt += w_en;
     fn = _fn;
@@ -54,7 +56,7 @@ class fs_impl_t
     for (auto &fd : open_files) {
       if (fd.fn == fn)
         return &fd;
-      else if (fd.fn == null_fn)
+      if (fd.fn == null_fn)
         empty_fd = &fd;
     }
     return empty_fd;
@@ -102,7 +104,6 @@ public:
     auto ft() const { return inode->flag.ft(); }
     auto fsz() const { return inode->fsz(); }
 
-    // FIXME: add mutex to fd to serialize concurrent writes
     void *mmap(size_t buf_sz)
     {
       if (mmap_buf != nullptr)
@@ -152,12 +153,14 @@ public:
     void load()
     {
       assert(mmap_buf != nullptr);
+      lock_guard guard{fd->mtx};
       fs.load(inode, (uint8_t *)mmap_buf, mmap_buf_sz);
     }
 
     void store()
     {
       assert(mmap_buf != nullptr);
+      lock_guard guard{fd->mtx};
       fs.store(inode, (uint8_t *)mmap_buf, mmap_buf_sz);
     }
   };
@@ -173,7 +176,14 @@ public:
     new (&file) file_t{fn, sz, flags};
   }
 
-  static void mount() { fs.mount(); }
+  static void mount()
+  {
+    fs.mount();
+    for (auto &fd : open_files) {
+      new (&fd) fd_t{};
+    }
+  }
+
   static void format() { fs.format(); }
 
   static bool first_boot() { return fs.first_boot; }
