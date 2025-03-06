@@ -63,8 +63,11 @@ public:
 
   void operator()(char c)
   {
-    assert(idx > 0);
-    stack[idx - 1](c);
+    auto i = idx;
+    while (i > 0) {
+      if (stack[--i](c))
+        break;
+    }
   }
 };
 

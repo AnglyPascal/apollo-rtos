@@ -23,14 +23,12 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
 
 void heart(void *param)
 {
-  sigterm_handler_t<__COUNTER__> handler;
-
   auto buf = (args_t *)param;
   auto str = buf->str;
 
   auto n = (*str == '\0') ? 10 : atoi(str);
 
-  while (handler.run() && n-- > 0) {
+  while (!curr_proc::term_req() && n-- > 0) {
     display::show(big_heart);
     sched::sleep(500);
     display::show(small_heart);

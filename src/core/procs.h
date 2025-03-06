@@ -34,6 +34,7 @@ struct proc_t {
   void *param;
   chunk_t used_hd = {};
 
+  bool term_req = false;
   signals_t signals = {};
 
   void trace(pid_t pid)

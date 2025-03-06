@@ -58,6 +58,8 @@ proc_t *reg_proc(proc_def_t *proc_def, void *param)
   proc->param = param;
   proc->def = proc_def;
 
+  proc->term_req = false;
+
   stack_allocator.acquire(proc, stk_sz, func, param, exit<true>);
 
   incr_priority(proc, priority);
@@ -119,9 +121,9 @@ void incr_priority(proc_t *proc, priority_t priority)
 
 void decr_priority(priority_t priority)
 {
-  assert(cpu.curr_proc->priority > priority,
-         "\r\nproc: %s, previous: %d, new: %d\r\n", cpu.curr_proc->name.str,
-         cpu.curr_proc->priority, priority);
+  assert_dump(cpu.curr_proc->priority > priority,
+              "\r\nproc: %s, previous: %d, new: %d\r\n",
+              cpu.curr_proc->name.str, cpu.curr_proc->priority, priority);
   debug<TRACE>("\t\t\tdecr prio, %s: %d -> %d\r\n", cpu.curr_proc->name.str,
                cpu.curr_proc->priority, priority);
 
@@ -229,6 +231,7 @@ pid_t pid() { return procs.pid(cpu.curr_proc); }
 string name() { return cpu.curr_proc->name; }
 chunk_t *used_hd() { return &cpu.curr_proc->used_hd; }
 proc_def_t *def() { return cpu.curr_proc->def; }
+bool term_req() { return cpu.curr_proc->term_req; }
 
 bool set_up() { return cpu.set_up; }
 } // namespace curr_proc
@@ -240,7 +243,7 @@ bool set_up() { return cpu.set_up; }
 template <>
 void default_handler<SIGTERM>(void)
 {
-  sched::exit<false>();
+  sched::cpu.curr_proc->term_req = true;
 }
 
 template <>

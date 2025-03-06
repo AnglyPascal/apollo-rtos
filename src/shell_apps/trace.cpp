@@ -1,5 +1,6 @@
 #include "core/memory.h"
 #include "core/shell.h"
+#include "core/signal.h"
 #include "core/types.h"
 #include "core/waitlist.h"
 #include "drivers/serial.h"
@@ -10,18 +11,6 @@ namespace shell
 
 namespace
 {
-
-volatile bool exit = false;
-
-bool listener(char c)
-{
-  if (c == CTRL('q')) {
-    exit = true;
-    return true;
-  }
-  return false;
-}
-
 __always_inline__
 inline void do_trace()
 {
@@ -36,17 +25,17 @@ void trace(void *param)
   auto &buf = *(args_t *)param;
   auto args = buf.str;
 
-  bool resume = false;
+  bool run_bg = false;
   if (*args++ == '-' && *args++ == 'r')
-    resume = true;
+    run_bg = true;
 
-  serial::listener_guard guard{listener, resume};
+  sigterm_listener_t<__COUNTER__> sig_guard{run_bg};
 
-  if (resume)
+  if (run_bg)
     sched::decr_priority(LOW3);
 
-  if (resume) {
-    while (!exit) {
+  if (run_bg) {
+    while (!curr_proc::term_req()) {
       serial::clear_screen();
       do_trace();
       sched::sleep(1000);
@@ -55,7 +44,6 @@ void trace(void *param)
   } else {
     do_trace();
   }
-  exit = false;
 }
 
 } // namespace

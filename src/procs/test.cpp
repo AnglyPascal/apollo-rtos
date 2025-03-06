@@ -9,7 +9,7 @@ namespace procs
 
 void test_proc(void *param);
 
-proc_def_t test{"test_proc", MID1, 64, test_proc};
+proc_def_t test{"test", MID1, 64, test_proc};
 
 void single_blk_file_rw()
 {

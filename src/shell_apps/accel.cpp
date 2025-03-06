@@ -80,32 +80,18 @@ using buffer = circular_buffer<accel_t, len>;
 
 static_assert(sizeof(buffer) % sizeof(uint32_t) == 0);
 
-// FIXME: definitely can be made into a more programmatic solution
-pid_t curr_accel_pid = null_pid;
-bool listener(char c)
-{
-  if (c == CTRL('q')) {
-    send_signal(curr_accel_pid, SIGTERM);
-    return true;
-  }
-  return false;
-}
-
 void accel(void *param)
 {
-  curr_accel_pid = curr_proc::pid();
-  sigterm_handler_t<__COUNTER__> handler;
-
   auto file = flash::open(accel::fn, sizeof(buffer), O_CREATE | O_SHARED);
   auto val = file.mmap<buffer>();
 
   bool run_bg = ((shell::args_t *)param)->run_bg;
-  serial::listener_guard guard{listener, !run_bg};
+  sigterm_listener_t<__COUNTER__> guard{run_bg};
 
   constexpr int threshold = 10;
   auto is_zero = [](int p) { return (-threshold < p) && (p < threshold); };
 
-  while (handler.run()) {
+  while (!curr_proc::term_req()) {
     if (!run_bg)
       serial::clear_screen();
 

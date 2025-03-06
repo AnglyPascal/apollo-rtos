@@ -1,6 +1,8 @@
 #pragma once
 
+#include "core/sched.h"
 #include "core/types.h"
+#include "drivers/serial.h"
 #include "utility/debug.h"
 
 using signal_handler_t = void (*)(void);
@@ -73,17 +75,32 @@ signal_handler_t swap_handler(signal_t sig, signal_handler_t new_handler);
 void send_signal(pid_t pid, signal_t sig);
 
 template <int>
-class sigterm_handler_t
+class sigterm_listener_t
 {
-  inline static bool exit = false;
+  inline static pid_t pid;
 
-public:
-  sigterm_handler_t()
+  static bool listener(char c)
   {
-    swap_handler(SIGTERM, [] { exit = true; });
+    if (c == CTRL('q')) {
+      send_signal(pid, SIGTERM);
+      return true;
+    }
+    return false;
   }
 
-  ~sigterm_handler_t() { exit = false; }
+  const bool run_bg;
 
-  bool run() const { return !exit; }
+public:
+  sigterm_listener_t(bool _run_bg) : run_bg{_run_bg}
+  {
+    pid = curr_proc::pid();
+    if (!run_bg)
+      serial::register_listener(listener);
+  }
+
+  ~sigterm_listener_t()
+  {
+    if (!run_bg)
+      serial::unregister_listener();
+  }
 };

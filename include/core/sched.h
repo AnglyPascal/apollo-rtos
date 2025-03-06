@@ -28,6 +28,7 @@ namespace curr_proc
 {
 pid_t pid();
 string name();
+bool term_req();
 bool set_up();
 } // namespace curr_proc
 
