@@ -1,9 +1,9 @@
-#include "core/fs.h"
 #include "core/memory.h"
 #include "core/shell.h"
 #include "core/types.h"
 #include "core/waitlist.h"
 #include "drivers/serial.h"
+#include "fs/fs.h"
 
 namespace shell
 {

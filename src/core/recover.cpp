@@ -1,9 +1,9 @@
 #include "core/recover.h"
 
-#include "core/fs.h"
 #include "core/memory.h"
 #include "core/sched.h"
 #include "core/waitlist.h"
+#include "fs/fs.h"
 #include "utility/debug.h"
 
 #define REC_MAGIC 0xbabedadd

@@ -1,4 +1,3 @@
-#include "core/fs.h"
 #include "core/hardware.h"
 #include "core/memory.h"
 #include "core/recover.h"
@@ -8,6 +7,7 @@
 #include "drivers/i2c.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
+#include "fs/fs.h"
 #include "utility/debug.h"
 
 #include "utility/bitset.h"

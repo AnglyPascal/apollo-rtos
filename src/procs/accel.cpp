@@ -1,8 +1,8 @@
 #include "drivers/accel.h"
-#include "core/fs.h"
 #include "core/recover.h"
 #include "core/sched.h"
 #include "drivers/serial.h"
+#include "fs/fs.h"
 #include "utility/circular_buffer.h"
 
 namespace procs
@@ -30,7 +30,8 @@ void accel_func(void *param)
 {
   recover::guard_proc guard{BOOT};
 
-  auto file = flash::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE | O_SHARED);
+  auto file =
+      flash::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE | O_SHARED);
   auto ptr = file.mmap<buffer>();
   auto val = new (ptr) buffer{};
 

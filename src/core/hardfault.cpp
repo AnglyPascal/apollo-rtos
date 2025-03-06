@@ -1,4 +1,4 @@
-#include "core/fs.h"
+#include "fs/fs.h"
 #include "core/sched.h"
 #include "core/types.h"
 #include "core/waitlist.h"

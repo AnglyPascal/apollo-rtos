@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/fs_impl.h"
-#include "drivers/fs_desc.h"
+#include "fs/fs_desc.h"
+#include "fs/fs_impl.h"
 
 namespace _flash
 {
