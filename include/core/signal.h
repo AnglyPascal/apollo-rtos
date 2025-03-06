@@ -71,3 +71,19 @@ public:
 
 signal_handler_t swap_handler(signal_t sig, signal_handler_t new_handler);
 void send_signal(pid_t pid, signal_t sig);
+
+template <int>
+class sigterm_handler_t
+{
+  inline static bool exit = false;
+
+public:
+  sigterm_handler_t()
+  {
+    swap_handler(SIGTERM, [] { exit = true; });
+  }
+
+  ~sigterm_handler_t() { exit = false; }
+
+  bool run() const { return !exit; }
+};

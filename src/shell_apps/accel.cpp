@@ -21,22 +21,6 @@ struct alignas(uint32_t) accel_t {
   int z;
 };
 
-constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
-using buffer = circular_buffer<accel_t, len>;
-
-static_assert(sizeof(buffer) % sizeof(uint32_t) == 0);
-
-volatile bool exit = false;
-
-bool listener(char c)
-{
-  if (c == CTRL('q')) {
-    exit = true;
-    return true;
-  }
-  return false;
-}
-
 const image_t dirs[3][3] = {
     {
         IMAGE(1, 0, 0, 0, 0,  //
@@ -91,9 +75,26 @@ const image_t dirs[3][3] = {
     },
 };
 
+constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
+using buffer = circular_buffer<accel_t, len>;
+
+static_assert(sizeof(buffer) % sizeof(uint32_t) == 0);
+
+// FIXME: definitely can be made into a more programmatic solution
+pid_t curr_accel_pid = null_pid;
+bool listener(char c)
+{
+  if (c == CTRL('q')) {
+    send_signal(curr_accel_pid, SIGTERM);
+    return true;
+  }
+  return false;
+}
+
 void accel(void *param)
 {
-  swap_handler(SIGTERM, []() { exit = true; });
+  curr_accel_pid = curr_proc::pid();
+  sigterm_handler_t<__COUNTER__> handler;
 
   auto file = flash::open(accel::fn, sizeof(buffer), O_CREATE | O_SHARED);
   auto val = file.mmap<buffer>();
@@ -104,7 +105,7 @@ void accel(void *param)
   constexpr int threshold = 10;
   auto is_zero = [](int p) { return (-threshold < p) && (p < threshold); };
 
-  while (!exit) {
+  while (handler.run()) {
     if (!run_bg)
       serial::clear_screen();
 
@@ -122,7 +123,6 @@ void accel(void *param)
     sched::sleep(50);
   }
 
-  exit = false;
   display::reset();
 }
 

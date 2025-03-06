@@ -82,7 +82,7 @@ __extern_C__
 void *cxt_switch(void *stk_ptr)
 {
   assert(cpu.hi_proc->priority > 0);
-  assert_dump(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr,
+  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr,
          "hi_proc: %x, stack: %x, stk_ptr:  %x\r\n", cpu.hi_proc,
          cpu.hi_proc->stack, cpu.hi_proc->stk_ptr);
 
