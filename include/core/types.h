@@ -67,6 +67,11 @@ enum {
 using fn_t = uint8_t;
 inline constexpr fn_t null_fn = MAX<fn_t>;
 
+enum file_type_t {
+  CHAR = 1 << 0,
+  BIN = 1 << 1,
+};
+
 struct string {
   const char *str;
 

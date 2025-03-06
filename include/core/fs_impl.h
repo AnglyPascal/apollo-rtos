@@ -47,9 +47,7 @@ public:
   }
 };
 
-using ft_func_t = file_type_t (*)(uint32_t);
-
-template <typename desc_t, desc_t desc, size_t N_OPEN_FILES, ft_func_t ft_func>
+template <typename desc_t, desc_t desc>
 class fs_impl_t
 {
   using fd_t = _fd_t<desc_t>;
@@ -59,7 +57,7 @@ class fs_impl_t
   inline static fs_t fs;
 
   inline static allocator<alloc_heap, 4> pool;
-  inline static fd_t open_files[N_OPEN_FILES] = {};
+  inline static fd_t open_files[desc.n_open_files] = {};
 
   static fd_t *find_fd(fn_t fn)
   {

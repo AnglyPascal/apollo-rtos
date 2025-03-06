@@ -32,9 +32,11 @@ inline constexpr desc_t desc = {
 
     .max_num_blks = 8,
     .n_inodes = 32,
-};
 
-inline file_type_t ft_func(uint32_t flag) { return BIN; }
+    .n_open_files = 8,
+
+    .ft_func = [](uint32_t) { return BIN; },
+};
 
 } // namespace _flash
 
@@ -67,17 +69,19 @@ inline constexpr desc_t desc = {
 
     .max_num_blks = 32,
     .n_inodes = 32,
+
+    .n_open_files = 16,
+
+    .ft_func = [](uint32_t flag) { return flag & O_CHAR_FILE ? CHAR : BIN; },
 };
-
-inline file_type_t ft_func(uint32_t flag) { return CHAR; }
-
 } // namespace _fram
 
-struct flash
-    : public fs_impl_t<_flash::desc_t, _flash::desc, 8, _flash::ft_func> {
+class flash : public fs_impl_t<_flash::desc_t, _flash::desc>
+{
 };
 
-struct fram : public fs_impl_t<_fram::desc_t, _fram::desc, 16, _fram::ft_func> {
+class fram : public fs_impl_t<_fram::desc_t, _fram::desc>
+{
 };
 
 namespace fs

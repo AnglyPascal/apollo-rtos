@@ -4,11 +4,6 @@
 #include "utility/bitset.h"
 #include "utility/debug.h"
 
-enum file_type_t {
-  CHAR = 1 << 0,
-  BIN = 1 << 1,
-};
-
 struct flag_t {
   void reset() { _flag = 0; }
 
@@ -184,8 +179,6 @@ public:
       assert(flags & O_CREATE, "inode doesn't exist, but not creating\r\n");
       inode.flag.set_use();
 
-      file_type_t ft = flags & O_CHAR_FILE ? CHAR : BIN;
-
       nblks_t nblks = 1;
       if (sz > BLK_SZ)
         nblks += roundup(sz, BLK_SZ) / BLK_SZ;
@@ -200,7 +193,7 @@ public:
 
       inode.addr = first_blk_addr;
       inode.nblks = nblks;
-      inode.flag.set_ft(ft);
+      inode.flag.set_ft(desc.ft_func(flags));
 
       if (flags & O_PERM)
         inode.flag.set_perm();
