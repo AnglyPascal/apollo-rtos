@@ -13,52 +13,22 @@ class fs_impl_t
 private:
   using inode_t = _inode_t<desc_t>;
   using fs_t = _fs_t<desc_t, desc>;
+  using fn_t = typename desc_t::fn_t;
 
   struct mmap_unit_t {
-  private:
     bool pooled = false;
-
-  public:
     void *buf = nullptr;
     size_t sz = 0;
-
-    void mmap(size_t _sz)
-    {
-      if (buf != nullptr)
-        return;
-
-      buf = pool.alloc(_sz);
-      sz = _sz;
-      pooled = true;
-    }
-
-    void mmap(uint8_t *_buf, size_t _sz)
-    {
-      unmap();
-      buf = _buf;
-      sz = _sz;
-      pooled = false;
-    }
-
-    void unmap()
-    {
-      if (pooled)
-        pool.dealloc((byte_t *)buf);
-      new (this) mmap_unit_t{};
-    }
   };
 
   class fd_t
   {
-    using inode_t = _inode_t<desc_t>;
-    using fn_t = typename desc_t::fn_t;
-
     uint8_t w_cnt = 0;
     uint8_t r_cnt = 0;
 
   public:
     fn_t fn = null_fn;
-    mutex<> mtx = {"fd"};
+    mutable mutex<> mtx = {"fd"};
 
     const inode_t *inode = nullptr;
     mmap_unit_t mu = {};
@@ -125,7 +95,13 @@ public:
     void *mmap(size_t sz)
     {
       auto &tmu = target_mu();
-      tmu.mmap(sz);
+      if (tmu.buf != nullptr)
+        return tmu.buf;
+
+      tmu.buf = mmap_shared ? pool.alloc(sz) : heap::malloc(sz);
+      tmu.sz = sz;
+      tmu.pooled = true;
+
       load();
       return tmu.buf;
     }
@@ -133,8 +109,12 @@ public:
     void mmap(uint8_t *buf, size_t sz)
     {
       unmap();
+
       auto &tmu = target_mu();
-      tmu.mmap(buf, sz);
+      tmu.buf = buf;
+      tmu.sz = sz;
+      tmu.pooled = false;
+
       load();
     }
 
@@ -153,13 +133,18 @@ public:
     void unmap()
     {
       if (!mmap_shared) {
-        mu.unmap();
+        if (mu.pooled)
+          heap::free(mu.buf);
+        new (&mu) mmap_unit_t{};
         return;
       }
 
       // last reference to fd
-      if (fd->ref_cnt() == 1)
-        fd->mu.unmap();
+      if (fd->ref_cnt() == 1) {
+        if (fd->mu.pooled)
+          pool.dealloc((byte_t *)fd->mu.buf);
+        new (&fd->mu) mmap_unit_t{};
+      }
     }
 
     void load()
