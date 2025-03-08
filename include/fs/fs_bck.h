@@ -170,12 +170,13 @@ public:
     desc.read(addr, buf, buf_sz);
   }
 
-  const inode_t *open(fn_t fn, size_t sz, uint32_t flags)
+  std::pair<const inode_t *, bool> open(fn_t fn, size_t sz, uint32_t flags)
   {
     assert(sz > 0 && fn >= 0 && fn < desc.n_inodes);
 
     auto &inode = fs_hd.find(fn);
-    if (!inode.flag.in_use()) {
+    bool in_use = inode.flag.in_use();
+    if (!in_use) {
       assert(flags & O_CREATE, "inode doesn't exist, but not creating\r\n");
       inode.flag.set_use();
 
@@ -204,7 +205,7 @@ public:
       store_hd();
     }
 
-    return &inode;
+    return {&inode, !in_use};
   }
 
   void remove(fn_t fn)

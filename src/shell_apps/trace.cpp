@@ -1,5 +1,5 @@
 #include "core/memory.h"
-#include "core/recover.h"
+#include "core/boot.h"
 #include "core/shell.h"
 #include "core/signal.h"
 #include "core/types.h"

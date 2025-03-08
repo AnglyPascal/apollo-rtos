@@ -66,6 +66,8 @@ public:
     mmap_unit_t &target_mu() { return mmap_shared ? fd->mu : mu; }
 
   public:
+    bool new_file = false;
+
     file_t() {}
 
     file_t(fn_t fn, size_t _sz, uint32_t flags)
@@ -77,7 +79,9 @@ public:
         return;
       }
 
-      fd->acquire(fn, fs.open(fn, _sz, flags), w_en);
+      auto [inode, _new_file] = fs.open(fn, _sz, flags);
+      new_file = _new_file;
+      fd->acquire(fn, inode, w_en);
     }
 
     ~file_t() { close(); }
@@ -181,6 +185,17 @@ public:
   static file_t open(fn_t fn, size_t sz, uint32_t flags)
   {
     return file_t{fn, sz, flags};
+  }
+
+  template <typename T, typename... Args>
+  static file_t open(fn_t fn, uint32_t flags, Args &&...args)
+  {
+    auto file = file_t{fn, sizeof(T), flags};
+    if (file.new_file) {
+      auto t = file.template mmap<T>();
+      new (t) T{std::forward<Args>(args)...};
+    }
+    return file;
   }
 
   static void open(file_t &file, fn_t fn, size_t sz, uint32_t flags)

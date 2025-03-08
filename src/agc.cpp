@@ -1,6 +1,6 @@
+#include "core/boot.h"
 #include "core/hardware.h"
 #include "core/memory.h"
-#include "core/recover.h"
 #include "core/sched.h"
 #include "core/shell.h"
 #include "drivers/display.h"
@@ -31,34 +31,12 @@ inline void debug_addr()
   debug<debug_lev>("\tbss_end:    %x\r\n", __bss_end);
 }
 
-struct data_t {
-  uint32_t magic;
-  uint32_t n_reset;
-};
-
-enum {
-  MAGIC = 0xDEADDEAD,
-};
-
-template <typename fs_type>
-inline void fs_test()
-{
-  auto file = fs_type::open(1, sizeof(data_t), O_CREATE | O_WRITE);
-  auto bt = file.template mmap<data_t>();
-  if (bt->magic != MAGIC) {
-    bt->magic = MAGIC;
-    bt->n_reset = 0;
-  } else {
-    bt->n_reset++;
-  }
-  kprintf("n_reset: %d\r\n", bt->n_reset);
-  file.store();
-}
-
 inline void __start(void)
 {
   _memcpy(__data_start, __etext, __data_end - __data_start);
   _memset(__bss_start, 0, __bss_end - __bss_start);
+
+  debug_addr<TRACE>();
 
   led::init();
   serial::init();
@@ -68,10 +46,6 @@ inline void __start(void)
   fs::init();
 
   boot::init();
-
-  fs_test<fram>();
-  debug_addr<TRACE>();
-
   sched::init();
 
   spin();

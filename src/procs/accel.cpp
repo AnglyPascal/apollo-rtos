@@ -30,10 +30,8 @@ void accel_func(void *param)
 {
   recover::guard_proc guard{POWER_OFF};
 
-  auto file =
-      fram::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE | O_SHARED);
-  auto ptr = file.mmap<buffer>();
-  auto val = new (ptr) buffer{};
+  auto file = fram::open<buffer>(accel::fn, O_WRITE | O_CREATE | O_SHARED);
+  auto buf = file.mmap<buffer>();
 
   accel::init();
 
@@ -41,7 +39,7 @@ void accel_func(void *param)
   int x, y, z;
   while (!curr_proc::term_req()) {
     accel::read(&x, &y, &z);
-    val->enqueue(x, y, z);
+    buf->enqueue(x, y, z);
 
     if (n-- == 0)
       file.store();

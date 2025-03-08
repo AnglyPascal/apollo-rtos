@@ -57,18 +57,3 @@ public:
 };
 
 } // namespace recover
-
-enum class boot_lev_t {
-  RESET,
-  BOOT,
-  POWER,
-  FLASH,
-};
-
-namespace boot
-{
-bool first_boot();
-boot_lev_t lev();
-const char *lev_str();
-void init();
-} // namespace boot

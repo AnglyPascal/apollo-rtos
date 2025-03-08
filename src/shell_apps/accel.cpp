@@ -82,7 +82,7 @@ static_assert(sizeof(buffer) % sizeof(uint32_t) == 0);
 
 void accel(void *param)
 {
-  auto file = fram::open(accel::fn, sizeof(buffer), O_SHARED);
+  auto file = fram::open<buffer>(accel::fn, O_SHARED);
   auto val = file.mmap<const buffer>();
 
   bool run_bg = ((shell::args_t *)param)->run_bg;

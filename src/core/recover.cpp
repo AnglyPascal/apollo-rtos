@@ -1,6 +1,7 @@
 #include "core/recover.h"
 
 #include "core/memory.h"
+#include "core/boot.h"
 #include "core/sched.h"
 #include "core/waitlist.h"
 #include "fs/fs.h"
