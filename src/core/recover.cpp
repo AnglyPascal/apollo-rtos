@@ -190,12 +190,13 @@ void init()
   fram::open(file, rec_fn, sizeof(rec_tbl_t), O_WRITE | O_CREATE | O_PERM);
   file.mmap(rec_tbl);
 
-  // TODO: hardware restart if the recover table is corrupt
-  if (boot::lev() != boot_lev_t::RESET) {
+  auto boot_lev = boot::lev();
+  if (boot_lev == boot_lev_t::BOOT || boot_lev == boot_lev_t::FLASH) {
     rec_tbl.reset();
     sched::setup_procs();
   } else {
-    rec_tbl.recover(RESET);
+    auto reset_lev = boot_lev == boot_lev_t::RESET ? RESET : POWER_OFF;
+    rec_tbl.recover(reset_lev);
   }
 
   file.store();

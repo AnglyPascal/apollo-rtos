@@ -15,9 +15,11 @@ void single_blk_file_rw()
 {
   auto file = fram::open(10, 16, O_WRITE | O_CREATE);
   auto t = (char *)file.mmap(16);
-  kprintf("fram read: %s\r\n", t);
 
   auto s = "It IS a string";
+  if (string{t} != string{s})
+    kprintf("fram read: %s\r\n", t);
+
   while (*s != '\0')
     *t++ = *s++;
   *t = '\0';
@@ -30,13 +32,21 @@ void multi_blk_file_rw()
   auto file = fram::open(12, 256, O_WRITE | O_CREATE);
   auto t = (uint32_t *)file.mmap(256);
 
-  kprintf("fram read: ");
-  for (size_t i = 0; i < 4; i++)
-    kprintf("%x, ", t[i]);
-  kprintf("%x\r\n", t[4]);
+  constexpr uint32_t val = 0xABCD0123;
+
+  bool equal = true;
+  for (size_t i = 0; i < 256 / sizeof(*t); i++)
+    equal &= t[i] == val;
+
+  if (!equal) {
+    kprintf("fram read: ");
+    for (size_t i = 0; i < 4; i++)
+      kprintf("%x, ", t[i]);
+    kprintf("%x\r\n", t[4]);
+  }
 
   for (size_t i = 0; i < 256 / sizeof(*t); i++) {
-    *t++ = 0xABCD0123;
+    *t++ = val;
   }
 
   file.store();
@@ -73,7 +83,7 @@ void test_proc(void *param)
   delay_loop(1000);
   sched::decr_priority(LOW1);
 
-  reset_task_test();
+  /* reset_task_test(); */
 
   while (1) {
     delay_loop(10000);

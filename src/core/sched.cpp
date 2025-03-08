@@ -176,7 +176,7 @@ void init()
 
 void trace()
 {
-  debug<INFO>("  curr_proc: %s\r\n", cpu.curr_proc->name.str);
+  debug<INFO>("curr_proc: %s\r\n", cpu.curr_proc->name.str);
   procs.trace();
 }
 

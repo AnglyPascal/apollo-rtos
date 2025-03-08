@@ -1,4 +1,5 @@
 #include "core/memory.h"
+#include "core/recover.h"
 #include "core/shell.h"
 #include "core/signal.h"
 #include "core/types.h"
@@ -14,6 +15,7 @@ namespace
 __always_inline__
 inline void do_trace()
 {
+  kprintf("\r\nboot level: %s\r\n", boot::lev_str());
   sched::trace();
   waitlist::trace();
   fs::trace();

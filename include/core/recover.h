@@ -14,7 +14,7 @@ inline constexpr rec_id_t null_rec_id = MAX<rec_id_t>;
 enum lev_t : uint8_t {
   NONE = 0,
   RESET = 1,
-  BOOT = 2,
+  POWER_OFF = 2,
 };
 
 namespace recover
@@ -61,6 +61,7 @@ public:
 enum class boot_lev_t {
   RESET,
   BOOT,
+  POWER,
   FLASH,
 };
 
@@ -68,5 +69,6 @@ namespace boot
 {
 bool first_boot();
 boot_lev_t lev();
+const char *lev_str();
 void init();
 } // namespace boot

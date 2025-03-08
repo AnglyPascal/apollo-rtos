@@ -71,7 +71,7 @@ namespace display
 
 void task(void *)
 {
-  recover::guard_proc guard{BOOT};
+  recover::guard_proc guard{POWER_OFF};
 
   GPIO.DIR = LED_MASK;
   reset();

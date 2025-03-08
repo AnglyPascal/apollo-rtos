@@ -1,9 +1,9 @@
-#include "fs/fs.h"
 #include "core/memory.h"
 #include "core/recover.h"
+#include "fs/fs.h"
 #include "utility/debug.h"
 
-#define REC_MAGIC 0xbabedadd
+#define RAM_MAGIC 0xbabedadd
 
 __extern_C__
 byte_t __recover_load[],
@@ -18,32 +18,41 @@ namespace boot
 {
 namespace
 {
-bool power_on = false;
-uint32_t power_magic __recover_section__ = REC_MAGIC;
+boot_lev_t boot_lev = boot_lev_t::FLASH;
+uint32_t ram_magic __recover_section__ = RAM_MAGIC;
 } // namespace
+
+boot_lev_t lev() { return boot_lev; }
+
+const char *lev_str()
+{
+  static const char *levs[] = {
+      "reset",
+      "boot",
+      "power",
+      "flash",
+  };
+  return levs[static_cast<uint8_t>(lev())];
+}
 
 void init()
 {
-  power_on = power_magic != REC_MAGIC;
-  power_magic = REC_MAGIC;
+  bool ram_reset = ram_magic != RAM_MAGIC;
+  ram_magic = RAM_MAGIC;
 
-  auto _lev = lev();
-  if (_lev == boot_lev_t::RESET)
-    kprintf("reset\r\n");
-  else if (_lev == boot_lev_t::FLASH)
-    kprintf("flash\r\n");
+  if (fs::first_boot())
+    boot_lev = boot_lev_t::FLASH;
+  else if (POWER.RESETREAS == 0)
+    boot_lev = boot_lev_t::POWER;
   else
-    kprintf("boot\r\n");
+    boot_lev = ram_reset ? boot_lev_t::BOOT : boot_lev_t::RESET;
+
+  POWER.RESETREAS = 0xFFFFFFFF;
+
+  kprintf("boot level: %s\r\n", boot::lev_str());
 
   // initialize recovery section
   if (boot::lev() != boot_lev_t::RESET)
     _memcpy(__recover_start, __recover_load, __recover_end - __recover_start);
-}
-
-boot_lev_t lev()
-{
-  if (fs::first_boot())
-    return boot_lev_t::FLASH;
-  return power_on ? boot_lev_t::BOOT : boot_lev_t::RESET;
 }
 } // namespace boot

@@ -28,7 +28,7 @@ int n __recover_section__ = 100;
 
 void accel_func(void *param)
 {
-  recover::guard_proc guard{BOOT};
+  recover::guard_proc guard{POWER_OFF};
 
   auto file =
       fram::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE | O_SHARED);
