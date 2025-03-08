@@ -20,7 +20,7 @@ struct accel_t {
   int z;
 };
 
-constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
+constexpr size_t len = 8;
 using buffer = circular_buffer<accel_t, len>;
 
 int n __recover_section__ = 100;
@@ -31,19 +31,20 @@ void accel_func(void *param)
   recover::guard_proc guard{BOOT};
 
   auto file =
-      flash::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE | O_SHARED);
+      fram::open(accel::fn, sizeof(buffer), O_WRITE | O_CREATE | O_SHARED);
   auto ptr = file.mmap<buffer>();
   auto val = new (ptr) buffer{};
 
   accel::init();
 
+  uint8_t n = MAX<uint8_t>;
   int x, y, z;
   while ((volatile int)1) {
     accel::read(&x, &y, &z);
     val->enqueue(x, y, z);
 
-    /* if ((n & 31) == 0) */
-    /*   file->store(); */
+    if (n-- == 0)
+      file.store();
 
     sched::sleep(200);
   }

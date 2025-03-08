@@ -75,14 +75,14 @@ const image_t dirs[3][3] = {
     },
 };
 
-constexpr size_t len = (pg_sz - circular_buffer_header_sz) / sizeof(accel_t);
+constexpr size_t len = 8;
 using buffer = circular_buffer<accel_t, len>;
 
 static_assert(sizeof(buffer) % sizeof(uint32_t) == 0);
 
 void accel(void *param)
 {
-  auto file = flash::open(accel::fn, sizeof(buffer), O_CREATE | O_SHARED);
+  auto file = fram::open(accel::fn, sizeof(buffer), O_SHARED);
   auto val = file.mmap<buffer>();
 
   bool run_bg = ((shell::args_t *)param)->run_bg;

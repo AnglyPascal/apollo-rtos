@@ -30,30 +30,54 @@ enum rec_item_t {
 template <rec_item_t item>
 struct entry_t;
 
-template <>
-struct entry_t<PROC> {
-  lev_t lev = NONE;
-  proc_def_t proc_def;
+struct alignas(uint32_t) entry_hd_t {
   uint8_t data[N_REC_DATA] = {0xFF};
+  lev_t lev = NONE;
 
   void reset()
   {
     lev = NONE;
     _memset(data, 0xFF, N_REC_DATA);
   }
+
+  void copy_data(const uint8_t *src, size_t sz)
+  {
+    if (src == nullptr)
+      return;
+    assert(sz <= N_REC_DATA);
+    _memcpy(data, src, sz);
+  }
+};
+
+static_assert(sizeof(entry_hd_t) % sizeof(uint32_t) == 0);
+static_assert(alignof(entry_hd_t) == alignof(uint32_t));
+
+template <>
+struct alignas(uint32_t) entry_t<PROC> : entry_hd_t {
+  proc_def_t proc_def;
+
+  void recover(lev_t curr_lev)
+  {
+    if (lev < curr_lev)
+      return;
+    sched::reg_proc(&proc_def, data);
+  }
 };
 
 template <>
-struct entry_t<TASK> {
-  lev_t lev = NONE;
+struct alignas(uint32_t) entry_t<TASK> : entry_hd_t {
   time_t interval = 0;
   runnable_t task = nullptr;
-  uint8_t data[N_REC_DATA] = {0xFF};
 
-  void reset()
+  void recover(lev_t curr_lev)
   {
-    lev = NONE;
-    _memset(data, 0xFF, N_REC_DATA);
+    if (lev < curr_lev)
+      return;
+
+    if (interval == 0)
+      task(data);
+    else
+      waitlist::reg("recover", interval, task, data);
   }
 };
 
@@ -75,8 +99,19 @@ public:
     return null_rec_id;
   }
 
-  auto begin() { return tbl; }
-  auto end() { return tbl + N_PROCS; }
+  void recover(lev_t curr_lev)
+  {
+    for (auto &entry : tbl) {
+      entry.recover(curr_lev);
+      entry.reset();
+    }
+  }
+
+  void reset()
+  {
+    for (auto &entry : tbl)
+      entry.reset();
+  }
 };
 
 struct rec_tbl_t {
@@ -85,10 +120,14 @@ struct rec_tbl_t {
 
   void reset()
   {
-    for (auto &entry : proc_tbl)
-      entry.reset();
-    for (auto &entry : task_tbl)
-      entry.reset();
+    proc_tbl.reset();
+    task_tbl.reset();
+  }
+
+  void recover(lev_t curr_lev)
+  {
+    proc_tbl.recover(curr_lev);
+    task_tbl.recover(curr_lev);
   }
 };
 static_assert(sizeof(rec_tbl_t) <= 1024);
@@ -109,11 +148,7 @@ guard_proc::guard_proc(lev_t lev, const uint8_t *data, size_t data_sz)
   entry.lev = lev;
 
   entry.proc_def = *curr_proc::def();
-
-  if (data != nullptr) {
-    assert(data_sz <= N_REC_DATA);
-    _memcpy(entry.data, data, data_sz);
-  }
+  entry.copy_data(data, data_sz);
 
   file.store();
 }
@@ -136,11 +171,7 @@ guard_task::guard_task(lev_t lev, runnable_t task, time_t interval,
 
   entry.interval = interval;
   entry.task = task;
-
-  if (data != nullptr) {
-    assert(data_sz <= N_REC_DATA);
-    _memcpy(entry.data, data, data_sz);
-  }
+  entry.copy_data(data, data_sz);
 
   file.store();
 }
@@ -152,31 +183,10 @@ guard_task::~guard_task()
   file.store();
 }
 
-inline void recover()
-{
-  auto &task_tbl = rec_tbl.task_tbl;
-  for (auto &entry : task_tbl) {
-    if (entry.lev != NONE && entry.task != nullptr) {
-      if (entry.interval == 0)
-        entry.task(entry.data);
-      else
-        waitlist::reg("recover", entry.interval, entry.task, entry.data);
-    }
-    entry.reset();
-  }
-
-  auto &proc_tbl = rec_tbl.proc_tbl;
-  for (auto &entry : proc_tbl) {
-    if (entry.lev != NONE)
-      sched::reg_proc(&entry.proc_def, entry.data);
-    entry.reset();
-  }
-
-  file.store();
-}
-
 void init()
 {
+  // FIXME: this reuses the previous version of the file
+  // so any changes to the file size will cause conflicts
   fram::open(file, rec_fn, sizeof(rec_tbl_t), O_WRITE | O_CREATE | O_PERM);
   file.mmap(rec_tbl);
 
@@ -185,7 +195,7 @@ void init()
     rec_tbl.reset();
     sched::setup_procs();
   } else {
-    recover();
+    rec_tbl.recover(RESET);
   }
 
   file.store();
