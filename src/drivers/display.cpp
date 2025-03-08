@@ -76,7 +76,7 @@ void task(void *)
   GPIO.DIR = LED_MASK;
   reset();
 
-  while (1) {
+  while (!curr_proc::term_req()) {
     int n = 0;
     while (n < 3) {
       GPIO.OUT = image[n++];

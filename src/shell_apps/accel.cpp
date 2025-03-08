@@ -83,7 +83,7 @@ static_assert(sizeof(buffer) % sizeof(uint32_t) == 0);
 void accel(void *param)
 {
   auto file = fram::open(accel::fn, sizeof(buffer), O_SHARED);
-  auto val = file.mmap<buffer>();
+  auto val = file.mmap<const buffer>();
 
   bool run_bg = ((shell::args_t *)param)->run_bg;
   sigterm_listener_t<__COUNTER__> guard{run_bg};
@@ -91,10 +91,8 @@ void accel(void *param)
   constexpr int threshold = 10;
   auto is_zero = [](int p) { return (-threshold < p) && (p < threshold); };
 
+  uint8_t n = 0;
   while (!curr_proc::term_req()) {
-    if (!run_bg)
-      serial::clear_screen();
-
     if (!val->empty()) {
       auto [x, y, z] = val->back();
 
@@ -102,13 +100,16 @@ void accel(void *param)
       auto dy = is_zero(y) ? 1 : (y < 0 ? 2 : 0);
       display::show(dirs[dy][dx]);
 
-      if (!run_bg)
+      if (n++ % 16 == 0 && !run_bg) {
+        serial::clear_screen();
         printf("x: %d, y: %d, z: %d\r\n", x, y, z);
+      }
     }
 
     sched::sleep(50);
   }
 
+  serial::clear_screen();
   display::reset();
 }
 

@@ -217,9 +217,9 @@ void assert_stack()
   auto stack = (void *)cpu.curr_proc->stack;
   auto stack_end = (uint8_t *)stack + cpu.curr_proc->stk_sz;
   auto curr_stk = (void *)get_msp();
-  assert(stack <= curr_stk && curr_stk <= stack_end,
-         "stack: %x, curr_stk: %x, stack_end: %x\r\n", stack, curr_stk,
-         stack_end);
+  assert_dump(stack <= curr_stk && curr_stk <= stack_end,
+              "curr_proc: %s, stack: %x, curr_stk: %x, stack_end: %x\r\n",
+              cpu.curr_proc->name.str, stack, curr_stk, stack_end);
 }
 
 } // namespace sched

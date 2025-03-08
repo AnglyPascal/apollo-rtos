@@ -55,6 +55,9 @@ def format_output(stack_entries):
     ]
     
     for entry in sorted_entries:
+        if entry['func_name'] == "cpp)": # or entry['func_name'] == ")":
+            continue
+
         # Truncate filepath to show only last two components if too long
         filepath_parts = entry['filepath'].split(os.path.sep)
         if len(filepath_parts) > 2:

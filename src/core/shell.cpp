@@ -17,10 +17,10 @@ bool listener(char c);
 
 void shell_proc(void *)
 {
-  buf.reset();
   serial::register_listener(listener);
 
   while ((volatile bool)true) {
+    buf.reset();
     sched::wait(chan);
 
     auto str = buf.str;
@@ -76,7 +76,6 @@ void shell_proc(void *)
     sched::reg_proc(cmd_def, param);
 
     printf("\r\n");
-    buf.reset();
   }
 }
 
@@ -85,7 +84,7 @@ void trigger_reset();
 
 bool listener(char c)
 {
-  if (c == 0177) {
+  if (c == DEL || c == BS) {
     printf("\b \b");
     buf.pop();
     return true;
@@ -97,16 +96,33 @@ bool listener(char c)
     return true;
   }
 
+  if (c == CTRL('l')) {
+    serial::clear_screen();
+    return true;
+  }
+
+  if (c == CTRL('c')) {
+    buf.reset();
+    printf("^C\r\n");
+    return true;
+  }
+
   serial::putc(c);
 
-  if (c != '\r' && c != '\n') {
+  if (c >= 32 && c < 127) {
     buf.push(c);
     return true;
   }
 
-  sched::notify(chan);
+  if (c == '\r' || c == '\n') {
+    sched::notify(chan);
+    return true;
+  }
 
-  return true;
+  printf("\'%d\'\r\n", c);
+  buf.reset();
+
+  return false;
 }
 
 proc_def_t shell_def = {"shell", HIGH1, 256, shell_proc};

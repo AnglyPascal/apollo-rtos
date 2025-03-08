@@ -25,16 +25,14 @@ void trace(void *param)
   auto &buf = *(args_t *)param;
   auto args = buf.str;
 
-  bool run_bg = false;
+  bool run_once = false;
   if (*args++ == '-' && *args++ == 'r')
-    run_bg = true;
+    run_once = true;
 
-  sigterm_listener_t<__COUNTER__> sig_guard{run_bg};
+  sigterm_listener_t<__COUNTER__> sig_guard{!run_once};
 
-  if (run_bg)
+  if (run_once) {
     sched::decr_priority(LOW3);
-
-  if (run_bg) {
     while (!curr_proc::term_req()) {
       serial::clear_screen();
       do_trace();

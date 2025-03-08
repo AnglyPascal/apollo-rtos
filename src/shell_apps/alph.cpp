@@ -164,7 +164,7 @@ void show(void *param)
   auto buf = (args_t *)param;
   auto str = buf->str;
 
-  while (*str != '\0') {
+  while (!curr_proc::term_req() && *str != '\0') {
     auto c = *str++;
     auto img = c == ','
                    ? comma

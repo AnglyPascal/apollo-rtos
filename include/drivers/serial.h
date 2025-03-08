@@ -5,6 +5,10 @@
 #include "utility/lib.h"
 
 #define CTRL(x) ((x) & 0x1f)
+#define BS (8)
+#define DEL (0177)
+#define ESC (7)
+#define CLEAR_LINE ("\r\033[2K")
 
 namespace serial
 {

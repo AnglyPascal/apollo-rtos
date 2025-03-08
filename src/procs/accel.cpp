@@ -39,7 +39,7 @@ void accel_func(void *param)
 
   uint8_t n = MAX<uint8_t>;
   int x, y, z;
-  while ((volatile int)1) {
+  while (!curr_proc::term_req()) {
     accel::read(&x, &y, &z);
     val->enqueue(x, y, z);
 
@@ -48,6 +48,7 @@ void accel_func(void *param)
 
     sched::sleep(200);
   }
+  file.store();
 }
 
 } // namespace procs

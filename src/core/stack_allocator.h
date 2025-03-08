@@ -40,12 +40,8 @@ class stack_allocator_t
   // magic return address for exceptions
   static constexpr uint32_t lr_intr_magic = 0xfffffff9; // not 0xfffffffd
 
-  // minimum stack depth to allow for a printf to execute in debug mode
-  static constexpr size_t debug_depth = 128;
-  static constexpr size_t timer_depth = 32;
-  static constexpr size_t recover_depth = 64;
-  static constexpr size_t fs_depth = 80;
-  static constexpr size_t signal_depth = 32;
+  // minimum stack depth
+  static constexpr size_t min_stack_sz = 128 * 3;
 
   static constexpr uint32_t alignment = 16;
 
@@ -56,8 +52,7 @@ public:
                       void (*ret)())
   {
     stk_sz = roundup(stk_sz, alignment);
-    stk_sz += debug_depth + timer_depth + recover_depth + signal_depth +
-              fs_depth + sizeof(context_t);
+    stk_sz += min_stack_sz;
 
     proc->stack = (byte_t *)pool.alloc(stk_sz);
 
