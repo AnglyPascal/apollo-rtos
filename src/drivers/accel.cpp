@@ -17,13 +17,11 @@
 namespace accel
 {
 
-void read(int *x, int *y, int *z)
+void read(data_t &data)
 {
   int8_t buf[3] = {ACC_X_DATA};
   i2c::read_bytes(ACC, (uint8_t *)buf, 1, (uint8_t *)buf, 3);
-  *x = -buf[0];
-  *y = buf[1];
-  *z = -buf[2];
+  data = {static_cast<int8_t>(-buf[0]), buf[1], static_cast<int8_t>(-buf[2])};
 }
 
 void init(void)

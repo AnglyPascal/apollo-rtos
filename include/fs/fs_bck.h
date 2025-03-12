@@ -31,24 +31,22 @@ private:
   };
 };
 
-template <typename desc_t>
+template <typename desc_t, desc_t desc>
 struct _inode_t {
   using blk_addr_t = typename desc_t::blk_addr_t;
   using addr_t = typename desc_t::addr_t;
   using nblks_t = typename desc_t::nblks_t;
 
-  blk_addr_t addr;
   nblks_t nblks;
+  blk_addr_t blks[desc.max_num_blks];
+
   flag_t flag;
 
   addr_t start;
   addr_t curr;
 
   file_type_t ft() const { return flag.ft(); }
-  size_t fsz() const
-  {
-    return nblks == 1 ? desc_t::blk_sz : (nblks - 1) * desc_t::blk_sz;
-  }
+  size_t fsz() const { return nblks * desc_t::blk_sz; }
 };
 
 template <typename desc_t, desc_t desc>
@@ -56,9 +54,9 @@ struct _fs_hd_t {
   using fn_t = typename desc_t::fn_t;
   using blk_addr_t = typename desc_t::blk_addr_t;
 
-  using inode_t = _inode_t<desc_t>;
+  using inode_t = _inode_t<desc_t, desc>;
 
-  static constexpr uint32_t BLK_MAGIC = 0xbabebabe;
+  static constexpr uint32_t BLK_MAGIC = 0xbebebabe;
   uint32_t magic;
   inode_t inode_tbl[desc.n_inodes];
 
@@ -71,17 +69,12 @@ struct _fs_hd_t {
   void format()
   {
     magic = BLK_MAGIC;
-    for (auto &inode : inode_tbl) {
+    for (auto &inode : inode_tbl)
       inode = inode_t{};
-    }
     free_set.set_all();
   }
 
-  inode_t &find(fn_t fn)
-  {
-    auto &inode = inode_tbl[fn];
-    return inode;
-  }
+  inode_t &find(fn_t fn) { return inode_tbl[fn]; }
 
   void alloc_blks(blk_addr_t *buf, size_t nblks)
   {
@@ -95,9 +88,8 @@ struct _fs_hd_t {
 
   void dealloc_blks(blk_addr_t *buf, size_t nblks)
   {
-    while (nblks-- > 0) {
+    while (nblks-- > 0)
       free_set.insert(*buf++);
-    }
   }
 };
 
@@ -114,7 +106,7 @@ public:
   using fn_t = typename desc_t::fn_t;
   using nblks_t = typename desc_t::nblks_t;
 
-  using inode_t = _inode_t<desc_t>;
+  using inode_t = _inode_t<desc_t, desc>;
 
   static constexpr auto BLK_SZ = desc_t::blk_sz;
 
@@ -124,8 +116,6 @@ private:
   using fs_hd_t = _fs_hd_t<desc_t, desc>;
   fs_hd_t fs_hd;
   static_assert(sizeof(fs_hd_t) <= desc.fs_hd_sz);
-
-  mutable blk_addr_t temp_blk[desc.max_num_blks + 1];
 
   static constexpr addr_t paddr(blk_addr_t blk_addr)
   {
@@ -160,14 +150,12 @@ public:
 
   static inline void write(blk_addr_t blk_addr, uint8_t *buf, size_t buf_sz)
   {
-    addr_t addr = paddr(blk_addr);
-    desc.write(addr, buf, buf_sz);
+    desc.write(paddr(blk_addr), buf, buf_sz);
   }
 
   static inline void read(blk_addr_t blk_addr, uint8_t *buf, size_t buf_sz)
   {
-    addr_t addr = paddr(blk_addr);
-    desc.read(addr, buf, buf_sz);
+    desc.read(paddr(blk_addr), buf, buf_sz);
   }
 
   std::pair<const inode_t *, bool> open(fn_t fn, size_t sz, uint32_t flags)
@@ -175,27 +163,19 @@ public:
     assert(sz > 0 && fn >= 0 && fn < desc.n_inodes);
 
     auto &inode = fs_hd.find(fn);
-    bool in_use = inode.flag.in_use();
+    const bool in_use = inode.flag.in_use();
+
     if (!in_use) {
       assert(flags & O_CREATE, "inode doesn't exist, but not creating\r\n");
       inode.flag.set_use();
 
-      nblks_t nblks = 1;
-      if (sz > BLK_SZ)
-        nblks += roundup(sz, BLK_SZ) / BLK_SZ;
-      assert(nblks <= desc.max_num_blks + 1);
-
-      fs_hd.alloc_blks(temp_blk, nblks);
-      blk_addr_t first_blk_addr = temp_blk[0];
-
-      if (nblks > 1)
-        write(first_blk_addr, (uint8_t *)(temp_blk + 1),
-              (nblks - 1) * sizeof(blk_addr_t));
-
-      inode.addr = first_blk_addr;
+      nblks_t nblks = roundup(sz, BLK_SZ) / BLK_SZ;
+      assert(nblks <= desc.max_num_blks);
       inode.nblks = nblks;
-      inode.flag.set_ft(desc.ft_func(flags));
 
+      fs_hd.alloc_blks(inode.blks, nblks);
+
+      inode.flag.set_ft(desc.ft_func(flags));
       if (flags & O_PERM)
         inode.flag.set_perm();
 
@@ -212,23 +192,13 @@ public:
   {
     auto &inode = fs_hd.find(fn);
 
-    if (!inode.flag.in_use()) {
-      debug<WARN>("deleting non-existent file does nothing\r\n");
-      return;
-    }
+    if (!inode.flag.in_use())
+      return debug<WARN>("deleting non-existent file does nothing\r\n");
 
-    if (inode.flag.is_perm()) {
-      debug<ERROR>("cannot delete permanent file\r\n");
-      return;
-    }
+    if (inode.flag.is_perm())
+      return debug<ERROR>("cannot delete permanent file\r\n");
 
-    auto nblks = inode.nblks;
-    auto temp_blk[0] = inode.addr;
-    if (nblks > 1)
-      read(inode.addr, (uint8_t *)(temp_blk + 1),
-           (nblks - 1) * sizeof(blk_addr_t));
-
-    fs_hd.dealloc_blks(temp_blk, nblks);
+    fs_hd.dealloc_blks(inode.blks, inode.nblks);
     inode.flag.reset();
 
     store_hd();
@@ -239,29 +209,18 @@ private:
   inline void xfer(const inode_t *inode, uint8_t *buf, size_t buf_sz) const
   {
     assert(inode->ft() == BIN);
-    auto func = to_read ? read : write;
+    assert(inode->fsz() >= buf_sz);
 
-    auto fst_blk = inode->addr;
+    auto func = to_read ? read : write;
     auto nblks = inode->nblks;
 
-    size_t file_sz = nblks > 1 ? (nblks - 1) * BLK_SZ : BLK_SZ;
-    assert(file_sz >= buf_sz);
-
-    if (nblks == 1) {
-      func(fst_blk, buf, buf_sz);
-      return;
-    }
-
-    read(fst_blk, (uint8_t *)temp_blk, (nblks - 1) * sizeof(blk_addr_t));
-
-    for (nblks_t i = 0; i < nblks - 2; i++) {
-      auto blk_addr = temp_blk[i];
-      func(blk_addr, buf, BLK_SZ);
+    for (nblks_t i = 0; i < nblks - 1; i++) {
+      func(inode->blks[i], buf, BLK_SZ);
 
       buf += BLK_SZ;
       buf_sz -= BLK_SZ;
     }
-    func(temp_blk[nblks - 2], buf, buf_sz);
+    func(inode->blks[nblks - 1], buf, buf_sz);
   }
 
 public:
@@ -270,7 +229,6 @@ public:
     xfer<true>(inode, buf, buf_sz);
   }
 
-  // TODO: try storing for real
   void store(const inode_t *inode, uint8_t *buf, size_t buf_sz) const
   {
     xfer<false>(inode, buf, buf_sz);
@@ -292,23 +250,10 @@ public:
           "  |  [%c] %d: size = %d, type = %s, blks: ", is_open(fn) ? 'O' : 'C',
           fn, inode.fsz(), inode.ft() == CHAR ? "char" : "bin");
 
-      auto fst_blk = inode.addr;
-      auto nblks = inode.nblks;
-
-      if (nblks > 1) {
-        read(fst_blk, temp_blk, (nblks - 1) * sizeof(blk_addr_t));
-        auto blks = (blk_addr_t *)temp_blk;
-        for (auto i = 0; i < nblks - 1; i++) {
-          debug<INFO>("%u, ", blks[i]);
-        }
-      }
-
-      debug<INFO>("%u\r\n", fst_blk);
+      for (auto i = 0; i < inode.nblks - 1; i++)
+        debug<INFO>("%u, ", inode.blks[i]);
+      debug<INFO>("%u\r\n", inode.blks[inode.nblks - 1]);
     }
   }
-
-  // TODO:
-  void flush();
-  // or smth similar to be used in hardfault
 };
 

@@ -30,8 +30,8 @@ inline constexpr desc_t desc = {
     .fs_hd_addr = N_BLKS - N_FS_BLKS,
     .fs_hd_sz = BLK_SZ * N_FS_BLKS,
 
-    .max_num_blks = 8,
-    .n_inodes = 32,
+    .max_num_blks = 48,
+    .n_inodes = 16,
 
     .n_open_files = 8,
 
@@ -67,7 +67,7 @@ inline constexpr desc_t desc = {
     .fs_hd_addr = N_BLKS - N_FS_BLKS,
     .fs_hd_sz = BLK_SZ * N_FS_BLKS,
 
-    .max_num_blks = 32,
+    .max_num_blks = 24,
     .n_inodes = 32,
 
     .n_open_files = 16,
@@ -95,6 +95,12 @@ inline void init()
   fram::mount();
 
   _first_boot = flash::first_boot();
+}
+
+inline void flush()
+{
+  flash::umount();
+  fram::umount();
 }
 
 inline void trace()

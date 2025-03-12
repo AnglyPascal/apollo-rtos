@@ -21,6 +21,38 @@ namespace
 {
 boot_lev_t boot_lev = boot_lev_t::FLASH;
 uint32_t ram_magic __recover_section__ = RAM_MAGIC;
+
+struct boot_stat_t {
+  uint32_t n_reset = 0;
+  uint32_t n_boot = 0;
+  uint32_t n_flash = 0;
+  uint32_t n_power = 0;
+
+  void incr(boot_lev_t lev)
+  {
+    switch (lev) {
+    case boot_lev_t::RESET:
+      n_reset++;
+      break;
+    case boot_lev_t::BOOT:
+      n_boot++;
+      break;
+    case boot_lev_t::POWER:
+      n_power++;
+      break;
+    default:
+      n_flash++;
+    }
+  }
+
+  void trace() const
+  {
+    kprintf("boot level: %s\r\n", boot::lev_str());
+    kprintf(
+        "boot stat: n_flash = %d, n_boot = %d, n_power = %d, n_reset = %d\r\n",
+        n_flash, n_boot, n_power, n_reset);
+  }
+};
 } // namespace
 
 boot_lev_t lev() { return boot_lev; }
@@ -52,17 +84,17 @@ void init()
   else
     boot_lev = boot_lev_t::RESET;
 
-  auto file = fram::open<boot_stat_t>(boot_fn, O_WRITE | O_CREATE | O_PERM);
-  auto stat = file.mmap<boot_stat_t>();
-  stat->incr(boot_lev);
-  file.store();
+  {
+    auto file = fram::open<boot_stat_t>(boot_fn, O_WRITE | O_CREATE | O_PERM);
+    auto stat = file.mmap<boot_stat_t>();
+
+    stat->incr(boot_lev);
+    stat->trace();
+
+    file.store();
+  }
 
   POWER.RESETREAS = 0xFFFFFFFF;
-
-  kprintf("boot level: %s\r\n", boot::lev_str());
-  kprintf(
-      "boot stat: n_flash = %d, n_boot = %d, n_power = %d, n_reset = %d\r\n",
-      stat->n_flash, stat->n_boot, stat->n_power, stat->n_reset);
 
   // initialize recovery section
   if (boot::lev() != boot_lev_t::RESET)

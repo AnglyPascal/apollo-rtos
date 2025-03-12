@@ -75,15 +75,10 @@ const image_t dirs[3][3] = {
     },
 };
 
-constexpr size_t len = 8;
-using buffer = circular_buffer<accel_t, len>;
-
-static_assert(sizeof(buffer) % sizeof(uint32_t) == 0);
-
 void accel(void *param)
 {
-  auto file = fram::open<buffer>(accel::fn, O_SHARED);
-  auto val = file.mmap<const buffer>();
+  auto file = fram::open<accel::buffer>(accel::fn, O_SHARED);
+  auto val = file.mmap<const accel::buffer>();
 
   bool run_bg = ((shell::args_t *)param)->run_bg;
   sigterm_listener_t<__COUNTER__> guard{run_bg};

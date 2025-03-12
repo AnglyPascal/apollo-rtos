@@ -9,27 +9,30 @@ namespace procs
 
 void test_proc(void *param);
 
-proc_def_t test{"test", MID1, 64, test_proc};
+proc_def_t test{"test", MID1, 128, test_proc};
 
 void single_blk_file_rw()
 {
-  auto file = fram::open(10, 16, O_WRITE | O_CREATE);
+  fn_t fn = 10;
+
+  auto file = fram::open(fn, 16, O_WRITE | O_CREATE);
   auto t = (char *)file.mmap(16);
 
-  auto s = "It IS a string";
-  if (string{t} != string{s})
-    kprintf("fram read: %s\r\n", t);
-
+  const char *s = "It IS a string";
   while (*s != '\0')
     *t++ = *s++;
   *t = '\0';
 
   file.store();
+  file.close();
+  fram::remove(fn);
 }
 
 void multi_blk_file_rw()
 {
-  auto file = fram::open(12, 256, O_WRITE | O_CREATE);
+  fn_t fn = 12;
+
+  auto file = fram::open(fn, 256, O_WRITE | O_CREATE);
   auto t = (uint32_t *)file.mmap(256);
 
   constexpr uint32_t val = 0xABCD0123;
@@ -38,18 +41,13 @@ void multi_blk_file_rw()
   for (size_t i = 0; i < 256 / sizeof(*t); i++)
     equal &= t[i] == val;
 
-  if (!equal) {
-    kprintf("fram read: ");
-    for (size_t i = 0; i < 4; i++)
-      kprintf("%x, ", t[i]);
-    kprintf("%x\r\n", t[4]);
-  }
-
   for (size_t i = 0; i < 256 / sizeof(*t); i++) {
     *t++ = val;
   }
 
   file.store();
+  file.close();
+  fram::remove(fn);
 }
 
 __extern_C__

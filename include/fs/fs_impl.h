@@ -11,15 +11,17 @@ template <typename desc_t, desc_t desc>
 class fs_impl_t
 {
 private:
-  using inode_t = _inode_t<desc_t>;
+  using inode_t = _inode_t<desc_t, desc>;
   using fs_t = _fs_t<desc_t, desc>;
   using fn_t = typename desc_t::fn_t;
+  using blk_addr_t = typename desc_t::blk_addr_t;
 
   struct mmap_unit_t {
     bool pooled = false;
     void *buf = nullptr;
     size_t sz = 0;
   };
+  static_assert(sizeof(mmap_unit_t) == 3 * sizeof(uint32_t));
 
   class fd_t
   {
@@ -29,10 +31,10 @@ private:
   public:
     fn_t fn = null_fn;
     mutable mutex<> mtx = {"fd"};
-
     const inode_t *inode = nullptr;
     mmap_unit_t mu = {};
 
+  public:
     uint8_t ref_cnt() const { return r_cnt; }
 
     void acquire(fn_t _fn, const inode_t *_inode, bool w_en)
@@ -84,12 +86,17 @@ public:
       fd->acquire(fn, inode, w_en);
     }
 
-    ~file_t() { close(); }
+    ~file_t()
+    {
+      if (fd != nullptr)
+        close();
+    }
 
     void close()
     {
       unmap();
       fd->release(w_en);
+      fd = nullptr;
     }
 
     fn_t fn() const { return fd->fn; }
@@ -205,10 +212,8 @@ public:
 
   static void remove(fn_t fn)
   {
-    if (is_open(fn)) {
-      debug<ERROR>("fn %d is open, can't remove\r\n", fn);
-      return;
-    }
+    if (is_open(fn))
+      return debug<ERROR>("fn %d is open, can't remove\r\n", fn);
     fs.remove(fn);
   }
 
@@ -221,6 +226,8 @@ public:
   }
 
   static void format() { fs.format(); }
+
+  static void umount() { fs.umount(); }
 
   static bool first_boot() { return fs.first_boot; }
 
