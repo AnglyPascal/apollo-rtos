@@ -56,7 +56,7 @@ struct _fs_hd_t {
 
   using inode_t = _inode_t<desc_t, desc>;
 
-  static constexpr uint32_t BLK_MAGIC = 0xbebebabe;
+  static constexpr uint32_t BLK_MAGIC = 0xbabebabe;
   uint32_t magic;
   inode_t inode_tbl[desc.n_inodes];
 

@@ -30,13 +30,32 @@ inline constexpr desc_t desc = {
     .fs_hd_addr = N_BLKS - N_FS_BLKS,
     .fs_hd_sz = BLK_SZ * N_FS_BLKS,
 
-    .max_num_blks = 48,
+    .max_num_blks = 8,
     .n_inodes = 16,
 
     .n_open_files = 8,
 
     .ft_func = [](uint32_t) { return BIN; },
 };
+
+inline bool first_boot()
+{
+  static constexpr uint32_t FIRST_BOOT_MAGIC = 0xbebebabe;
+  using fs_hd_t = _fs_hd_t<desc_t, desc>;
+  size_t addr =
+      desc.start + desc.fs_hd_addr * BLK_SZ + offsetof(fs_hd_t, magic);
+
+  uint32_t magic;
+  read(addr, (uint8_t *)&magic, sizeof(magic));
+  bool fst = magic != FIRST_BOOT_MAGIC;
+
+  if (fst) {
+    magic = FIRST_BOOT_MAGIC;
+    write(addr, (uint8_t *)&magic, sizeof(magic));
+  }
+
+  return fst;
+}
 
 } // namespace _flash
 
@@ -76,9 +95,11 @@ inline constexpr desc_t desc = {
 };
 } // namespace _fram
 
+#if FLASH_FS == 1
 class flash : public fs_impl_t<_flash::desc_t, _flash::desc>
 {
 };
+#endif
 
 class fram : public fs_impl_t<_fram::desc_t, _fram::desc>
 {
@@ -91,22 +112,32 @@ inline bool first_boot() { return _first_boot; }
 
 inline void init()
 {
+#if FLASH_FS == 1
   flash::mount();
+#endif
   fram::mount();
 
+#if FLASH_FS == 1
   _first_boot = flash::first_boot();
+#else
+  _first_boot = _flash::first_boot();
+#endif
 }
 
 inline void flush()
 {
+#if FLASH_FS == 1
   flash::umount();
+#endif
   fram::umount();
 }
 
 inline void trace()
 {
+#if FLASH_FS == 1
   debug<INFO>("flash fs: \r\n");
   flash::trace();
+#endif
   debug<INFO>("fram fs: \r\n");
   fram::trace();
 }

@@ -82,6 +82,9 @@ public:
       }
 
       auto [inode, _new_file] = fs.open(fn, _sz, flags);
+      if (inode == nullptr)
+        return;
+
       new_file = _new_file;
       fd->acquire(fn, inode, w_en);
     }
@@ -229,7 +232,7 @@ public:
 
   static void umount() { fs.umount(); }
 
-  static bool first_boot() { return fs.first_boot; }
+  static inline bool first_boot() { return fs.first_boot; }
 
   static bool is_open(fn_t fn)
   {

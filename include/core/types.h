@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <type_traits>
@@ -58,6 +59,7 @@ enum priorities : priority_t {
 
 // FIXME: where should we put this?
 enum {
+  O_READ = 0,
   O_CREATE = 1 << 0,
   O_WRITE = 1 << 1,
   O_CHAR_FILE = 1 << 2,

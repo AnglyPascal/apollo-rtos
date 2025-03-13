@@ -53,4 +53,5 @@ void read(addr_t addr, uint8_t *buf, size_t sz)
     wait();
   }
 }
+
 } // namespace _flash

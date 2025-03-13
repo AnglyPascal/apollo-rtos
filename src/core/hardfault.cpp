@@ -15,7 +15,7 @@ void hardfault_handler_body(uint32_t *fault_stack)
 
   uint32_t pc = fault_stack[6];
   uint32_t lr = fault_stack[5];
-  debug<FATAL>("hardfault\r\npc: %x, lr: %x\r\n", pc, lr);
+  debug<FATAL>("\r\nhardfault\r\npc: %x, lr: %x\r\n", pc, lr);
 
   while (1) {
     char ch = serial::getc();
