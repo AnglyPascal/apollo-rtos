@@ -1,110 +1,198 @@
-\section{The Apollo Guidance Computer: Historical Context}
+\section{The Apollo Guidance Computer}
 
-\begin{enumerate}
-    \item Brief history of the AGC development
-    \item Technical specifications and constraints
-    \item Key design principles and innovations
-    \item Notable features of the original operating system 
-\end{enumerate}
+The Apollo Guidance Computer (AGC) was an early digital computer developed in the 1960s
+to help navigate and control Apollo spacecraft on their missions to the Moon. It
+provided real-time guidance and control, making it essential for the success of the
+Apollo program.
 
-The Apollo Guidance Computer (AGC) was a pioneering digital computer developed in the
-early 1960s to navigate and control the Apollo spacecraft during their missions to the
-Moon. Installed aboard both the Command Module and the Lunar Module, the AGC was
-integral to the success of the Apollo program, providing real-time guidance,
-navigation, and control capabilities.
+The AGC ran at a speed of 2.048 MHz, which translated to about 40,000 instructions per
+second. The AGC had a 16-bit \texttt{word} length, 15 bits for data, and one parity
+bit. It had 2 kilowords or 4KB of erasable magnetic-core memory (RAM) along with 36
+kilowords or 72KB of fixed core rope memory (ROM) for storing software and mission
+data. Astronauts interacted with the AGC using the Display and Keyboard (DSKY), a
+21-digit display with a 19-button keyboard that allowed them to input commands and
+receive information. This interface was critical for making manual adjustments and
+monitoring the system during missions.
 
-Designed by the MIT Instrumentation Laboratory under the leadership of Charles Stark
-Draper, the AGC featured a 16-bit word length, with 15 data bits and one parity bit,
-and operated at a frequency of 2.048 MHz. The computer's memory was divided into 2,048
-words of erasable magnetic-core memory (RAM) and 36,864 words of fixed core rope memory
-(ROM), which stored the software and mission data. 
+Due to these constraints, the operating system, called the Executive, had to
+efficiently manage resources. It ensured that important tasks were prioritized over
+less critical ones and that key functions could continue even if the system experienced
+a reset due to an error.
 
-Astronauts interacted with the AGC through the Display and Keyboard (DSKY) interface, a
-21-digit display and 19-button keyboard that allowed them to input commands and receive
-information. This interface was crucial for manual adjustments and monitoring during
-the missions. 
+The Executive was written in AGC assembly, where each instruction was 16 bits long.
+Because the instruction set was small, the system also included a sophisticated
+interpreter that acted as a virtual machine, providing more advanced
+pseudo-instructions beyond the basic AGC instructions.
 
-The AGC's software was written in AGC assembly language and stored on rope memory. The
-bulk of the software was on read-only rope memory and thus could not be changed in
-operation, but some key parts of the software were stored in standard read-write
-magnetic-core memory and could be overwritten by the astronauts using the DSKY
-interface, as was done on Apollo 14.
+The details of the AGC Executive explained below is taken from \citet{agc_book}.
 
+\subsection{The Executive} 
 
-\subsection{AGC Operating System Architecture}
+The central part of the AGC software was the Executive, that ensured that processes and
+tasks got a fair share of the system resources like cpu time and dynamic memory. To
+seemlessly perform the real-time control and navigation tasks with extreme reliability
+and efficient, the Executive implemented a \textbf{priority-based cooperative
+scheduling} algorithm. The algorithm is described below:
 
-\begin{enumerate}
-    \item Core components and structure
-    \item Memory management approach
-    \item Executive system and task scheduler
-    \item Interrupt handling system
-    \item I/O subsystem 
-\end{enumerate}
+\begin{emptythm}
+    \begin{itemize}[left=8pt]
+        \item The highest running process capitalizes the CPU
+        \item Lower priority processes will wait until the highest priority process
+            either
+            \begin{itemize}
+                \item lowers its priority, or
+                \item goes to \texttt{sleep} while waiting for some event to happen
+            \end{itemize}
+        \item While the current highest running process is running, if a new process
+            with a higher priority gets scheduled,
+            \begin{itemize}
+                \item the new process waits until the previous process lowers its
+                    priority or goes to \texttt{sleep},
+                \item then the new process starts running
+            \end{itemize}
+    \end{itemize}
+\end{emptythm}
 
+\paragraph*{Core sets} Information about the running processes were stored in a table
+called Core Sets, which is basically what we call process descriptors
+nowadays. Each core set had a structure similar to (but not exactly):
 
-\subsection{Operating System}
+\begin{lstlisting}[style=mycpp, morekeywords={word}]
+struct CORE_SET {
+    word priority;
+    word program_counter; 
+    word bbank_reg; // area in unswitched memory where the code is
+    word vac_ptr;   // pointer to extra memory
 
-The Apollo Guidance Computer (AGC) utilized a specialized operating system to manage
-its resources and execute the software required for the Apollo missions. The operating
-system, known as AGC software, was designed to perform real-time control and navigation
-tasks with extreme reliability and efficiency. Unlike modern operating systems, which
-handle general-purpose tasks for a wide variety of applications, the AGC's operating
-system was dedicated exclusively to the guidance, navigation, and control of the Apollo
-spacecraft.
+    word mpac[7];   // multi-purpose accumulators
+    word mpac_mode; 
+};
+\end{lstlisting}
 
-One of the key innovations of the AGC operating system was its use of a
-\textit{``priority scheduling"} system. This system ensured that higher-priority tasks,
-such as navigation corrections or abort sequences, were processed before lower-priority
-tasks, allowing the AGC to respond dynamically to changing conditions during the
-mission. The operating system also utilized memory efficiently, with the available
-2,048 words of RAM and 36,864 words of ROM being carefully allocated to critical
-software routines.
-
-The AGC operating system also incorporated error-checking mechanisms to maintain
-reliability in the face of potential hardware malfunctions. Given the harsh and
-unpredictable environment of space, the system was designed to operate autonomously,
-with minimal input from the astronauts, while still allowing for manual intervention
-when necessary. The operating system’s software was written in AGC assembly language
-and was stored in the AGC’s rope memory, providing a highly optimized and
-space-efficient solution for spacecraft operations.
-
-This operating system consisted of two parts: the \indef{Executive}, a batch
-job-scheduler that used priority based cooperative multi-tasking to manage longer
-running jobs, and the \indef{Waitlist}, a timer interrupt-driven pre-emptive scheduler
-that managed real-time tasks running on tight timing constraints. By design, waitlist
-tasks were run in an interrupt-inhibited mode, ensuring uninterrupted processing. This
-greatly limited how much computation these tasks are able to do, limiting each task to
-about 150-200 instructions. As a result, a waitlist task requiring extensive
-calculation would have to schedule other waitlist tasks, or a longer running executive
-job. On the other hand, to meet the deadlines on critical tasks, executive jobs must
-schedule waitlist tasks to be run within a certain deadline. 
-
-The operating system also consisted of a robust recovery mechanism, that offered
-different levels of restart protection for various tasks and jobs. \todo{elaborate}
-
-The success of the AGC operating system relied on the cooperation between the executive
-jobs and waitlist tasks and it's robust recovery system.
-
-
-\subsection{The Executive}
-
-The \indef{Executive} in the Apollo Guidance Computer is a multiprocessing preemptive
-real-time operating system. It has a few features that set it apart from modern RTOS's,
-and made it such a visionary piece of technology of its time. 
-
-In this section, we'll give a brief overview of the features of the Executive.
-
+Each running process must occupy one of the core sets. There were
 \begin{itemize}
-    \item Cooperative and preemptive
-    \item Process construction:
-        \item What we'd call process descriptors, were called Core Set. 
-        \item Could ask for dyanmic storage at the point of process creation.
-        \item Priority based scheduing
-    \item Context switching: using the \texttt{NEWJOB} register
-    \item Process sleep and wakeup
-    \item Waitlist to do most of the real time operations
-
-    \item Restart and recovery
+    \item 6 available core sets in the Command module, and
+    \item 7 available core sets in the Lunar module.
 \end{itemize}
+In either table, the core set 0 contained the currently running process. So a context
+switch basically was equivalent to swapping out a core set with the core set 0.
 
+\paragraph*{Addressable memory} The 7 \texttt{mpac} words had two purposes. In the
+normal mode, they gave 7 words of free memory to the programmer to use as they saw fit.
+In the interpreter mode, they worked just like accumulator registers, used to store
+values of different calculations by the interpreter. If a process needed more memory,
+it could request for 42 extra words from the \textbf{Vector Accumulator} area. 
+
+\paragraph*{Starting new process} To start a new process, an empty core set must be
+found first, followed by finding a VAC area if requested. After succesfully populating
+the core set, the Executive must decide if the new process has a higher priority. 
+
+A special register \texttt{NEWJOB} is used just for this purpose. 
+\begin{itemize}
+    \item If the value of \texttt{NEWJOB} is 0, then the currently running process has
+        the highest priority,
+    \item if the value is non-zero, say \texttt{d}, then the process represented by the
+        core set at \texttt{d} is the highest priority process.
+\end{itemize}
+So when a new process is created, its priority is compared with the priority of the
+current process, and the \texttt{NEWJOB} register is updated accordingly.
+
+\paragraph*{Switching processes} A process context switch only occurs when the current
+process gives up execution, given that the current process continues to probe
+\texttt{NEWJOB} every 20ms for a higher priority process. If the \texttt{NEWJOB}
+register is not checked for over 640ms, it is assumed that the current process has hung
+up, and a hardware restart must be issued to deal with the hangup.
+
+To switch the process, the Executive just needs to store the current context in the
+core set at 0, and swap it with the core set at the value stored in \texttt{NEWJOB}.
+Since the program counter is read from the core set directly, this automatically
+resumes the switched in process from it's last instruction.
+
+If the current process is still the highest running process, and it needs to go to
+sleep, or it decreases it's priority, a scan of the core sets table is made to find the
+next highest priority process, followed by a switch.
+
+\paragraph*{Sleep and Wakeup} Processes can voluntarily give up execution as it waits
+for an external event to occur by going to sleep. The \texttt{JOBSLEEP} instruction
+puts the currently running process to sleep. An asleep process is represented by a
+negative priority. So all \texttt{JOBSLEEP} needs to do is negate the currently
+running processes' priority, and find the next highest priority job.
+
+On the other hand, once the awaited even occurs, another process can wake up a sleeping
+process using the \texttt{JOBWAKE} instruction. This instruction negates the negative
+priority of the asleep process, which marks it as runnable. It then checks with the
+\texttt{NEWJOB} register to decide the highest priority process.
+
+A process can call \texttt{DELAYJOB} instruction to go to sleep for a certain amount of
+time. To achieve this, the instruction schedules an ``alarm'' task using the
+\textbf{waitlist}, which is described below.
+
+
+\subsubsection{The Waitlist}
+
+The core processes in the Executive are all co-operative, and even the highest priority
+process won't preempt the currently running process until it gives up the execution.
+Waitlist provides preemptive scheduling capabilities to the AGC. Tasks that need to be
+done within a particular deadline can be scheduled using the waitlist. Every 10ms, a
+timer interrupt is generated, which runs any waitlist task that needs to be run.
+
+In essence, the waitlist is a \emph{sorted linked list} of tasks in increasing order of
+their deadline. When a new waitlist task \(t\) is scheduled with a particular deadline,
+it is inserted into the linked list at the correct position so that
+\begin{itemize}
+    \item any task \(t_0\) with a deadline less than \(t\) appears before \(t\) in the
+        list, and
+    \item any task \(t_1\) with a deadline greater than \(t\) appears after.
+\end{itemize}
+Every 10ms, the timer interrupt checks if the deadline of the first task in the list is
+about to expire, and runs that task if so, and then removes the task from the list.
+
+The implementation of waitlist in the Apollo-RTOS is modeled completely after the
+implementation in the AGC, so the implemenation details will be discussed later.
+
+
+\subsection{Interpreter}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.5\linewidth]{dsky}
+    \caption{DSKY interface diagram by Oona Räisänen}
+\end{figure}
+
+
+\subsection{Design philosophy of AGC}
+
+Unlike most modern general-purpose computers, the AGC operated on a tightly defined
+world of hardware and software, where every part of the system could be ``trusted'', in
+the sense that every part would behave as expected. As a result, it was deemed
+unnecessary to truly isolate the hardware and the OS from the application code. Because
+of this, the operating system could make many assumptions limiting the scope of
+services, limiting the complexity in design. This resulted in a small but efficient
+operating system. 
+
+This theme of mutual trust within the operating system will be prevelant throughout the
+project. Since the scope of a microcontroller is quite minimal, and resources are
+limited, it makes sense to not make any kernel/user space isolation. All usages of
+system resources is already anticipated during development. However, to minimize
+possibility of programming errors, it's necessary to enclose system resources under
+system and library calls to minimize human programming errors.
+
+\begin{figure}[H]
+    \centering \includegraphics[width=.6\linewidth]{margaret_hamilton}
+    \caption{Margaret Hamilton standing next to listings of the software she and her
+    MIT team produced for the Apollo Project.}
+\end{figure}
+
+\subsubsection{Design consequences}
+There are a few consequences of this design of the scheduler:
+
+Since all the processes use the same address space, and inter process communication is
+done through shared memory
+
+Letting the currently running process decide when to give up the execution context
+fixes several nasty race conditions usually prevelant in preemptive schedulers. For
+example,
+\begin{itemize}
+    \item In multi-threaded pro
+\end{itemize}
 

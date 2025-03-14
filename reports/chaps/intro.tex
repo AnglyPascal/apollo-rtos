@@ -1,8 +1,53 @@
 \section{Introduction}
 
-\begin{enumerate}
-    \item Project overview and objectives
-    \item Significance of the Apollo Guidance Computer in computing history
-    \item Your motivation for basing a modern OS on the AGC architecture
-    \item Brief summary of your implementation and innovations 
-\end{enumerate}
+\subsection{Background \& Motivation}
+
+Computing capabilities have grown at an unprecedented rate over the last century. The
+\textbf{Apollo Guidance Computer} (AGC), which played a critical role in the Apollo
+program, operated with a modest \textit{2 MHz CPU}, \textit{4 KB of RAM}, and
+\textit{72 KB of ROM}. To maximize its limited resources, the AGC's operating system
+introduced innovative solutions for \textit{task scheduling}, \textit{error handling},
+and \textit{resource-efficient computation}. One of its most groundbreaking features
+was a hybrid scheduling mechanism that combined cooperative and preemptive
+multiprogramming, ensuring that critical tasks could execute reliably even in adverse
+conditions. Additionally, the AGC incorporated a robust recovery mechanism, enabling
+fault tolerance in the face of system failures.
+
+Today, a compact \texttt{micro:bit} device costing less than \pounds20 possesses
+significantly more computing power than the AGC. Such microcontrollers are now
+ubiquitous, powering applications ranging from consumer electronics to mission-critical
+systems. Despite the vast improvements in computational power, many of the challenges
+that the AGC’s operating system addressed remain highly relevant, particularly in
+constrained embedded environments where real-time performance, reliability, and fault
+tolerance are essential.
+
+
+\subsection{Project Objectives}
+
+The goal of this project is to study the design principles of the AGC’s operating
+system and implement a robust real-time operating system (RTOS) for the
+\texttt{micro:bit} v1, named \emph{Apollo-RTOS}. This project aims to explore the
+\textit{applicability of the AGC’s novel scheduling techniques and fault-tolerant
+mechanisms} in modern embedded computing. Additionally, it extends these foundational
+ideas by incorporating \textit{contemporary operating system concepts} to enhance
+usability, efficiency, and resilience.
+
+Apollo-RTOS integrates:
+\begin{itemize}
+    \item \textbf{Hybrid scheduling} that balances cooperative and preemptive
+        multitasking.
+    \item \textbf{A fault-tolerant system} capable of handling hardware failures and
+        ensuring process recovery.
+    \item Separate \textbf{file systems} implemented on flash memory and an external
+        FRAM device for persistent storage.
+    \item \textbf{Inter-process communication} via signals for dynamic event handling.
+    \item \textbf{A shell interface} for interacting with the system and managing
+        processes.
+    \item \textbf{A modern C++ implementation} leveraging RAII, templates, and type
+        deduction for robustness and efficiency.
+\end{itemize}
+
+By bridging historical embedded computing principles with modern software engineering
+techniques, this project provides insights into designing efficient, fault-tolerant
+operating systems for resource-constrained environments.
+

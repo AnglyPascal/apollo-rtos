@@ -1,6 +1,25 @@
-
 \begin{center}
     \Large \bfseries Abstract
 \end{center}
 
-This is the abstract.
+Embedded systems have evolved dramatically, yet many of the challenges faced by early
+computing systems remain relevant today. The Apollo Guidance Computer (AGC), despite
+its limited hardware—a 2 MHz CPU, 4 KB of RAM, and 72 KB of ROM—introduced innovative
+scheduling and fault-tolerant mechanisms that ensured reliability in mission-critical
+environments. Inspired by the AGC, this project presents Apollo-RTOS, a real-time
+
+operating system (RTOS) for the Microbit v1, designed to explore the applicability of
+these historical concepts in modern embedded computing.
+
+Apollo-RTOS implements a hybrid scheduling algorithm, combining cooperative and
+preemptive multitasking to optimize resource utilization and responsiveness.
+Additionally, it features a fault-tolerant recovery system, ensuring process integrity
+even during failures. The system extends the AGC’s original design by incorporating
+modern OS functionalities, including a file system leveraging flash memory and an
+external FRAM device, inter-process communication through signals, and a shell
+interface for system interaction. Implemented in modern C++, Apollo-RTOS utilizes RAII,
+templates, and type deduction to enhance efficiency and maintainability.
+
+This project demonstrates how historical embedded computing techniques can be adapted
+to contemporary microcontrollers, offering insights into designing resilient,
+efficient, and resource-aware real-time operating systems for modern applications.
