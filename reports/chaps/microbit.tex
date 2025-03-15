@@ -1,14 +1,70 @@
-\section{micro:bit v1 Architecture and Specifications}
+\section{Inspiration behind Apollo-RTOS}
 
-\begin{enumerate}
-    \item Hardware overview (nRF51822 microcontroller, memory, I/O)
-    \item Constraints and capabilities
-    \item Comparison with AGC hardware
-        \begin{enumerate}
-            \item Processing power
-            \item Memory availability
-            \item I/O capabilities
-            \item Power requirements 
-        \end{enumerate}
-    \item Development environment and toolchain 
-\end{enumerate}
+The real-time operating system developed in this project, \textit{Apollo-RTOS}, draws
+inspiration from both the Apollo Guidance Computer (AGC) operating system and the
+modern Linux OS. While the scheduler and error handling concepts are derived from the
+AGC, the naming conventions, user interface, and implementation are influenced by
+Linux.
+
+The AGC OS was designed to meet specific mission requirements, allowing for a
+simplified and optimized design. In contrast, Linux is a general-purpose OS, designed
+to support applications with vastly different needs, making its architecture more
+complex.
+
+The AGC operated within a well-defined hardware and software environment, where all
+components could be trusted. As a result, isolating the hardware, OS, and application
+code was unnecessary. Additionally, the AGC lacked memory protection features, making
+kernel/user space isolation, a fundamental aspect of general-purpose operating systems
+like Linux, impossible.
+
+In Apollo-RTOS, we adopted the same high-level design principles as the AGC. Our goal
+was to implement its key innovations in a modern context while ensuring the OS could
+function efficiently in a resource-constrained environment. To achieve this, we made
+the following design choices:
+
+\begin{itemize}
+    \item \textbf{Hardware Selection:} The \texttt{micro:bit} v1 was chosen as the
+        primary target platform. Its Cortex-M0 CPU is one of the smallest in the ARM
+        family and closely resembles the AGC hardware. Additionally, it includes
+        pre-installed peripheral devices, which serve as useful test cases for OS
+        functionality.
+
+    \item \textbf{No Kernel/User Space Isolation:} In microcontroller programming, the
+        entire application is compiled into a single binary, meaning the kernel and
+        user space are inherently combined. Since the entire codebase has full access
+        to the kernel internals, enforcing strict isolation would add unnecessary
+        complexity.
+
+    \item \textbf{Monolithic Kernel Design:} Inspired by Linux, Apollo-RTOS follows a
+        monolithic kernel architecture due to its simpler implementation and better
+        execution efficiency in a constrained environment.
+
+    \item \textbf{Library Calls Instead of System Calls}: Traditional system calls are
+        beneficial only when user and kernel space are strictly separated. Since
+        Apollo-RTOS does not enforce such isolation, we opted for direct library
+        function calls, significantly simplifying implementation.
+
+    \item \textbf{Shared Memory for Inter-Process Communication (IPC):} While shared
+        memory introduces risks like race conditions and synchronization issues, it
+        remains the fastest and simplest IPC method, making it the preferred choice for
+        Apollo-RTOS.
+\end{itemize}
+
+Additionally, we drew inspiration from the \texttt{microbian} OS for the
+\texttt{micro:bit}, as developed by \citet{microbian}. Specifically, we referenced its
+hardware description headers, startup code, and interrupt handler implementations in
+certain parts of our design.
+
+
+% \begin{enumerate}
+%     \item Hardware overview (nRF51822 microcontroller, memory, I/O)
+%     \item Constraints and capabilities
+%     \item Comparison with AGC hardware
+%         \begin{enumerate}
+%             \item Processing power
+%             \item Memory availability
+%             \item I/O capabilities
+%             \item Power requirements 
+%         \end{enumerate}
+%     \item Development environment and toolchain 
+% \end{enumerate}

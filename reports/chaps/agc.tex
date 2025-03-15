@@ -24,38 +24,43 @@ Because the instruction set was small, the system also included a sophisticated
 interpreter that acted as a virtual machine, providing more advanced
 pseudo-instructions beyond the basic AGC instructions.
 
+\begin{figure}[H]
+    \centering \includegraphics[width=.45\linewidth]{margaret_hamilton}
+    \caption{Margaret Hamilton standing next to listings of the software she and her
+    MIT team produced for the Apollo Project.}
+\end{figure}
+
 The details of the AGC Executive explained below is taken from \citet{agc_book}.
 
 \subsection{The Executive} 
 
-The central part of the AGC software was the Executive, that ensured that processes and
-tasks got a fair share of the system resources like cpu time and dynamic memory. To
-seemlessly perform the real-time control and navigation tasks with extreme reliability
-and efficient, the Executive implemented a \textbf{priority-based cooperative
-scheduling} algorithm. The algorithm is described below:
+The central component of the AGC software was the Executive, which ensured fair
+allocation of system resources, such as CPU time and dynamic memory, to processes and
+tasks. To seamlessly perform real-time control and navigation tasks with extreme
+reliability and efficiency, the Executive implemented a \textbf{priority-based
+cooperative scheduling} algorithm, described below:
 
 \begin{emptythm}
     \begin{itemize}[left=8pt]
-        \item The highest running process capitalizes the CPU
-        \item Lower priority processes will wait until the highest priority process
-            either
+        \item The highest-priority process has exclusive access to the CPU.
+        \item Lower-priority processes remain idle until the highest-priority process:
             \begin{itemize}
                 \item lowers its priority, or
-                \item goes to \texttt{sleep} while waiting for some event to happen
+                \item goes to \texttt{sleep} while waiting for an event.
             \end{itemize}
-        \item While the current highest running process is running, if a new process
-            with a higher priority gets scheduled,
+        \item If a new process with a higher priority is scheduled while another is
+            running:
             \begin{itemize}
-                \item the new process waits until the previous process lowers its
+                \item the new process waits until the current process lowers its
                     priority or goes to \texttt{sleep},
-                \item then the new process starts running
+                \item then the new process starts executing.
             \end{itemize}
     \end{itemize}
 \end{emptythm}
 
-\paragraph*{Core sets} Information about the running processes were stored in a table
-called Core Sets, which is basically what we call process descriptors
-nowadays. Each core set had a structure similar to (but not exactly):
+\paragraph*{Core Sets} Information about running processes was stored in a table called
+Core Sets, which functioned similarly to modern process descriptors. Each Core Set had
+a structure similar to:
 
 \begin{lstlisting}[style=mycpp, morekeywords={word}]
 struct CORE_SET {
@@ -69,130 +74,186 @@ struct CORE_SET {
 };
 \end{lstlisting}
 
-Each running process must occupy one of the core sets. There were
+Each active process occupied one Core Set. The system provided:
 \begin{itemize}
-    \item 6 available core sets in the Command module, and
-    \item 7 available core sets in the Lunar module.
+    \item 6 Core Sets in the Command Module, and
+    \item 7 Core Sets in the Lunar Module.
 \end{itemize}
-In either table, the core set 0 contained the currently running process. So a context
-switch basically was equivalent to swapping out a core set with the core set 0.
+In either case, Core Set 0 always contained the currently running process. A context
+switch was essentially performed by swapping the current Core Set with Core Set 0.
 
-\paragraph*{Addressable memory} The 7 \texttt{mpac} words had two purposes. In the
-normal mode, they gave 7 words of free memory to the programmer to use as they saw fit.
-In the interpreter mode, they worked just like accumulator registers, used to store
-values of different calculations by the interpreter. If a process needed more memory,
-it could request for 42 extra words from the \textbf{Vector Accumulator} area. 
+\paragraph*{Addressable Memory} The 7 \texttt{mpac} words served two purposes. In
+normal mode, they provided 7 words of freely usable memory. In interpreter mode, they
+functioned as accumulator registers, storing values for calculations performed by the
+interpreter. If a process required more memory, it could request 42 additional words
+from the \textbf{Vector Accumulator} (VAC) area.
 
-\paragraph*{Starting new process} To start a new process, an empty core set must be
-found first, followed by finding a VAC area if requested. After succesfully populating
-the core set, the Executive must decide if the new process has a higher priority. 
+\paragraph*{Starting a New Process} To start a new process, an empty Core Set had to be
+located, followed by a VAC area if needed. After populating the Core Set, the Executive
+determined if the new process had a higher priority. 
 
-A special register \texttt{NEWJOB} is used just for this purpose. 
+A special register, \texttt{NEWJOB}, was used for this purpose:
 \begin{itemize}
-    \item If the value of \texttt{NEWJOB} is 0, then the currently running process has
-        the highest priority,
-    \item if the value is non-zero, say \texttt{d}, then the process represented by the
-        core set at \texttt{d} is the highest priority process.
+    \item If \texttt{NEWJOB} is 0, the current process has the highest priority.
+    \item If \texttt{NEWJOB} is non-zero (say \texttt{d}), the process represented by
+        Core Set \texttt{d} has the highest priority.
 \end{itemize}
-So when a new process is created, its priority is compared with the priority of the
-current process, and the \texttt{NEWJOB} register is updated accordingly.
+When a new process was created, its priority was compared to that of the currently
+running process, and \texttt{NEWJOB} was updated accordingly.
 
-\paragraph*{Switching processes} A process context switch only occurs when the current
-process gives up execution, given that the current process continues to probe
-\texttt{NEWJOB} every 20ms for a higher priority process. If the \texttt{NEWJOB}
-register is not checked for over 640ms, it is assumed that the current process has hung
-up, and a hardware restart must be issued to deal with the hangup.
+\paragraph*{Process Switching} A context switch only occurred when the current process
+voluntarily relinquished control. The process was required to check \texttt{NEWJOB} at
+least every 20ms to detect higher-priority processes. If \texttt{NEWJOB} was not
+checked for over 640ms, it was assumed that the process had stalled, triggering a
+hardware restart.
 
-To switch the process, the Executive just needs to store the current context in the
-core set at 0, and swap it with the core set at the value stored in \texttt{NEWJOB}.
-Since the program counter is read from the core set directly, this automatically
-resumes the switched in process from it's last instruction.
+To switch processes, the Executive stored the current context in Core Set 0 and swapped
+it with the Core Set indexed by \texttt{NEWJOB}. Since the program counter was restored
+directly from the Core Set, execution of the switched-in process resumed automatically
+from its last instruction.
 
-If the current process is still the highest running process, and it needs to go to
-sleep, or it decreases it's priority, a scan of the core sets table is made to find the
-next highest priority process, followed by a switch.
+If the current process was still the highest-priority process but needed to go to sleep
+or lower its priority, the system scanned the Core Set table to identify the next
+highest-priority process and performed a switch accordingly.
 
-\paragraph*{Sleep and Wakeup} Processes can voluntarily give up execution as it waits
-for an external event to occur by going to sleep. The \texttt{JOBSLEEP} instruction
-puts the currently running process to sleep. An asleep process is represented by a
-negative priority. So all \texttt{JOBSLEEP} needs to do is negate the currently
-running processes' priority, and find the next highest priority job.
+\paragraph*{Sleep and Wakeup} A process could voluntarily relinquish execution while
+waiting for an external event by going to sleep. The \texttt{JOBSLEEP} instruction
+marked a process as sleeping by negating its priority. The next highest-priority
+process was then scheduled.
 
-On the other hand, once the awaited even occurs, another process can wake up a sleeping
-process using the \texttt{JOBWAKE} instruction. This instruction negates the negative
-priority of the asleep process, which marks it as runnable. It then checks with the
-\texttt{NEWJOB} register to decide the highest priority process.
+When the awaited event occurred, another process could wake the sleeping process using
+the \texttt{JOBWAKE} instruction. This reversed the priority negation, making the
+process runnable again. \texttt{JOBWAKE} then checked \texttt{NEWJOB} to determine if
+the woken process should run immediately.
 
-A process can call \texttt{DELAYJOB} instruction to go to sleep for a certain amount of
-time. To achieve this, the instruction schedules an ``alarm'' task using the
-\textbf{waitlist}, which is described below.
+A process could also call \texttt{DELAYJOB} to sleep for a fixed duration. This
+scheduled an "alarm" task via the \textbf{waitlist}, described in the next section.
 
 
 \subsubsection{The Waitlist}
 
-The core processes in the Executive are all co-operative, and even the highest priority
-process won't preempt the currently running process until it gives up the execution.
-Waitlist provides preemptive scheduling capabilities to the AGC. Tasks that need to be
-done within a particular deadline can be scheduled using the waitlist. Every 10ms, a
-timer interrupt is generated, which runs any waitlist task that needs to be run.
+The core processes in the Executive were all cooperative, meaning that even the
+highest-priority process would not preempt the currently running process until it
+voluntarily relinquished execution. The waitlist introduced preemptive scheduling
+capabilities to the AGC, allowing tasks to be scheduled with strict deadlines. Every
+10ms, a timer interrupt was triggered to execute any waitlist task that was due.
 
-In essence, the waitlist is a \emph{sorted linked list} of tasks in increasing order of
-their deadline. When a new waitlist task \(t\) is scheduled with a particular deadline,
-it is inserted into the linked list at the correct position so that
+In essence, the waitlist was a \emph{sorted linked list} of tasks ordered by increasing
+deadlines. When a new waitlist task \(t\) was scheduled with a particular deadline, it
+was inserted into the list such that:
 \begin{itemize}
-    \item any task \(t_0\) with a deadline less than \(t\) appears before \(t\) in the
-        list, and
-    \item any task \(t_1\) with a deadline greater than \(t\) appears after.
+    \item any task \(t_0\) with an earlier deadline appeared before \(t\), and
+    \item any task \(t_1\) with a later deadline appeared after \(t\).
 \end{itemize}
-Every 10ms, the timer interrupt checks if the deadline of the first task in the list is
-about to expire, and runs that task if so, and then removes the task from the list.
+Every 10ms, the timer interrupt checked whether the first task in the list had reached
+its deadline. If so, the task was executed and then removed from the list. Since
+waitlist tasks were executed within an interrupt handler, they had to be
+short-lived—typically around 5ms or 150–200 instructions.
 
-The implementation of waitlist in the Apollo-RTOS is modeled completely after the
-implementation in the AGC, so the implemenation details will be discussed later.
+The waitlist implementation in Apollo-RTOS closely follows that of the AGC.
+Implementation details will be discussed later.
+
+\subsection{Restart Mechanism}
+
+Despite its limited resources, the AGC needed to be highly reliable, even in the
+presence of errors. Modern CPU and OS designs dedicate significant resources to
+detecting and recovering from faults. However, the AGC lacked the hardware to support
+sophisticated error handling. Furthermore, without a memory protection unit, it was
+nearly impossible to reliably detect errors caused by memory corruption. As a result,
+the AGC adopted a radical approach:
+\begin{quote}
+    \centering Just restart everything.
+\end{quote}
+However, restarting at an arbitrary point in time required careful handling, as it
+could terminate critical tasks mid-execution.
+
+To address this, critical tasks and processes could define recovery behavior in case of
+a restart. Each program belonged to one of six restart groups. A process could use the
+\texttt{PHASCHNG} instruction to set up an entry in the restart phase table. Each group
+could recover only one process at a time. Based on its needs, a process could configure
+its group's recovery procedure to one of the following four modes:
+\begin{itemize}
+    \item \textbf{Inhibit group restart:} No processes in this group are restarted.
+    \item \textbf{Restart last display:} Restore and display the last known contents
+        before the restart.
+    \item \textbf{Execute one restart routine:} Restart the process from the beginning
+        with minimal cleanup.
+    \item \textbf{Execute two restart routines:} Schedule a task to clean up data and
+        re-enter the process from a designated point.
+\end{itemize}
+To conserve memory, the AGC stored recovery information in a compressed format within
+the phase tables.
+
+During a restart:
+\begin{itemize}
+    \item All active jobs were canceled, and all tasks in the waitlist queue were
+        deleted.
+    \item Interrupts were disabled, and all tables were cleared and reinitialized.
+    \item The integrity of the restart phase table was verified.
+    \item Restart processing was carried out sequentially for each active phase in
+        groups 6 to 1.
+\end{itemize}
+These mechanisms ensured that the AGC could gracefully recover from many types of
+failures—an essential requirement for spacecraft operations, where computer failures
+could have catastrophic consequences.
 
 
 \subsection{Interpreter}
 
+The Apollo Guidance Computer (AGC) featured a custom virtual machine known as the
+\textbf{Interpreter}, designed to extend its limited instruction set. This was
+necessary because the AGC's native instruction set was highly restricted, containing
+only 11 opcodes in AGC Block II. The Interpreter enabled more complex operations while
+conserving memory and improving execution efficiency for key tasks.
+
+The Interpreter functioned as a \textit{bytecode interpreter}, running on top of the
+AGC's native instruction set. It allowed the execution of \textit{pseudo-instructions},
+which were more powerful than basic machine instructions. These pseudo-instructions
+were stored as compact \textit{6-bit opcodes}, maximizing memory efficiency.
+
+The AGC Interpreter provided an extended set of \textit{arithmetic and vector
+operations}, primarily aiding navigation and guidance computations. Key capabilities
+included:
+\begin{itemize}
+    \item \textbf{Arithmetic Operations}: Fixed, single, and double-precision
+        floating-point arithmetic, as well as \texttt{sqrt} calculations.
+    \item \textbf{Vector and Matrix Operations}: Dot products, cross products, and
+        matrix transformations.
+    \item \textbf{Trigonometric Functions}: Sine, cosine, and related functions for
+        celestial navigation.
+    \item \textbf{Data Movement and Manipulation}: Indexed memory access (not available
+        in native AGC instructions), indirect addressing, and array operations.
+    \item \textbf{Flow Control}: Conditional branching and subroutine-like operations
+        for reusable code execution.
+\end{itemize}
+
+The AGC’s native instruction set prioritized speed but lacked flexibility for advanced
+navigation tasks. The Interpreter enabled \textit{higher-level mathematical operations}
+to be executed compactly and efficiently.
+
+
+\subsection{Display and Keyboard}
+
+The AGC featured a unique human-machine interface known as the \textit{Display and
+Keyboard (DSKY)}, allowing astronauts to communicate with the computer using an
+intuitive \textit{verb-noun paradigm}. With its green \textit{electroluminescent
+displays}, \textit{19-key input panel}, and \textit{status indicators}, the DSKY played
+a crucial role in both the Command Module and Lunar Module cockpits. Despite its simple
+appearance, it incorporated sophisticated software routines, enabling astronauts to
+\textit{monitor spacecraft systems, compute trajectories, and execute maneuvers with
+precision}.
+
+The \textit{verb-noun paradigm} structured commands similarly to natural language,
+where astronauts first selected a \textit{verb} (the action) followed by a
+\textit{noun} (the object of that action). Using \textit{two-digit numeric codes} for
+both components, astronauts could issue commands efficiently. For example, the command
+\textit{“Verb 06 Noun 36”} instructed the AGC to \textit{display the current time}.
+This system provided a consistent interface for a range of operations, from
+\textit{simple data retrieval to complex trajectory calculations}.
+
 \begin{figure}[H]
     \centering
-    \includegraphics[width=.5\linewidth]{dsky}
+    \includegraphics[width=.45\linewidth]{dsky}
     \caption{DSKY interface diagram by Oona Räisänen}
 \end{figure}
-
-
-\subsection{Design philosophy of AGC}
-
-Unlike most modern general-purpose computers, the AGC operated on a tightly defined
-world of hardware and software, where every part of the system could be ``trusted'', in
-the sense that every part would behave as expected. As a result, it was deemed
-unnecessary to truly isolate the hardware and the OS from the application code. Because
-of this, the operating system could make many assumptions limiting the scope of
-services, limiting the complexity in design. This resulted in a small but efficient
-operating system. 
-
-This theme of mutual trust within the operating system will be prevelant throughout the
-project. Since the scope of a microcontroller is quite minimal, and resources are
-limited, it makes sense to not make any kernel/user space isolation. All usages of
-system resources is already anticipated during development. However, to minimize
-possibility of programming errors, it's necessary to enclose system resources under
-system and library calls to minimize human programming errors.
-
-\begin{figure}[H]
-    \centering \includegraphics[width=.6\linewidth]{margaret_hamilton}
-    \caption{Margaret Hamilton standing next to listings of the software she and her
-    MIT team produced for the Apollo Project.}
-\end{figure}
-
-\subsubsection{Design consequences}
-There are a few consequences of this design of the scheduler:
-
-Since all the processes use the same address space, and inter process communication is
-done through shared memory
-
-Letting the currently running process decide when to give up the execution context
-fixes several nasty race conditions usually prevelant in preemptive schedulers. For
-example,
-\begin{itemize}
-    \item In multi-threaded pro
-\end{itemize}
 
