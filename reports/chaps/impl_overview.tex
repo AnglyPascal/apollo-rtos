@@ -1,8 +1,53 @@
 \section{Implementation Architecture and Design}
 
-\begin{enumerate}
-    \item Overall system architecture
-    \item Design principles and approach
-    \item Adaptations for micro:bit constraints
-    \item High-level organization and module relationships 
-\end{enumerate}
+Apollo-RTOS is a real time operating system inspired by the AGC for the
+\texttt{micro:bit} v1 device. It follows a monolithic kernel design, and is built
+around a cooperating scheduler with preemptive capabilities. 
+
+In this section, we will give a brief overview of the different modules inside the OS,
+and lay out the interconnections between the modules. We will also explain the
+structure of the code base.
+
+\subsection{Overview}
+
+The major modules of the Apollo-RTOS can be summarized as: 
+
+\paragraph*{Scheduler} is the center piece of the OS. The scheduler 
+\begin{itemize}
+    \item keeps track of the running processes,
+    \item provides the interface for creating and terminating processes, changing
+        priorities, pausing and resuming processes, etc., and
+    \item ensures that context switch between processes is done properly.
+\end{itemize} 
+
+\paragraph*{Waitlist} provides cronjob like functionality to the OS. It is used to
+create deadline sensitive tasks, which are used throughout the system to accomplish
+various jobs within a set amount of time.
+
+\paragraph*{Memory manager} handles dynamically allocated memory. The memory manager
+implements a simple freelist based \texttt{malloc} to allocate and deallocate runtime
+memory. Process stacks are also allocated and handled by the memory manager.
+
+\paragraph*{Recovery} module handles the recovery mechanism that protects critical
+processes and tasks against various types of resets. 
+
+\paragraph*{Drivers} There are a few drivers that handle various tasks:
+\begin{itemize}
+    \item \textbf{Serial} handles the communication over the UART. 
+    \item \textbf{I2C} handles communication with the I2C master on the
+        \texttt{microbit}. 
+    \item \textbf{Display} manages the \(5 \times 5\) LED display on the board.
+\end{itemize}
+
+\paragraph*{File system} provides a permanent storage. It is implemented on a FRAM
+added to the \texttt{micro:bit} via I2C. A separate optional file system on the FLASH
+memory can also be enabled.
+
+\paragraph*{Shell} provides a Unix-like shell that can be used to run, debug, and
+control different processes over the UART. The Shell keeps a list of all available
+commands and their corresponding process.
+
+
+
+\subsection{Code-base structure}
+
