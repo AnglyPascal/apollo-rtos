@@ -2,14 +2,13 @@
 
 namespace procs
 {
-extern proc_def_t test, accel, display;
+extern proc_def_t test, accel;
 
 namespace
 {
 proc_def_t *proc_defs[] = {
     &test,
     &accel,
-    &display,
 };
 }
 

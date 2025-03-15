@@ -17,5 +17,5 @@ constexpr size_t len = 8;
 using buffer = circular_buffer<data_t, len>;
 
 void init();
-void read(data_t &data);
+data_t read();
 } // namespace accel

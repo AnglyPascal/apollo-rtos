@@ -509,7 +509,6 @@ struct timer_t {
 #define TIMER_COMPARE3_STOP 11
 
 extern volatile timer_t TIMER0, TIMER1, TIMER2;
-extern volatile timer_t *const TIMER[];
 
 /* Random Number Generator */
 struct rng_t {

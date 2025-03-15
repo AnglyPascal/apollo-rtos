@@ -29,14 +29,10 @@ void accel_func(void *param)
   accel::init();
 
   uint8_t n = MAX<uint8_t>;
-  accel::data_t data;
-  while (!curr_proc::term_req()) {
-    accel::read(data);
-    buf->enqueue(data);
-
+  while (true) {
+    buf->enqueue(accel::read());
     if (n-- == 0)
       file.store();
-
     sched::sleep(200);
   }
   file.store();

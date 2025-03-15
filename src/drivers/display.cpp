@@ -51,23 +51,6 @@ constexpr image_t blank = IMAGE(0, 0, 0, 0, 0, //
                                 0, 0, 0, 0, 0, //
                                 0, 0, 0, 0, 0);
 image_t image;
-} // namespace
-
-void task(void *);
-
-void show(const image_t img) { _memcpy(image, img, sizeof(image_t)); }
-
-void reset() { show(blank); }
-
-} // namespace display
-
-namespace procs
-{
-proc_def_t display{"display", LOW2, 128, display::task};
-}
-
-namespace display
-{
 
 void task(void *)
 {
@@ -85,5 +68,15 @@ void task(void *)
     sched::sleep(5);
   }
 }
+
+proc_def_t display_task{"display", LOW2, 128, task};
+
+} // namespace
+
+void show(const image_t img) { _memcpy(image, img, sizeof(image_t)); }
+
+void reset() { show(blank); }
+
+void init() { sched::reg_proc(&display_task, nullptr); }
 
 } // namespace display

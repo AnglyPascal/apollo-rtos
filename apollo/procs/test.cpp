@@ -3,6 +3,7 @@
 #include "core/sched.h"
 #include "drivers/i2c.h"
 #include "fs/fs.h"
+#include "utility/lib.h"
 
 namespace procs
 {
@@ -57,15 +58,10 @@ int n_run __recover_section__ = 0;
 
 void reset_task_test()
 {
-  auto task = [](void *param) {
-    n_run = *(int *)param;
-    n_run++;
-  };
-
+  auto task = [](void *p) { (*(int *)p)++; };
   recover::guard_task guard{RESET, task, 0, n_run};
-  if (n_run < 1) {
+  if (n_run < 1)
     trigger_reset();
-  }
 }
 
 void test_proc(void *param)
@@ -85,7 +81,8 @@ void test_proc(void *param)
 
   while (1) {
     delay_loop(10000);
-    sched::sleep(50);
+    /* kprintf("%u\r\n", random()); */
+    sched::sleep(500);
   }
 }
 

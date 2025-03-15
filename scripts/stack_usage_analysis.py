@@ -80,6 +80,7 @@ def main():
         sys.exit(1)
     
     build_directory = sys.argv[1]
+    target_name = sys.argv[2]
     
     # Parse stack usage files
     stack_entries = parse_su_files(build_directory)
@@ -88,7 +89,7 @@ def main():
     output = format_output(stack_entries)
     
     # Write to output file in the build directory
-    output_filepath = os.path.join(build_directory, 'stack_usage_analysis.txt')
+    output_filepath = os.path.join(build_directory, f'{target_name}_su.txt')
     with open(output_filepath, 'w') as f:
         f.write(output)
     

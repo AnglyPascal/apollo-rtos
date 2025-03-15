@@ -5,6 +5,7 @@
 #include "core/shell.h"
 #include "core/types.h"
 #include "core/waitlist.h"
+#include "drivers/display.h"
 #include "drivers/i2c.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
@@ -165,6 +166,7 @@ void init()
 
   recover::init();
   shell::init();
+  display::init();
 
   timer::init();
   last_checked = timer::now();
@@ -203,12 +205,6 @@ void wakeup(pid_t pid)
   incr_priority(proc, -proc->priority);
 }
 
-void transfer_param(void *param)
-{
-  assert(param == cpu.curr_proc->param);
-  cpu.curr_proc->param = nullptr;
-}
-
 void assert_stack()
 {
   if (cpu.curr_proc == nullptr)
@@ -224,15 +220,15 @@ void assert_stack()
 
 } // namespace sched
 
+using namespace sched;
+
 namespace curr_proc
 {
-using namespace sched;
 pid_t pid() { return procs.pid(cpu.curr_proc); }
 string name() { return cpu.curr_proc->name; }
 chunk_t *used_hd() { return &cpu.curr_proc->used_hd; }
 proc_def_t *def() { return cpu.curr_proc->def; }
 bool term_req() { return cpu.curr_proc->term_req; }
-
 bool set_up() { return cpu.set_up; }
 } // namespace curr_proc
 
@@ -243,27 +239,24 @@ bool set_up() { return cpu.set_up; }
 template <>
 void default_handler<SIGTERM>(void)
 {
-  sched::cpu.curr_proc->term_req = true;
+  cpu.curr_proc->term_req = true;
 }
 
 template <>
 void default_handler<SIGKILL>(void)
 {
-  sched::exit<true>();
+  exit<true>();
 }
 
 __extern_C__
 void handle_signals(void)
 {
-  // FIXME: kprintf causes a sleep/wake up issue, investigate later
-  /* printf("sig\r\n"); */
-
-  sched::cpu.curr_proc->signals.handle_signals();
+  cpu.curr_proc->signals.handle_signals();
 }
 
 signal_handler_t swap_handler(signal_t sig, signal_handler_t new_handler)
 {
-  return sched::cpu.curr_proc->signals.swap(sig, new_handler);
+  return cpu.curr_proc->signals.swap(sig, new_handler);
 }
 
 void send_signal(pid_t pid, signal_t sig)
@@ -273,7 +266,7 @@ void send_signal(pid_t pid, signal_t sig)
     return;
   }
 
-  sched::procs[pid]->signals.send(sig);
+  procs[pid]->signals.send(sig);
 }
 
 namespace shell
@@ -295,7 +288,7 @@ void pkill(void *param)
     pid = atoi(buf->str);
   } else {
     for (pid = 0; pid < N_PROCS; pid++) {
-      if (sched::procs[pid]->name == string{args})
+      if (procs[pid]->name == string{args})
         break;
     }
   }
@@ -305,7 +298,7 @@ void pkill(void *param)
     return;
   }
 
-  if (pid == sched::IDLE_PID) {
+  if (pid == IDLE_PID) {
     debug<FATAL>("Cannot kill idle_proc\r\n");
     return;
   }

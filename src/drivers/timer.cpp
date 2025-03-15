@@ -17,26 +17,28 @@ namespace timer
 constexpr time_t TICK = 1;
 
 __always_inline__
-inline void timer1_init()
+inline void timer_init(volatile timer_t &TIMER)
 {
   /* We use Timer 1 because its 16-bit mode is adequate for a clock with up to
    * 1us resolution and 1ms period, leaving the 32-bit Timer 0 for other
    * purposes. */
-  TIMER1.STOP = 1;
-  TIMER1.MODE = TIMER_MODE_Timer;
-  TIMER1.BITMODE = TIMER_BITMODE_16Bit;
-  TIMER1.PRESCALER = 4; /* 1MHz = 16MHz / 2^4 */
-  TIMER1.CLEAR = 1;
-  TIMER1.CC[0] = 1000 * TICK;
-  TIMER1.SHORTS = BIT(TIMER_COMPARE0_CLEAR);
-  TIMER1.INTENSET = BIT(TIMER_INT_COMPARE0);
-  TIMER1.START = 1;
+  TIMER.STOP = 1;
+  TIMER.MODE = TIMER_MODE_Timer;
+  TIMER.BITMODE = TIMER_BITMODE_16Bit;
+  TIMER.PRESCALER = 4; /* 1MHz = 16MHz / 2^4 */
+  TIMER.CLEAR = 1;
+  TIMER.CC[0] = 1000 * TICK;
+  TIMER.SHORTS = BIT(TIMER_COMPARE0_CLEAR);
+  TIMER.INTENSET = BIT(TIMER_INT_COMPARE0);
+  TIMER.START = 1;
+}
 
+void init()
+{
+  timer_init(TIMER1);
   enable_irq(TIMER1_IRQ);
   irq_priority(TIMER1_IRQ, IRQ_PRIO_HI);
 }
-
-void init() { timer1_init(); }
 
 volatile time_t MILLIS = 0;
 

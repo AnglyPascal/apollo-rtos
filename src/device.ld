@@ -22,14 +22,6 @@ SECTIONS {
         __etext = .;
     } > FLASH
 
-    /* /DISCARD/ : { */
-        /* Some parts of the GCC library have C++ exception data,
-           which is of no use to us. */
-        /* *(.ARM.extab*) */
-        /* *(.ARM.exidx*) */
-        /* *(.eh_frame*) */
-    /* } */
-
     .data : AT (__etext) {
         __data_start = .;
 

@@ -13,16 +13,9 @@ set(CMAKE_CXX_COMPILER "arm-none-eabi-g++")
 set(CMAKE_ASM_COMPILER "arm-none-eabi-as")
 set(CMAKE_OBJCOPY "arm-none-eabi-objcopy")
 set(CMAKE_OBJDUMP "arm-none-eabi-objdump")
+
+find_package(PythonInterp 3 REQUIRED)
 set(PYTHON_EXECUTABLE "python3")
-
-file(GLOB LINKSCRIPT "src/device.ld")
-file(GLOB CXX_SRC "src/*.cpp")
-file(GLOB CXX_SUB_SRC "src/*/*.cpp")
-file(GLOB C_SRC "src/*.c")
-file(GLOB ASM_SRC "src/*.s")
-set(OUTPUT_FILE "bare-metal")
-
-include_directories(include)
 
 set(ARCH "-mcpu=cortex-m0 -mthumb")
 set(OPT "-O2 -g -Wall")
@@ -37,45 +30,77 @@ set(ALL_FLAGS "${ARCH} ${OPT} ${STACK_USAGE}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ALL_FLAGS} ${EMBED} ${DEAD_CODE}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ALL_FLAGS} ${EMBED} ${EMBED_CXX} ${DEAD_CODE}")
 SET(CMAKE_ASM_FLAGS "${CFLAGS} ${ARCH}")
+
+file(GLOB LINKSCRIPT "src/device.ld")
 set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKSCRIPT} -lgcc -lm -Wl,--gc-sections")
 
-add_executable(bare-metal ${C_SRC} ${CXX_SRC} ${CXX_SUB_SRC} ${ASM_SRC})
-set_target_properties(bare-metal PROPERTIES OUTPUT_NAME "${OUTPUT_FILE}.elf")
+file(GLOB_RECURSE CXX_SRC "src/*.cpp")
+file(GLOB_RECURSE C_SRC "src/*.c")
+file(GLOB_RECURSE ASM_SRC "src/*.s")
 
-add_custom_command(
-  TARGET bare-metal
-  POST_BUILD
-  COMMAND ${CMAKE_OBJCOPY} -O ihex ${OUTPUT_FILE}.elf ${OUTPUT_FILE}.hex
-  COMMENT "Converting ELF to hex")
+include_directories(include)
+set(KERNEL_SRC ${CXX_SRC} ${CXX_SUB_SRC} ${C_SRC} ${ASM_SRC})
+ 
+option(COPY_HEX "Copy" OFF)
 
-add_custom_command(
-  TARGET bare-metal
-  POST_BUILD
-  COMMAND ${CMAKE_OBJDUMP} -S ${OUTPUT_FILE}.elf > ${OUTPUT_FILE}.S
-  COMMENT "Converting ELF to assembly")
+function(add_custom_executable target_name target_dir)
+  file(GLOB_RECURSE TARGET_SRC "${target_dir}/*.cpp")
+  add_executable(${target_name} ${KERNEL_SRC} ${TARGET_SRC})
 
-add_custom_command(
-  TARGET bare-metal POST_BUILD
-  COMMAND ${PYTHON_EXECUTABLE} stack_usage_analysis.py CMakeFiles
-  COMMENT "Analyzing stack usage"
-  VERBATIM
+  set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "${target_name}.elf")
+
+  add_custom_command(
+    TARGET ${target_name}
+    POST_BUILD
+    COMMAND ${CMAKE_OBJCOPY} -O ihex ${target_name}.elf ${target_name}.hex
+    COMMENT "Converting ELF to hex"
+  )
+
+  add_custom_command(
+    TARGET ${target_name}
+    POST_BUILD
+    COMMAND ${CMAKE_OBJDUMP} -S ${target_name}.elf > ${target_name}.S
+    COMMENT "Converting ELF to assembly"
+  )
+
+  add_custom_command(
+    TARGET ${target_name}
+    POST_BUILD
+    COMMAND ${PYTHON_EXECUTABLE} "scripts/stack_usage_analysis.py" CMakeFiles ${target_name} 
+    COMMENT "Analyzing stack usage"
+    VERBATIM
+  )
+
+  if (COPY_HEX) 
+    add_custom_command(
+      TARGET ${target_name}
+      POST_BUILD
+      COMMAND sh scripts/copy_hex.sh apollo
+      COMMENT "Copy hex to microbit"
+      VERBATIM
+    )
+  endif (COPY_HEX)
+endfunction()
+
+set(TARGETS
+  apollo apollo
 )
+list(LENGTH TARGETS num_targets)
+math(EXPR num_targets "${num_targets} / 2 - 1")
 
-# Ensure Python is available
-find_package(PythonInterp 3 REQUIRED)
-
-add_custom_target(copy COMMENT "copy hex to microbit")
-add_custom_command(
-  TARGET copy
-  POST_BUILD
-  COMMAND sh copy_hex.sh
-  COMMENT "Copy hex to microbit")
+foreach(i RANGE 0 ${num_targets})
+    math(EXPR index "${i} * 2")
+    math(EXPR index_next "${index} + 1")
+    list(GET TARGETS ${index} EXEC_NAME)
+    list(GET TARGETS ${index_next} EXEC_DIR)
+    add_custom_executable(${EXEC_NAME} ${EXEC_DIR})
+endforeach()
 
 add_custom_target(qemu COMMENT "run qemu")
 add_custom_command(
   TARGET qemu
   POST_BUILD
-  COMMAND qemu-system-arm -M microbit -device loader,file=${OUTPUT_FILE}.hex
+  COMMAND qemu-system-arm -M microbit -device loader,file=apollo.hex
           -serial stdio -monitor telnet::45454,server,nowait -nographic
   COMMENT "Running QEMU...")
 
@@ -83,12 +108,12 @@ add_custom_target(qemu-gdb COMMENT "run qemu with GDB")
 add_custom_command(
   TARGET qemu-gdb
   POST_BUILD
-  COMMAND sh gdbscript.sh
+  COMMAND sh scripts/gdbscript.sh
   COMMENT "Running QEMU with GDB...")
 
 add_custom_target(tty COMMENT "run minicom")
 add_custom_command(
   TARGET tty
   POST_BUILD
-  COMMAND sudo minicom -D /dev/ttyACM0 -b 9600
+  COMMAND minicom -D /dev/ttyACM0 -b 9600
   COMMENT "Running minicom...")

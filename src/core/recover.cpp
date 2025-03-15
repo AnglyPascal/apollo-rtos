@@ -1,7 +1,7 @@
 #include "core/recover.h"
 
-#include "core/memory.h"
 #include "core/boot.h"
+#include "core/memory.h"
 #include "core/sched.h"
 #include "core/waitlist.h"
 #include "fs/fs.h"
@@ -115,7 +115,9 @@ public:
   }
 };
 
-struct rec_tbl_t {
+namespace
+{
+struct {
   tbl_t<PROC> proc_tbl;
   tbl_t<TASK> task_tbl;
 
@@ -130,12 +132,10 @@ struct rec_tbl_t {
     proc_tbl.recover(curr_lev);
     task_tbl.recover(curr_lev);
   }
-};
-static_assert(sizeof(rec_tbl_t) <= 1024);
+} rec_tbl __recover_section__ = {};
 
-namespace
-{
-rec_tbl_t rec_tbl __recover_section__ = {};
+static_assert(sizeof(rec_tbl) <= 1024);
+
 constexpr fn_t rec_fn = 0;
 fram::file_t file;
 } // namespace
@@ -188,7 +188,7 @@ void init()
 {
   // FIXME: this reuses the previous version of the file
   // so any changes to the file size will cause conflicts
-  fram::open(file, rec_fn, sizeof(rec_tbl_t), O_WRITE | O_CREATE | O_PERM);
+  fram::open(file, rec_fn, sizeof(rec_tbl), O_WRITE | O_CREATE | O_PERM);
   file.mmap(rec_tbl);
 
   auto boot_lev = boot::lev();

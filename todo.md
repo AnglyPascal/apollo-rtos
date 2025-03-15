@@ -1,5 +1,12 @@
 #TODO:
 
+## Error handling:
+
+- fatal: causes hardfault, requires manual intervention, clears out the hardware setup?
+- error: causes soft reset, flushes i2c etc? 
+- warn: terminates the current process by sending a kill signal
+
+
 ## hardware setup
 
 - setup a different timer for independent time keeping
@@ -15,3 +22,7 @@
 - why can you press ctrl-D and cause reset when the reset table is being set up??
 
 #Features
+
+
+- radio
+-

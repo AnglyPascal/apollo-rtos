@@ -1,5 +1,6 @@
 #include "utility/lib.h"
 
+#include "core/hardware.h"
 #include "core/types.h"
 
 int32_t atoi(const char *p)
@@ -156,4 +157,40 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
   }
 
   va_end(args);
+}
+
+uint8_t rand()
+{
+  RNG.CONFIG = RNG_CONFIG_DERCEN;
+
+  RNG.START = 1;
+  RNG.SHORTS = 1;
+
+  while (!RNG.VALRDY)
+    ;
+  RNG.VALRDY = 0;
+
+  return (uint8_t)RNG.VALUE;
+}
+
+// FIXME: very biased for large numbers
+uint32_t random()
+{
+  RNG.CONFIG = RNG_CONFIG_DERCEN;
+
+  RNG.START = 1;
+
+  uint32_t val = 0;
+  for (int i = 0; i < 8; i++) {
+    while (!RNG.VALRDY)
+      ;
+    RNG.VALRDY = 0;
+    auto temp = RNG.VALUE;
+    temp >>= 4;
+    val = val << 4 | temp;
+  }
+
+  RNG.STOP = 1;
+
+  return val;
 }

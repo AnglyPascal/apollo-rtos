@@ -10,6 +10,8 @@
 *.ko
 *.obj
 *.elf
+*.hex
+*.S
 
 # Linker output
 *.ilk

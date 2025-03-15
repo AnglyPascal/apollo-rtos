@@ -35,13 +35,13 @@ bool set_up();
 namespace sched
 {
 
+// FIXME: the front-end interface should not get pointers to processes
+// and should exclusively communicate via pids
 void incr_priority(proc_t *proc, priority_t priority);
 void decr_priority(priority_t priority);
 
 inline constexpr time_t invoke_interval = 2048;
-
 bool needs_swap();
-void change_proc();
 
 proc_t *reg_proc(proc_def_t *proc_def, void *param);
 
@@ -72,8 +72,6 @@ void notify(chan_t<chan_len> &chan)
 }
 
 void trace();
-
-void transfer_param(void *param);
 
 extern volatile time_t last_checked;
 
