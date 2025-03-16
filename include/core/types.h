@@ -122,6 +122,13 @@ inline constexpr size_t pg_sz = 1024;
 
 inline void trigger_hardfault() { asm("udf #0"); }
 
+inline void trigger_reset()
+{
+  asm("ldr r0, =0xE000ED0C");
+  asm("ldr r1, =0x05FA0004");
+  asm("str r1, [r0]");
+}
+
 constexpr size_t roundup(size_t sz, size_t align)
 {
   return (sz + align - 1) & ~(align - 1);

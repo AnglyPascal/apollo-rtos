@@ -89,14 +89,6 @@ pendsv_handler:
     isave                       @ Complete saving of process state
     bl cxt_switch               @ Choose a new process
     irestore                    @ Restore state for that process
-
-@@@ trigger a soft reset by setting the SYSRESETREQ bit of the AIRCR register
-    .global trigger_reset
-    .thumb_func
-trigger_reset:
-    ldr r0, =0xE000ED0C       @ Load the address of AIRCR into r0
-    ldr r1, =0x05FA0004       @ Load the VECTKEY (0x5FA << 16) | SYSRESETREQ bit
-    str r1, [r0]              @ Write the value directly to AIRCR
     
 @@@ pass the fault stack to the actual handler
     .global hardfault_handler 

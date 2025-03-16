@@ -79,9 +79,6 @@ void shell_proc(void *)
   }
 }
 
-__extern_C__
-void trigger_reset();
-
 bool listener(char c)
 {
   if (c == DEL || c == BS) {

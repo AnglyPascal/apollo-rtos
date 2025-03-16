@@ -268,9 +268,6 @@ void send_signal(pid_t pid, signal_t sig)
   procs[pid]->signals.send(sig);
 }
 
-__extern_C__
-void trigger_reset(void);
-
 void trigger_term(void)
 {
   if (curr_proc::set_up())

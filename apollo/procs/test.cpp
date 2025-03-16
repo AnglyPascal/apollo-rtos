@@ -51,9 +51,6 @@ void multi_blk_file_rw()
   fram::remove(fn);
 }
 
-__extern_C__
-void trigger_reset(void);
-
 int n_run __recover_section__ = 0;
 
 void reset_task_test()

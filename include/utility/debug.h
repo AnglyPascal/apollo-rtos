@@ -36,9 +36,6 @@ void debug(const char *fmt, Args... args)
   }
 }
 
-__extern_C__
-void trigger_reset(void);
-
 void trigger_term(void);
 
 template <debug_t lev, typename... Args>
