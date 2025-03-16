@@ -43,7 +43,7 @@ void decr_priority(priority_t priority);
 inline constexpr time_t invoke_interval = 2048;
 bool needs_swap();
 
-proc_t *reg_proc(proc_def_t *proc_def, void *param);
+proc_t *reg_proc(const proc_def_t *proc_def, void *param);
 
 void init();
 

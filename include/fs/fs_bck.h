@@ -120,7 +120,7 @@ private:
   static constexpr addr_t paddr(blk_addr_t blk_addr)
   {
     auto addr = desc.start + (addr_t)blk_addr * BLK_SZ;
-    assert(desc.start <= addr && addr < desc.end);
+    assert(desc.start <= addr && addr < desc.end, H_RESET);
     return addr;
   }
 
@@ -160,17 +160,18 @@ public:
 
   std::pair<const inode_t *, bool> open(fn_t fn, size_t sz, uint32_t flags)
   {
-    assert(sz > 0 && fn >= 0 && fn < desc.n_inodes);
+    assert(sz > 0 && fn >= 0 && fn < desc.n_inodes, TERM);
 
     auto &inode = fs_hd.find(fn);
     const bool in_use = inode.flag.in_use();
 
     if (!in_use) {
-      assert(flags & O_CREATE, "inode doesn't exist, but not creating\r\n");
+      assert(flags & O_CREATE, TERM,
+             "inode doesn't exist, but not creating\r\n");
       inode.flag.set_use();
 
       nblks_t nblks = roundup(sz, BLK_SZ) / BLK_SZ;
-      assert(nblks <= desc.max_num_blks);
+      assert(nblks <= desc.max_num_blks, TERM);
       inode.nblks = nblks;
 
       fs_hd.alloc_blks(inode.blks, nblks);
@@ -208,8 +209,7 @@ private:
   template <bool to_read>
   inline void xfer(const inode_t *inode, uint8_t *buf, size_t buf_sz) const
   {
-    assert(inode->ft() == BIN);
-    assert(inode->fsz() >= buf_sz);
+    assert(inode->fsz() >= buf_sz, TERM);
 
     auto func = to_read ? read : write;
     auto nblks = inode->nblks;

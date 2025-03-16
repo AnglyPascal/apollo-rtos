@@ -39,7 +39,7 @@ private:
 
     void acquire(fn_t _fn, const inode_t *_inode, bool w_en)
     {
-      assert(fn == null_fn || fn == _fn);
+      assert(fn == null_fn || fn == _fn, TERM);
       r_cnt++;
       w_cnt += w_en;
       fn = _fn;
@@ -164,7 +164,7 @@ public:
     void load()
     {
       auto &tmu = target_mu();
-      assert(tmu.buf != nullptr, "%d\r\n", fd->fn);
+      assert(tmu.buf != nullptr, TERM, "%d\r\n", fd->fn);
       lock_guard guard{fd->mtx};
       fs.load(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
     }
@@ -172,7 +172,7 @@ public:
     void store()
     {
       auto &tmu = target_mu();
-      assert(tmu.buf != nullptr);
+      assert(tmu.buf != nullptr, TERM);
       lock_guard guard{fd->mtx};
       fs.store(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
     }

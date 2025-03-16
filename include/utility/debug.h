@@ -5,12 +5,18 @@
 #include "utility/lib.h"
 
 enum debug_t {
-  FATAL,
-  ERROR,
-  WARN,
-  INFO,
-  DEBUG,
-  TRACE,
+  FATAL = 0,
+  H_RESET = FATAL,
+
+  ERROR = 1,
+  S_RESET = ERROR,
+
+  WARN = 2,
+  TERM = WARN,
+
+  INFO = 3,
+  DEBUG = 4,
+  TRACE = 5,
 };
 
 #ifndef NDEBUG
@@ -23,7 +29,7 @@ template <debug_t level, typename... Args>
 void debug(const char *fmt, Args... args)
 {
   if constexpr (level <= DEBUG_LEV) {
-    if (level <= ERROR)
+    if constexpr (level <= ERROR)
       serial::kprintf(fmt, args...);
     else
       serial::printf(fmt, args...);
@@ -31,39 +37,39 @@ void debug(const char *fmt, Args... args)
 }
 
 __extern_C__
-void spin(void);
+void trigger_reset(void);
 
-template <debug_t lev = TRACE>
+void trigger_term(void);
+
+template <debug_t lev, typename... Args>
+  requires(lev <= WARN)
 __always_inline__
-inline void __assert(bool ex, const char *src, const char *func,
-                     const char *file, int line)
+inline void __assert(bool ex, Args... args)
 {
-#ifndef NDEBUG
-  if (!ex) {
-    debug<lev>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
-               file, line);
+  if (ex)
+    return;
+
+  auto dump = []<typename... Ts>(const char *src, const char *func, Ts... ts) {
+    debug<TRACE>("\r\nassertion failed ``%s``, in %s\r\n", src, func);
+    if constexpr (sizeof...(ts) != 0)
+      debug<TRACE>(ts...);
+  };
+
+  if constexpr (lev == H_RESET) {
+    if constexpr (sizeof...(args) != 0)
+      dump(args...);
     return trigger_hardfault();
   }
-#endif
+
+  if constexpr (lev == S_RESET)
+    return trigger_hardfault(); // FIXME: should automatically cause soft reset
+
+  if constexpr (lev == TERM)
+    return trigger_term();
 }
 
-template <debug_t lev = TRACE, typename... Args>
-__always_inline__
-inline void __assert(bool ex, const char *src, const char *func,
-                     const char *file, int line, const char *fmt, Args... args)
-{
-#ifndef NDEBUG
-  if (!ex) {
-    debug<lev>("\r\nassertion failed ``%s``, in %s, at %s:%d\r\n", src, func,
-               file, line);
-    debug<lev>(fmt, args...);
-    return trigger_hardfault();
-  }
-#endif
-}
+#define assert(EX, LEV, ...) __assert<LEV>((EX))
 
-#define assert(EX, ...)                                                        \
-  __assert((EX), #EX, __func__, __FILE__, __LINE__, ##__VA_ARGS__)
+#define assert_dump(EX, LEV, ...)                                              \
+  __assert<LEV>((EX), #EX, __func__, ##__VA_ARGS__)
 
-#define assert_dump(EX, ...)                                                        \
-  __assert<ERROR>((EX), #EX, __func__, __FILE__, __LINE__, ##__VA_ARGS__)

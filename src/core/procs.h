@@ -30,7 +30,7 @@ struct proc_t {
   byte_t *stack = nullptr;
   size_t stk_sz = 0;
 
-  proc_def_t *def;
+  const proc_def_t *def;
   void *param;
   chunk_t used_hd = {};
 
@@ -120,13 +120,13 @@ public:
 
   inline pid_t pid(proc_t *proc) const
   {
-    assert(proc != nullptr);
+    assert(proc != nullptr, S_RESET);
     return proc - procs;
   }
 
   inline proc_t *operator[](pid_t pid)
   {
-    assert(pid >= 0 && pid < N_PROCS, "pid: %d\r\n", pid);
+    assert(pid >= 0 && pid < N_PROCS, S_RESET, "pid: %d\r\n", pid);
     return &procs[pid];
   }
 };

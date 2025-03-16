@@ -71,7 +71,7 @@ public:
 
   T dequeue()
   {
-    assert(sz > 0);
+    assert(sz > 0, H_RESET);
     auto arr = (T *)store;
     auto t = arr[_start];
     _start = _start + 1 == N ? 0 : _start + 1;
@@ -81,21 +81,21 @@ public:
 
   const T &peek() const
   {
-    assert(sz > 0);
+    assert(sz > 0, H_RESET);
     auto arr = (T *)store;
     return arr[_start];
   }
 
   T front() const
   {
-    assert(sz > 0);
+    assert(sz > 0, H_RESET);
     auto arr = (T *)store;
     return arr[_start];
   }
 
   T back() const
   {
-    assert(sz > 0);
+    assert(sz > 0, H_RESET);
     auto i = _end == 0 ? N - 1 : _end - 1;
     auto arr = (T *)store;
     return arr[i];

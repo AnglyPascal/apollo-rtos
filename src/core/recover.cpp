@@ -11,7 +11,7 @@
 
 namespace curr_proc
 {
-proc_def_t *def();
+const proc_def_t *def();
 uint8_t rec_id();
 void set_rec_id(rec_id_t id);
 } // namespace curr_proc
@@ -45,7 +45,7 @@ struct alignas(uint32_t) entry_hd_t {
   {
     if (src == nullptr)
       return;
-    assert(sz <= N_REC_DATA);
+    assert(sz <= N_REC_DATA, TERM);
     _memcpy(data, src, sz);
   }
 };
@@ -96,7 +96,7 @@ public:
       if (tbl[i].lev == NONE)
         return i;
     }
-    assert(false, "no recover table entry free\r\n");
+    assert(false, H_RESET, "no recover table entry free\r\n");
     return null_rec_id;
   }
 

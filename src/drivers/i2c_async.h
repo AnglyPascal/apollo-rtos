@@ -64,7 +64,7 @@ inline volatile state_t state{};
 __always_inline__
 inline void clear_event(volatile uint32_t &event)
 {
-  assert(event);
+  assert(event, H_RESET);
   event = 0;
 }
 

@@ -52,13 +52,13 @@ public:
 private:
   inline pair<uint8_t &, uint8_t> byte_and_msk(size_t idx)
   {
-    assert(idx >= 0 && idx < len, "idx: %u, len: %u\r\n", idx, len);
+    assert(idx >= 0 && idx < len, H_RESET, "idx: %u, len: %u\r\n", idx, len);
     return {store[idx / 8], 1 << (idx % 8)};
   }
 
   inline pair<const uint8_t &, uint8_t> byte_and_msk(size_t idx) const
   {
-    assert(idx >= 0 && idx < len);
+    assert(idx >= 0 && idx < len, H_RESET);
     return {store[idx / 8], 1 << (idx % 8)};
   }
 

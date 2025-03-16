@@ -26,7 +26,7 @@ public:
 
   void unlock()
   {
-    assert(busy);
+    assert(busy, S_RESET);
     busy = false;
     sched::notify(lock_chan);
   }

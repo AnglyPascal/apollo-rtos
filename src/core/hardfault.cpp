@@ -30,7 +30,7 @@ void hardfault_handler_body(uint32_t *fault_stack)
       kprintf("\r\n");
       sched::trace();
       waitlist::trace();
-      /* fs::trace(); */
+      fs::trace();
       break;
 
     default:

@@ -57,7 +57,7 @@ public:
 
   void pop()
   {
-    assert(idx > 0);
+    assert(idx > 0, TERM);
     idx--;
   }
 

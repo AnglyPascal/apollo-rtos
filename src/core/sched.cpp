@@ -44,16 +44,15 @@ void exit()
   decr_priority(0);
 }
 
-proc_t *reg_proc(proc_def_t *proc_def, void *param)
+proc_t *reg_proc(const proc_def_t *proc_def, void *param)
 {
   auto [name, priority, stk_sz, func] = *proc_def;
-
-  assert(priority > 0, "%x, %s\r\n", priority, name.str);
+  assert(priority > 0, H_RESET, "%x, %s\r\n", priority, name.str);
 
   intr_guard guard;
 
   auto proc = procs.alloc();
-  assert(proc != nullptr, "%s\r\n", name.str);
+  assert(proc != nullptr, S_RESET, "%s\r\n", name.str);
 
   proc->name = name;
   proc->param = param;
@@ -84,8 +83,8 @@ void change_proc()
 __extern_C__
 void *cxt_switch(void *stk_ptr)
 {
-  assert(cpu.hi_proc->priority > 0);
-  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr,
+  assert(cpu.hi_proc->priority > 0, S_RESET);
+  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, S_RESET,
          "hi_proc: %x, stack: %x, stk_ptr:  %x\r\n", cpu.hi_proc,
          cpu.hi_proc->stack, cpu.hi_proc->stk_ptr);
 
@@ -107,8 +106,9 @@ void *cxt_switch(void *stk_ptr)
 
 void incr_priority(proc_t *proc, priority_t priority)
 {
-  assert(proc->priority < priority, "\r\nproc: %s, previous: %d, new: %d\r\n",
-         proc->name.str, proc->priority, priority);
+  assert(proc->priority < priority, S_RESET,
+         "\r\nproc: %s, previous: %d, new: %d\r\n", proc->name.str,
+         proc->priority, priority);
   debug<TRACE>("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str,
                proc->priority, priority);
 
@@ -122,11 +122,9 @@ void incr_priority(proc_t *proc, priority_t priority)
 
 void decr_priority(priority_t priority)
 {
-  assert_dump(cpu.curr_proc->priority > priority,
-              "\r\nproc: %s, previous: %d, new: %d\r\n",
-              cpu.curr_proc->name.str, cpu.curr_proc->priority, priority);
-  debug<TRACE>("\t\t\tdecr prio, %s: %d -> %d\r\n", cpu.curr_proc->name.str,
-               cpu.curr_proc->priority, priority);
+  assert(cpu.curr_proc->priority > priority, S_RESET,
+         "\r\nproc: %s, previous: %d, new: %d\r\n", cpu.curr_proc->name.str,
+         cpu.curr_proc->priority, priority);
 
   cpu.curr_proc->priority = priority;
   cpu.hi_proc = procs.max_priority();
@@ -185,14 +183,15 @@ void trace()
 void default_alarm(void *ptr)
 {
   auto proc = (proc_t *)ptr;
-  assert(proc->priority < 0, "alarm: \"%s\" not asleep\r\n", proc->name.str);
+  assert(proc->priority < 0, S_RESET, "alarm: \"%s\" not asleep\r\n",
+         proc->name.str);
   incr_priority(proc, -proc->priority);
 }
 
 void sleep(time_t period)
 {
   auto proc = cpu.curr_proc;
-  assert(proc->priority > 0, "sleep1\r\n");
+  assert(proc->priority > 0, S_RESET, "sleep1\r\n");
   waitlist::reg(proc->name, period, default_alarm, (void *)proc);
   decr_priority(-proc->priority);
 }
@@ -213,9 +212,9 @@ void assert_stack()
   auto stack = (void *)cpu.curr_proc->stack;
   auto stack_end = (uint8_t *)stack + cpu.curr_proc->stk_sz;
   auto curr_stk = (void *)get_msp();
-  assert_dump(stack <= curr_stk && curr_stk <= stack_end,
-              "curr_proc: %s, stack: %x, curr_stk: %x, stack_end: %x\r\n",
-              cpu.curr_proc->name.str, stack, curr_stk, stack_end);
+  assert(stack <= curr_stk && curr_stk <= stack_end, S_RESET,
+         "curr_proc: %s, stack: %x, curr_stk: %x, stack_end: %x\r\n",
+         cpu.curr_proc->name.str, stack, curr_stk, stack_end);
 }
 
 } // namespace sched
@@ -227,7 +226,7 @@ namespace curr_proc
 pid_t pid() { return procs.pid(cpu.curr_proc); }
 string name() { return cpu.curr_proc->name; }
 chunk_t *used_hd() { return &cpu.curr_proc->used_hd; }
-proc_def_t *def() { return cpu.curr_proc->def; }
+const proc_def_t *def() { return cpu.curr_proc->def; }
 bool term_req() { return cpu.curr_proc->term_req; }
 bool set_up() { return cpu.set_up; }
 } // namespace curr_proc
@@ -267,6 +266,16 @@ void send_signal(pid_t pid, signal_t sig)
   }
 
   procs[pid]->signals.send(sig);
+}
+
+__extern_C__
+void trigger_reset(void);
+
+void trigger_term(void)
+{
+  if (curr_proc::set_up())
+    return send_signal(curr_proc::pid(), SIGKILL);
+  return trigger_reset();
 }
 
 namespace shell

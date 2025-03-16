@@ -134,7 +134,7 @@ void cleanup(chunk_t *hd)
 {
   debug<TRACE>("heap cleanup for current proc\r\n");
   while (hd->next != nullptr) {
-    assert(hd->next != hd);
+    assert(hd->next != hd, S_RESET);
     hd->next->detach();
 
     auto ptr = (byte_t *)hd->next + sizeof(chunk_t);

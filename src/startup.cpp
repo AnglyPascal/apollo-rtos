@@ -2,15 +2,11 @@
 #include "core/hardware.h"
 #include "core/memory.h"
 #include "core/sched.h"
-#include "core/shell.h"
 #include "drivers/display.h"
 #include "drivers/i2c.h"
 #include "drivers/serial.h"
-#include "drivers/timer.h"
 #include "fs/fs.h"
 #include "utility/debug.h"
-
-#include "utility/bitset.h"
 
 __extern_C__
 byte_t __data_start[],

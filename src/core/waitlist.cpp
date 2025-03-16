@@ -50,7 +50,7 @@ inline void dealloc(waitlist_t *ptr)
 void reg(string name, time_t interval, runnable_t func, void *param)
 {
   auto task = alloc();
-  assert(task != nullptr);
+  assert(task != nullptr, S_RESET);
 
   interval = roundup(interval, update_interval);
 
