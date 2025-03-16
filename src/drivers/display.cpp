@@ -54,18 +54,16 @@ image_t image;
 
 void task(void *)
 {
-  recover::guard_proc guard{POWER_OFF};
-
   GPIO.DIR = LED_MASK;
   reset();
 
-  while (!curr_proc::term_req()) {
+  while (true) {
     int n = 0;
     while (n < 3) {
       GPIO.OUT = image[n++];
       delay_loop(5000);
     }
-    sched::sleep(5);
+    sched::sleep(100);
   }
 }
 

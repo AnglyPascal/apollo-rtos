@@ -52,7 +52,7 @@ proc_t *reg_proc(const proc_def_t *proc_def, void *param)
   intr_guard guard;
 
   auto proc = procs.alloc();
-  assert(proc != nullptr, S_RESET, "%s\r\n", name.str);
+  assert(proc != nullptr, H_RESET, "%s\r\n", name.str);
 
   proc->name = name;
   proc->param = param;

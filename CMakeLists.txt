@@ -75,7 +75,7 @@ function(add_custom_executable target_name target_dir)
     add_custom_command(
       TARGET ${target_name}
       POST_BUILD
-      COMMAND sh scripts/copy_hex.sh apollo
+      COMMAND sh scripts/copy_hex.sh ${target_name}
       COMMENT "Copy hex to microbit"
       VERBATIM
     )
@@ -84,6 +84,7 @@ endfunction()
 
 set(TARGETS
   apollo apollo
+  recover tests/recover
 )
 list(LENGTH TARGETS num_targets)
 math(EXPR num_targets "${num_targets} / 2 - 1")
