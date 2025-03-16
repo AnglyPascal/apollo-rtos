@@ -1,3 +1,4 @@
+#include "core/memory.h"
 #include "core/recover.h"
 #include "core/sched.h"
 #include "core/shell.h"
@@ -6,35 +7,38 @@ namespace
 {
 void func(void *i)
 {
+  kprintf("f%d\r\n", *(int *)i);
   while (1) {
-    printf("func %d\r\n", i);
     sched::sleep(2000);
   }
 }
 
-void guarded_func(void *i)
+void guarded_func(void *p)
 {
+  auto i = *(int *)p;
   recover::guard_proc guard{POWER_OFF, i};
+  kprintf("g%d\r\n", i);
   while (1) {
-    printf("guarded func %d\r\n", i);
     sched::sleep(2000);
   }
 }
 
-proc_def_t func_def = {"func", MID1, 128, func};
-proc_def_t guarded_func_def = {"guarded_func", MID4, 128, guarded_func};
+proc_def_t func_def = {"f", MID1, 128, func};
+proc_def_t guarded_func_def = {"g", HIGH4, 128, guarded_func};
 
-void nested_func(void *i)
+void nested_func(void *p)
 {
+  auto i = *(int *)p;
   recover::guard_proc guard{POWER_OFF, i};
-  sched::reg_proc(&func_def, i);
+  kprintf("n%d\r\n", i);
+  sched::reg_proc(&func_def, p);
+  kprintf("nf%d\r\n", i);
   while (1) {
-    printf("nested func %d\r\n", i);
     sched::sleep(1000);
   }
 }
 
-proc_def_t nested_func_def = {"nested_func", HIGH1, 128, nested_func};
+proc_def_t nested_func_def = {"n", MID4, 128, nested_func};
 } // namespace
 
 namespace sched
@@ -42,22 +46,22 @@ namespace sched
 void setup_procs(void)
 {
   for (int i = 0; i < 5; i++) {
-    reg_proc(&func_def, (void *)i);
+    reg_proc(&func_def, kmem::knew<int>(i));
   }
 
   for (int i = 0; i < 5; i++) {
-    reg_proc(&guarded_func_def, (void *)i);
+    reg_proc(&guarded_func_def, kmem::knew<int>(i));
   }
 
   for (int i = 0; i < 3; i++) {
-    reg_proc(&nested_func_def, (void *)i);
+    reg_proc(&nested_func_def, kmem::knew<int>(i));
   }
 }
 } // namespace sched
 
 namespace shell
 {
-extern proc_def_t echo_cmd, trace_cmd, heart_cmd;
+extern proc_def_t echo_cmd, trace_cmd, heart_cmd, pkill_cmd;
 
 namespace
 {
@@ -65,6 +69,7 @@ proc_def_t *cmds[] = {
     &echo_cmd,
     &trace_cmd,
     &heart_cmd,
+    &pkill_cmd,
 };
 }
 

@@ -234,6 +234,27 @@ public:
     xfer<false>(inode, buf, buf_sz);
   }
 
+  void store(const inode_t *inode, size_t off, uint8_t *buf,
+             size_t buf_sz) const
+  {
+    assert(off >= 0 && off < inode->fsz(), TERM);
+
+    while (buf_sz > 0) {
+      auto blk_id = off / BLK_SZ;
+      auto blk_off = off % BLK_SZ;
+
+      auto blk = inode->blks[blk_id];
+      auto addr = paddr(blk) + blk_off;
+      auto sz = min(buf_sz, BLK_SZ - blk_off);
+
+      desc.write(addr, buf, sz);
+
+      buf_sz -= sz;
+      off += sz;
+      buf += sz;
+    }
+  }
+
   void trace(bool (*is_open)(fn_t))
   {
     auto free_blks = fs_hd.free_set.size();

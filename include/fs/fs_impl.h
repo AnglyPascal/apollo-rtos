@@ -30,7 +30,7 @@ private:
 
   public:
     fn_t fn = null_fn;
-    mutable mutex<> mtx = {"fd"};
+    mutable mutex<8> mtx = {"fd"};
     const inode_t *inode = nullptr;
     mmap_unit_t mu = {};
 
@@ -175,6 +175,14 @@ public:
       assert(tmu.buf != nullptr, TERM);
       lock_guard guard{fd->mtx};
       fs.store(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
+    }
+
+    void store(size_t off, size_t sz)
+    {
+      auto &tmu = target_mu();
+      assert(tmu.buf != nullptr && off >= 0 && off + sz <= tmu.sz, TERM);
+      lock_guard guard{fd->mtx};
+      fs.store(fd->inode, off, ((uint8_t *)tmu.buf) + off, sz);
     }
   };
 

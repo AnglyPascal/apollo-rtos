@@ -47,9 +47,9 @@ inline void __assert(bool ex, Args... args)
     return;
 
   auto dump = []<typename... Ts>(const char *src, const char *func, Ts... ts) {
-    debug<TRACE>("\r\nassertion failed ``%s``, in %s\r\n", src, func);
+    debug<ERROR>("\r\nassertion failed ``%s``, in %s\r\n", src, func);
     if constexpr (sizeof...(ts) != 0)
-      debug<TRACE>(ts...);
+      debug<ERROR>(ts...);
   };
 
   if constexpr (lev == H_RESET) {

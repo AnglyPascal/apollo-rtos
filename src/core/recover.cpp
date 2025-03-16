@@ -33,6 +33,7 @@ struct entry_t;
 
 struct alignas(uint32_t) entry_hd_t {
   uint8_t data[N_REC_DATA] = {0xFF};
+  uint8_t data_sz;
   lev_t lev = NONE;
 
   void reset()
@@ -45,8 +46,20 @@ struct alignas(uint32_t) entry_hd_t {
   {
     if (src == nullptr)
       return;
+
     assert(sz <= N_REC_DATA, TERM);
     _memcpy(data, src, sz);
+    data_sz = (uint8_t)sz;
+  }
+
+  void *copy_data() const
+  {
+    if (data_sz == 0)
+      return nullptr;
+
+    auto ptr = (uint8_t *)kmem::kmalloc(data_sz);
+    _memcpy(ptr, data, data_sz);
+    return ptr;
   }
 };
 
@@ -61,7 +74,7 @@ struct alignas(uint32_t) entry_t<PROC> : entry_hd_t {
   {
     if (lev < curr_lev)
       return;
-    sched::reg_proc(&proc_def, data);
+    sched::reg_proc(&proc_def, copy_data());
   }
 };
 
@@ -75,10 +88,11 @@ struct alignas(uint32_t) entry_t<TASK> : entry_hd_t {
     if (lev < curr_lev)
       return;
 
+    auto ptr = copy_data();
     if (interval == 0)
-      task(data);
+      task(ptr);
     else
-      waitlist::reg("recover", interval, task, data);
+      waitlist::reg("recover", interval, task, ptr);
   }
 };
 
@@ -123,15 +137,17 @@ struct {
 
   void reset()
   {
-    proc_tbl.reset();
     task_tbl.reset();
+    proc_tbl.reset();
   }
 
   void recover(lev_t curr_lev)
   {
-    proc_tbl.recover(curr_lev);
     task_tbl.recover(curr_lev);
+    proc_tbl.recover(curr_lev);
   }
+
+  size_t offset(void *addr) { return (size_t)addr - (size_t)this; }
 } rec_tbl __recover_section__ = {};
 
 static_assert(sizeof(rec_tbl) <= 1024);
@@ -151,14 +167,14 @@ guard_proc::guard_proc(lev_t lev, const uint8_t *data, size_t data_sz)
   entry.proc_def = *curr_proc::def();
   entry.copy_data(data, data_sz);
 
-  file.store();
+  file.store(rec_tbl.offset(&entry), sizeof(entry));
 }
 
 guard_proc::~guard_proc()
 {
   auto &entry = rec_tbl.proc_tbl[rec_id];
   entry.reset();
-  file.store();
+  file.store(rec_tbl.offset(&entry), sizeof(entry));
 }
 
 guard_task::guard_task(lev_t lev, runnable_t task, time_t interval,
@@ -174,14 +190,14 @@ guard_task::guard_task(lev_t lev, runnable_t task, time_t interval,
   entry.task = task;
   entry.copy_data(data, data_sz);
 
-  file.store();
+  file.store(rec_tbl.offset(&entry), sizeof(entry));
 }
 
 guard_task::~guard_task()
 {
   auto &entry = rec_tbl.task_tbl[rec_id];
   entry.reset();
-  file.store();
+  file.store(rec_tbl.offset(&entry), sizeof(entry));
 }
 
 void init()

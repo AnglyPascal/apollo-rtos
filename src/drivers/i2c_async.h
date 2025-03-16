@@ -69,7 +69,13 @@ inline void clear_event(volatile uint32_t &event)
 }
 
 inline chan_t<1> intr_chan;
-inline mutex<> mtx;
+inline mutex<8> mtx;
+
+void init()
+{
+  new (&intr_chan) chan_t<1>{};
+  new (&mtx) mutex<8>{"i2c"};
+}
 
 template <typename T = void>
 void handler(void)

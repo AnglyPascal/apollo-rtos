@@ -4,7 +4,7 @@
 #include "core/types.h"
 #include "utility/debug.h"
 
-template <size_t chan_len = N_PROCS_WAIT>
+template <size_t chan_len>
 class mutex
 {
 public:

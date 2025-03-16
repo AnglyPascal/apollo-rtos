@@ -68,7 +68,7 @@ void init()
   enable_irq(I2C0_IRQ);
   irq_priority(I2C0_IRQ, IRQ_PRIO_M1);
 
-  new (&i2c::async::mtx) mutex<>{"i2c"};
+  async::init();
 }
 
 void scan()

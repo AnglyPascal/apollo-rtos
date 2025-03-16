@@ -7,9 +7,11 @@
 template <typename T, size_t N>
 class circular_buffer
 {
+protected:
   byte_t store[N * sizeof(T)];
   size_t _start = 0, _end = 0, sz = 0;
 
+private:
   struct iterator {
     using difference_type = size_t;
     using value_type = T;

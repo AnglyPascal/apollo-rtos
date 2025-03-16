@@ -66,7 +66,7 @@ function(add_custom_executable target_name target_dir)
   add_custom_command(
     TARGET ${target_name}
     POST_BUILD
-    COMMAND ${PYTHON_EXECUTABLE} "scripts/stack_usage_analysis.py" CMakeFiles ${target_name} 
+    COMMAND ${PYTHON_EXECUTABLE} "scripts/stack_usage_analysis.py" CMakeFiles/${target_name}.dir ${target_name} 
     COMMENT "Analyzing stack usage"
     VERBATIM
   )
