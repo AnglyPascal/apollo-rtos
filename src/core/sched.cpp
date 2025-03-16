@@ -32,11 +32,8 @@ volatile struct {
 
 volatile time_t last_checked = 0;
 
-template <bool kill>
 void exit()
 {
-  debug<TRACE>("| ending %s, kill: %d\r\n", cpu.curr_proc->name.str, kill);
-
   kmem::kfree(cpu.curr_proc->param);
   heap::cleanup(&cpu.curr_proc->used_hd);
 
@@ -44,15 +41,16 @@ void exit()
   decr_priority(0);
 }
 
-proc_t *reg_proc(const proc_def_t *proc_def, void *param)
+pid_t reg_proc(const proc_def_t *proc_def, void *param)
 {
   auto [name, priority, stk_sz, func] = *proc_def;
-  assert(priority > 0, H_RESET, "%x, %s\r\n", priority, name.str);
+  assert(priority > 0, H_RESET);
 
   intr_guard guard;
 
   auto proc = procs.alloc();
-  assert(proc != nullptr, H_RESET, "%s\r\n", name.str);
+  auto pid = procs.pid(proc);
+  assert(proc != nullptr, H_RESET);
 
   proc->name = name;
   proc->param = param;
@@ -60,13 +58,10 @@ proc_t *reg_proc(const proc_def_t *proc_def, void *param)
 
   proc->term_req = false;
 
-  stack_allocator.acquire(proc, stk_sz, func, param, exit<true>);
+  stack_allocator.acquire(proc, stk_sz, func, param, exit);
+  incr_priority(pid, priority);
 
-  incr_priority(proc, priority);
-
-  debug<TRACE>("reg_proc: %s, %d, %x, %x\r\n", name.str, priority, proc->stack,
-               proc->stk_ptr);
-  return proc;
+  return pid;
 }
 
 bool needs_swap() { return cpu.hi_proc != cpu.curr_proc; }
@@ -83,13 +78,8 @@ void change_proc()
 __extern_C__
 void *cxt_switch(void *stk_ptr)
 {
-  assert(cpu.hi_proc->priority > 0, S_RESET);
-  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, S_RESET,
-         "hi_proc: %x, stack: %x, stk_ptr:  %x\r\n", cpu.hi_proc,
-         cpu.hi_proc->stack, cpu.hi_proc->stk_ptr);
-
-  debug<TRACE>("\t\t\t\t\"%s\" -> \"%s\"\r\n", cpu.curr_proc->name.str,
-               cpu.hi_proc->name.str);
+  assert_dump(cpu.hi_proc->priority > 0, H_RESET);
+  assert_dump(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET);
 
   intr_guard guard;
 
@@ -104,13 +94,10 @@ void *cxt_switch(void *stk_ptr)
   return cpu.hi_proc->stk_ptr;
 }
 
-void incr_priority(proc_t *proc, priority_t priority)
+void incr_priority(pid_t pid, priority_t priority)
 {
-  assert(proc->priority < priority, S_RESET,
-         "\r\nproc: %s, previous: %d, new: %d\r\n", proc->name.str,
-         proc->priority, priority);
-  debug<TRACE>("\t\t\tincr prio, %s: %d -> %d\r\n", proc->name.str,
-               proc->priority, priority);
+  auto proc = procs[pid];
+  assert(proc->priority < priority, S_RESET);
 
   intr_guard guard;
 
@@ -122,9 +109,7 @@ void incr_priority(proc_t *proc, priority_t priority)
 
 void decr_priority(priority_t priority)
 {
-  assert(cpu.curr_proc->priority > priority, S_RESET,
-         "\r\nproc: %s, previous: %d, new: %d\r\n", cpu.curr_proc->name.str,
-         cpu.curr_proc->priority, priority);
+  assert(cpu.curr_proc->priority > priority, S_RESET);
 
   cpu.curr_proc->priority = priority;
   cpu.hi_proc = procs.max_priority();
@@ -145,7 +130,7 @@ void idle_task(void *)
   }
 }
 
-proc_def_t idle_proc_def = {"idle_proc", IDLE, 8, idle_task};
+proc_def_t idle_proc_def = {"idle", IDLE, 8, idle_task};
 } // namespace
 
 /* enter idle_task with specified stack (see mpx.s) */
@@ -158,9 +143,8 @@ void init()
 {
   intr_disable();
 
-  auto idle_proc = reg_proc(&idle_proc_def, nullptr);
-  IDLE_PID = procs.pid(idle_proc);
-  cpu.curr_proc = idle_proc;
+  IDLE_PID = reg_proc(&idle_proc_def, nullptr);
+  cpu.curr_proc = procs[IDLE_PID];
 
   recover::init();
   shell::init();
@@ -170,8 +154,8 @@ void init()
   last_checked = timer::now();
 
   cpu.set_up = true;
-  idle_proc->stk_ptr = idle_proc->stack + idle_proc->stk_sz - 16;
-  __run(idle_task, &idle_proc->stk_ptr);
+  cpu.curr_proc->stk_ptr = cpu.curr_proc->stack + cpu.curr_proc->stk_sz - 16;
+  __run(idle_task, &cpu.curr_proc->stk_ptr);
 }
 
 void trace()
@@ -183,26 +167,22 @@ void trace()
 void default_alarm(void *ptr)
 {
   auto proc = (proc_t *)ptr;
-  assert(proc->priority < 0, S_RESET, "alarm: \"%s\" not asleep\r\n",
-         proc->name.str);
-  incr_priority(proc, -proc->priority);
+  assert(proc->priority < 0, S_RESET);
+  incr_priority(procs.pid(proc), -proc->priority);
 }
 
 void sleep(time_t period)
 {
   auto proc = cpu.curr_proc;
-  assert(proc->priority > 0, S_RESET, "sleep1\r\n");
-  waitlist::reg(proc->name, period, default_alarm, (void *)proc);
+  assert(proc->priority > 0, S_RESET);
+
+  if (period > 0)
+    waitlist::reg(proc->name, period, default_alarm, (void *)proc);
+
   decr_priority(-proc->priority);
 }
 
-void sleep() { decr_priority(-cpu.curr_proc->priority); }
-
-void wakeup(pid_t pid)
-{
-  auto proc = procs[pid];
-  incr_priority(proc, -proc->priority);
-}
+void wakeup(pid_t pid) { incr_priority(pid, -procs[pid]->priority); }
 
 void assert_stack()
 {
@@ -212,9 +192,10 @@ void assert_stack()
   auto stack = (void *)cpu.curr_proc->stack;
   auto stack_end = (uint8_t *)stack + cpu.curr_proc->stk_sz;
   auto curr_stk = (void *)get_msp();
-  assert(stack <= curr_stk && curr_stk <= stack_end, S_RESET,
-         "curr_proc: %s, stack: %x, curr_stk: %x, stack_end: %x\r\n",
-         cpu.curr_proc->name.str, stack, curr_stk, stack_end);
+
+  assert_dump(stack <= curr_stk && curr_stk <= stack_end, H_RESET,
+              "\r\n%s, %x, %x, %x\r\n", cpu.curr_proc->name.str, stack,
+              curr_stk, stack_end);
 }
 
 } // namespace sched
@@ -244,7 +225,7 @@ void default_handler<SIGTERM>(void)
 template <>
 void default_handler<SIGKILL>(void)
 {
-  exit<true>();
+  exit();
 }
 
 __extern_C__
@@ -260,11 +241,7 @@ signal_handler_t swap_handler(signal_t sig, signal_handler_t new_handler)
 
 void send_signal(pid_t pid, signal_t sig)
 {
-  if (pid < 0 || pid > N_PROCS) {
-    debug<ERROR>("pid %u out of range\r\n", pid);
-    return;
-  }
-
+  assert(pid <= N_PROCS, H_RESET);
   procs[pid]->signals.send(sig);
 }
 
@@ -299,15 +276,11 @@ void pkill(void *param)
     }
   }
 
-  if (pid >= N_PROCS) {
-    debug<ERROR>("Process not found\r\n");
-    return;
-  }
+  if (pid >= N_PROCS)
+    return debug<ERROR>("Process not found\r\n");
 
-  if (pid == IDLE_PID) {
-    debug<FATAL>("Cannot kill idle_proc\r\n");
-    return;
-  }
+  if (pid == IDLE_PID)
+    return debug<FATAL>("Cannot kill idle_proc\r\n");
 
   send_signal(pid, kill ? SIGKILL : SIGTERM);
 }

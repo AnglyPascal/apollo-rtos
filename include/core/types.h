@@ -31,7 +31,7 @@ using priority_t = int32_t;
 using std::pair;
 
 enum priorities : priority_t {
-  EMPTY,
+  EMPTY = 0,
 
   IDLE = 1,
 

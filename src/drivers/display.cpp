@@ -63,7 +63,7 @@ void task(void *)
       GPIO.OUT = image[n++];
       delay_loop(5000);
     }
-    sched::sleep(100);
+    sched::sleep(10);
   }
 }
 

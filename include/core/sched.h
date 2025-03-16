@@ -4,17 +4,9 @@
 #include "utility/circular_buffer.h"
 
 inline constexpr size_t N_PROCS = 16;
-struct proc_t;
 
-inline constexpr size_t N_PROCS_WAIT = 4;
-template <size_t chan_len = N_PROCS_WAIT>
-struct chan_t {
-  pid_t dequeue() { return pids.dequeue(); }
-  void enqueue(pid_t pid) { pids.enqueue(pid); }
-  bool empty() const { return pids.empty(); }
-
-private:
-  circular_buffer<pid_t, chan_len> pids;
+template <size_t chan_len>
+struct chan_t : public circular_buffer<pid_t, chan_len> {
 };
 
 struct proc_def_t {
@@ -34,22 +26,17 @@ bool set_up();
 
 namespace sched
 {
+void init();
 
-// FIXME: the front-end interface should not get pointers to processes
-// and should exclusively communicate via pids
-void incr_priority(proc_t *proc, priority_t priority);
+pid_t reg_proc(const proc_def_t *proc_def, void *param);
+void incr_priority(pid_t pid, priority_t priority);
 void decr_priority(priority_t priority);
 
 inline constexpr time_t invoke_interval = 2048;
+extern volatile time_t last_checked;
 bool needs_swap();
 
-proc_t *reg_proc(const proc_def_t *proc_def, void *param);
-
-void init();
-
-void sleep(time_t period);
-
-void sleep();
+void sleep(time_t period = 0);
 void wakeup(pid_t pid);
 
 template <size_t chan_len>
@@ -66,13 +53,8 @@ void notify(chan_t<chan_len> &chan)
   intr_guard guard;
   if (chan.empty())
     return;
-
-  auto pid = chan.dequeue();
-  wakeup(pid);
+  wakeup(chan.dequeue());
 }
 
 void trace();
-
-extern volatile time_t last_checked;
-
 } // namespace sched

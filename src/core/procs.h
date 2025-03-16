@@ -3,7 +3,6 @@
 #include "core/memory.h"
 #include "core/signal.h"
 #include "core/types.h"
-#include "drivers/serial.h"
 #include "utility/debug.h"
 
 namespace
@@ -71,38 +70,39 @@ struct proc_t {
   }
 };
 
-template <uint8_t N_PROCS>
+template <uint8_t _N_PROCS>
 class procs_t
 {
-  proc_t procs[N_PROCS] = {};
+  proc_t procs[_N_PROCS] = {};
 
 public:
   inline proc_t *alloc()
   {
     uint8_t pid = 0;
-    while (pid < N_PROCS && procs[pid].priority != 0)
+    while (pid < _N_PROCS && procs[pid].priority != EMPTY)
       pid++;
 
-    if (pid == N_PROCS) {
+    if (pid == _N_PROCS)
       return nullptr;
-    }
 
     return &procs[pid];
   }
 
-  inline void dealloc(proc_t *proc) { proc->priority = 0; }
+  inline void dealloc(proc_t *proc) { proc->priority = EMPTY; }
 
   proc_t *max_priority()
   {
     proc_t *max_proc = nullptr;
     priority_t max_priority = 0;
 
-    for (pid_t pid = 0; pid < N_PROCS; pid++) {
-      if (max_priority >= procs[pid].priority)
+    for (pid_t pid = 0; pid < _N_PROCS; pid++) {
+      auto &proc = procs[pid];
+
+      if (max_priority >= proc.priority)
         continue;
 
-      max_proc = &procs[pid];
-      max_priority = procs[pid].priority;
+      max_proc = &proc;
+      max_priority = proc.priority;
     }
 
     return max_proc;
@@ -110,11 +110,10 @@ public:
 
   void trace()
   {
-    for (auto proc = procs; proc < procs + N_PROCS; proc++) {
-      if (proc->priority != EMPTY) {
-        auto _pid = pid(proc);
-        proc->trace(_pid);
-      }
+    for (auto pid = 0; pid < _N_PROCS; pid++) {
+      auto &proc = procs[pid];
+      if (proc.priority != EMPTY)
+        proc.trace(pid);
     }
   }
 
@@ -126,7 +125,7 @@ public:
 
   inline proc_t *operator[](pid_t pid)
   {
-    assert(pid >= 0 && pid < N_PROCS, S_RESET, "pid: %d\r\n", pid);
+    assert(pid < _N_PROCS, S_RESET);
     return &procs[pid];
   }
 };
