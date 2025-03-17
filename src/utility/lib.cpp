@@ -71,19 +71,29 @@ void xtoa(uint32_t n, char *p)
 }
 
 char int_buf[11];
-char float_buf[5];
+char float_buf[6];
 
-// TODO: very rough impl
-void ftoa(float f, char *ib, char *fb)
+void rtoa(rational_t r, char *ip, char *fp, int precision = 6)
 {
-  constexpr uint32_t precision = 100; // 2 digits precision
+  double f = (double)r.num / r.denom;
 
-  f *= precision;
-  f = f + 0.5 - (f < 0);
-  int32_t n = (int32_t)f;
+  if (f < 0) {
+    *ip++ = '-';
+    f = -f;
+  }
 
-  itoa(n / precision, ib);
-  utoa(n % precision, fb);
+  int int_val = static_cast<int>(f);
+  double frac_val = f - int_val;
+
+  // Convert integer part
+  utoa(int_val, ip);
+
+  // Convert fractional part
+  for (int i = 0; i < precision; i++) {
+    frac_val *= 10;
+  }
+  int frac_int = static_cast<int>(frac_val + 0.5); // Round properly
+  utoa(frac_int, fp);
 }
 
 void do_printf(void (*putc)(char), const char *fmt, ...)
@@ -102,9 +112,10 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
       }
 
       case 'f': {
-        float f = (float)va_arg(args, double);
+        rational_t f = va_arg(args, rational_t);
+
         auto ib = int_buf, fb = float_buf;
-        ftoa(f, ib, fb);
+        rtoa(f, ib, fb);
 
         while (*ib != '\0')
           putc(*ib++);

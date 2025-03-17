@@ -22,6 +22,24 @@ using runnable_t = void (*)(void *);
 using word_t = uint32_t;
 using byte_t = std::byte;
 
+constexpr uint32_t pow(int base, int p)
+{
+  while (p-- > 0)
+    base *= base;
+  return base;
+}
+
+struct rational_t {
+  int32_t num;
+  uint32_t denom;
+
+  static constexpr uint8_t precision = 3;
+  static constexpr uint32_t mult = pow(10, precision);
+
+  rational_t(float f) : num{(int32_t)(f * mult)}, denom{mult} {}
+  rational_t(int32_t num, uint32_t denom) : num{num}, denom{denom} {}
+};
+
 using time_t = uint32_t;
 
 using pid_t = uint8_t;

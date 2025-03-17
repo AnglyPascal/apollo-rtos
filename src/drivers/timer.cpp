@@ -12,6 +12,35 @@ void assert_stack();
 void tick();
 } // namespace sched
 
+namespace profile
+{
+
+volatile size_t curr_entry = -1;
+entry_t tbl[N_PROFILES] = {};
+
+profile_guard::profile_guard(size_t _entry_id, const char *name)
+    : entry_id{curr_entry}
+{
+  tbl[_entry_id].func_name = name;
+  curr_entry = _entry_id;
+}
+
+profile_guard::~profile_guard() { curr_entry = entry_id; }
+
+void trace()
+{
+  debug<INFO>("profiles:\r\n");
+  for (auto &entry : tbl) {
+    if (entry.func_name != nullptr) {
+      debug<INFO>("  |  %s: %f%, %d\r\n", entry.func_name,
+                  rational_t{(int32_t)entry.ticks * 100, timer::debug_ticks},
+                  entry.ticks);
+    }
+  }
+}
+
+} // namespace profile
+
 namespace timer
 {
 
@@ -101,6 +130,12 @@ void timer2_handler(void)
   }
 
   sched::tick();
+  {
+    using namespace profile;
+    if (curr_entry != -1) {
+      tbl[curr_entry].ticks++;
+    }
+  }
 }
 
 /** Scheduler invoker inside timer1_handler:

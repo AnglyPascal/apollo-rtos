@@ -92,9 +92,9 @@ void run()
 void trace()
 {
   if (waitlist_hd.next == nullptr)
-    debug<INFO>("  waitlist: NONE\r\n");
+    debug<INFO>("waitlist: NONE\r\n");
   else
-    debug<INFO>("  waitlist:\r\n");
+    debug<INFO>("waitlist:\r\n");
 
   for (auto head = &waitlist_hd; head->next != nullptr; head = head->next) {
     debug<INFO>("  |  %s\r\n  |    interval: %u\r\n", head->next->name.str,

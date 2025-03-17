@@ -36,8 +36,6 @@ struct proc_t {
   bool term_req = false;
   signals_t signals = {};
 
-  void tick() { const_cast<proc_def_t *>(def)->ticks++; }
-
   void trace(pid_t pid, uint32_t total_ticks)
   {
     int state = 0;
@@ -61,9 +59,7 @@ struct proc_t {
     else
       prio_lev = 5;
 
-    float perc = (float)def->ticks * 100 / total_ticks;
-    printf("%d, %f\r\n", (int)perc, perc);
-
+    rational_t perc{(int32_t)def->ticks * 100, total_ticks};
     debug<INFO>("  |  %d. %s : (%s), %s, %f%\r\n", pid, name.str,
                 priority_levels[prio_lev], states[state], perc);
     debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", stack, stk_sz,

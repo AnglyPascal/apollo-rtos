@@ -4,6 +4,7 @@
 #include "core/irq.h"
 #include "core/sched.h"
 #include "drivers/gpio.h"
+#include "drivers/timer.h"
 #include "utility/debug.h"
 
 #include "i2c_async.h"
@@ -15,6 +16,7 @@ namespace i2c
 int read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
                size_t n)
 {
+  PROFILE_THIS();
   if (curr_proc::set_up())
     return async::xfer<true>(addr, cmd, cmd_sz, buf, n);
   else
