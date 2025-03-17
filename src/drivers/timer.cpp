@@ -9,7 +9,8 @@
 namespace sched
 {
 void assert_stack();
-}
+void tick();
+} // namespace sched
 
 namespace timer
 {
@@ -38,6 +39,10 @@ void init()
   timer_init(TIMER1);
   enable_irq(TIMER1_IRQ);
   irq_priority(TIMER1_IRQ, IRQ_PRIO_HI);
+
+  timer_init(TIMER2);
+  enable_irq(TIMER2_IRQ);
+  irq_priority(TIMER2_IRQ, IRQ_PRIO_HI);
 }
 
 volatile time_t MILLIS = 0;
@@ -83,6 +88,19 @@ void timer1_handler(void)
   }
 
   sched_invoke();
+}
+
+volatile time_t debug_ticks = 0;
+
+__extern_C__
+void timer2_handler(void)
+{
+  if (TIMER2.COMPARE[0]) {
+    debug_ticks += TICK;
+    TIMER2.COMPARE[0] = 0;
+  }
+
+  sched::tick();
 }
 
 /** Scheduler invoker inside timer1_handler:

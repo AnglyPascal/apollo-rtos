@@ -15,4 +15,12 @@ inline time_t now()
   return MILLIS;
 }
 
+extern volatile time_t debug_ticks;
+
+__always_inline__
+inline uint32_t total_ticks()
+{
+  return (uint32_t)debug_ticks;
+}
+
 } // namespace timer

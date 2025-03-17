@@ -8,9 +8,6 @@
 namespace procs
 {
 
-void test_proc(void *param);
-
-proc_def_t test{"test", MID1, 128, test_proc};
 
 void single_blk_file_rw()
 {
@@ -63,20 +60,22 @@ void reset_task_test()
 
 void test_proc(void *param)
 {
-  recover::guard_proc guard{RESET};
+  /* recover::guard_proc guard{RESET}; */
 
-  single_blk_file_rw();
-  multi_blk_file_rw();
+  /* single_blk_file_rw(); */
+  /* multi_blk_file_rw(); */
 
-  delay_loop(1000);
-  sched::decr_priority(LOW1);
+  /* delay_loop(1000); */
+  /* sched::decr_priority(LOW1); */
 
   /* reset_task_test(); */
 
   while (1) {
-    delay_loop(10000);
+    /* delay_loop(10000); */
     sched::sleep(500);
   }
 }
+
+proc_def_t test{"test", MID1, 128, test_proc};
 
 } // namespace procs

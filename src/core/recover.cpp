@@ -68,13 +68,14 @@ static_assert(alignof(entry_hd_t) == alignof(uint32_t));
 
 template <>
 struct alignas(uint32_t) entry_t<PROC> : entry_hd_t {
-  proc_def_t proc_def;
+  const proc_def_t *proc_def;
+  uint32_t dummy;
 
   void recover(lev_t curr_lev)
   {
     if (lev < curr_lev)
       return;
-    sched::reg_proc(&proc_def, copy_data());
+    sched::reg_proc(proc_def, copy_data());
   }
 };
 
@@ -175,7 +176,7 @@ guard_proc::guard_proc(lev_t lev, const uint8_t *data, size_t data_sz)
   auto &entry = tbl.entry<PROC>(rec_id);
   entry.lev = lev;
 
-  entry.proc_def = *curr_proc::def();
+  entry.proc_def = curr_proc::def();
   entry.copy_data(data, data_sz);
 
   file.store(tbl.offset(&entry), sizeof(entry));

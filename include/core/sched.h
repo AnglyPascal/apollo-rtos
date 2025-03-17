@@ -10,10 +10,12 @@ struct chan_t : public circular_buffer<pid_t, chan_len> {
 };
 
 struct proc_def_t {
-  string name;
-  priority_t priority;
-  size_t stk_sz;
-  runnable_t func;
+  const string name;
+  const priority_t priority;
+  const size_t stk_sz;
+  const runnable_t func;
+
+  time_t ticks = 0;
 };
 
 namespace curr_proc

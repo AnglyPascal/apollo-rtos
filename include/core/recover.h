@@ -5,8 +5,7 @@
 #define __recover_section__                                                    \
   __attribute__((section(".recover"))) __attribute__((__used__))
 
-inline constexpr size_t N_REC_DATA = 18;
-using rec_func_t = void (*)(void *);
+inline constexpr size_t N_REC_DATA = 20;
 
 using rec_id_t = uint8_t;
 inline constexpr rec_id_t null_rec_id = MAX<rec_id_t>;

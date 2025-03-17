@@ -11,7 +11,6 @@ enum class boot_lev_t {
 
 namespace boot
 {
-bool first_boot();
 boot_lev_t lev();
 const char *lev_str();
 void init();

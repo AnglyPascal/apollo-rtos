@@ -41,9 +41,9 @@ void exit()
   decr_priority(0);
 }
 
-pid_t reg_proc(const proc_def_t *proc_def, void *param)
+pid_t reg_proc(const proc_def_t *def, void *param)
 {
-  auto [name, priority, stk_sz, func] = *proc_def;
+  auto [name, priority, stk_sz, func, ticks] = *def;
   assert(priority > 0, H_RESET);
 
   intr_guard guard;
@@ -54,7 +54,7 @@ pid_t reg_proc(const proc_def_t *proc_def, void *param)
 
   proc->name = name;
   proc->param = param;
-  proc->def = proc_def;
+  proc->def = def;
 
   proc->term_req = false;
 
@@ -161,7 +161,7 @@ void init()
 void trace()
 {
   debug<INFO>("curr_proc: %s\r\n", cpu.curr_proc->name.str);
-  procs.trace();
+  procs.trace(timer::total_ticks());
 }
 
 void default_alarm(void *ptr)
@@ -197,6 +197,8 @@ void assert_stack()
               "\r\n%s, %x, %x, %x\r\n", cpu.curr_proc->name.str, stack,
               curr_stk, stack_end);
 }
+
+void tick() { cpu.curr_proc->tick(); }
 
 } // namespace sched
 

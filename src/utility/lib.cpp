@@ -70,7 +70,21 @@ void xtoa(uint32_t n, char *p)
   }
 }
 
-char int_buff[11];
+char int_buf[11];
+char float_buf[5];
+
+// TODO: very rough impl
+void ftoa(float f, char *ib, char *fb)
+{
+  constexpr uint32_t precision = 100; // 2 digits precision
+
+  f *= precision;
+  f = f + 0.5 - (f < 0);
+  int32_t n = (int32_t)f;
+
+  itoa(n / precision, ib);
+  utoa(n % precision, fb);
+}
 
 void do_printf(void (*putc)(char), const char *fmt, ...)
 {
@@ -87,9 +101,23 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         break;
       }
 
+      case 'f': {
+        float f = (float)va_arg(args, double);
+        auto ib = int_buf, fb = float_buf;
+        ftoa(f, ib, fb);
+
+        while (*ib != '\0')
+          putc(*ib++);
+        putc('.');
+        while (*fb != '\0')
+          putc(*fb++);
+
+        break;
+      }
+
       case 'd': {
         int32_t n = va_arg(args, int32_t);
-        auto p = int_buff;
+        auto p = int_buf;
         itoa(n, p);
         while (*p != '\0')
           putc(*p++);
@@ -98,7 +126,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
 
       case 'b': {
         uint8_t n = (uint8_t)va_arg(args, uint32_t);
-        auto p = int_buff;
+        auto p = int_buf;
         btoa(n, p);
         while (*p != '\0')
           putc(*p++);
@@ -107,7 +135,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
 
       case 'u': {
         uint32_t n = va_arg(args, uint32_t);
-        auto p = int_buff;
+        auto p = int_buf;
         utoa(n, p);
         while (*p != '\0')
           putc(*p++);
@@ -116,7 +144,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
 
       case 'p': {
         uint32_t n = va_arg(args, uint32_t);
-        auto p = int_buff;
+        auto p = int_buf;
         xtoa(n, p);
         while (*p != '\0')
           putc(*p++);
@@ -125,7 +153,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
 
       case 'x': {
         uint32_t n = va_arg(args, uint32_t);
-        auto p = int_buff;
+        auto p = int_buf;
         xtoa(n, p);
         while (*p != '\0')
           putc(*p++);
