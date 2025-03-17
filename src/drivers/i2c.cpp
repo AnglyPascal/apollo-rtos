@@ -12,13 +12,13 @@
 namespace i2c
 {
 
-void read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
-                size_t n)
+int read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
+               size_t n)
 {
   if (curr_proc::set_up())
-    async::xfer<true>(addr, cmd, cmd_sz, buf, n);
+    return async::xfer<true>(addr, cmd, cmd_sz, buf, n);
   else
-    sync::xfer<true>(addr, cmd, cmd_sz, buf, n);
+    return sync::xfer<true>(addr, cmd, cmd_sz, buf, n);
 }
 
 uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz)
@@ -28,13 +28,13 @@ uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz)
   return byte;
 }
 
-void write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
-                 size_t n)
+int write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
+                size_t n)
 {
   if (curr_proc::set_up())
-    async::xfer<false>(addr, cmd, cmd_sz, buf, n);
+    return async::xfer<false>(addr, cmd, cmd_sz, buf, n);
   else
-    sync::xfer<false>(addr, cmd, cmd_sz, buf, n);
+    return sync::xfer<false>(addr, cmd, cmd_sz, buf, n);
 }
 
 void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val)
@@ -44,8 +44,8 @@ void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val)
 
 int probe(uint8_t addr)
 {
-  char buf = 0;
-  return async::xfer<false>(addr, (uint8_t *)&buf, 1, nullptr, 0);
+  uint8_t buf = 0;
+  return sync::xfer<false>(addr, &buf, 1, nullptr, 0);
 }
 
 void init()
@@ -69,6 +69,8 @@ void init()
   irq_priority(I2C0_IRQ, IRQ_PRIO_M1);
 
   async::init();
+
+  /* scan(); */
 }
 
 void scan()

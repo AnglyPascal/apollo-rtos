@@ -14,11 +14,11 @@ namespace i2c
 
 int probe(uint8_t addr);
 
-void read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
+int read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
                 size_t n);
 uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz);
 
-void write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
+int write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
                  size_t n);
 void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val);
 

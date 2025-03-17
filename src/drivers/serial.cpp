@@ -103,14 +103,12 @@ void intr_putc(char ch)
   while (buf.size() == NBUF)
     pause();
 
-  intr_disable();
   if (txidle) {
     UART.TXD = ch;
     txidle = 0;
   } else {
     buf.enqueue(ch);
   }
-  intr_enable();
 }
 
 void busy_putc(char ch)

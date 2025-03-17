@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/hardware.h"
+#include "core/irq.h"
 #include "drivers/i2c.h"
 #include "utility/debug.h"
 
@@ -15,13 +16,15 @@ inline int wait(volatile uint32_t *event)
 {
   // disable i2c irq before waiting on an event to avoid
   // the interrupt handler wiping out the event
+  intr_guard guard{I2C0_IRQ};
 
-  disable_irq(I2C0_IRQ);
-  while (!*event)
+  while (!*event && !I2C0.ERROR)
     ;
   *event = 0;
-  enable_irq(I2C0_IRQ);
-  return I2C0.ERROR ? I2C0.ERRORSRC : I2C_OK;
+
+  auto status = I2C0.ERROR ? I2C0.ERRORSRC : I2C_OK;
+  I2C0.ERROR = 0;
+  return status;
 }
 
 inline int do_write(uint8_t *buf, size_t n)
@@ -102,13 +105,6 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
   I2C0.ERRORSRC = I2C_ERRORSRC_All;
 
   return error;
-}
-
-template <typename T = void>
-void handler(void)
-{
-  auto irq = I2C0_IRQ;
-  clear_pending(irq);
 }
 
 } // namespace sync

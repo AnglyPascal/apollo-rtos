@@ -61,12 +61,11 @@ struct state_t {
 
 inline volatile state_t state{};
 
-__always_inline__
-inline void clear_event(volatile uint32_t &event)
-{
-  assert(event, H_RESET);
-  event = 0;
-}
+#define clear_event(event)                                                     \
+  do {                                                                         \
+    assert_dump(event, H_RESET);                                               \
+    event = 0;                                                                 \
+  } while (0);
 
 inline chan_t<1> intr_chan;
 inline mutex<8> mtx;
@@ -80,8 +79,7 @@ void init()
 template <typename T = void>
 void handler(void)
 {
-  auto irq = I2C0_IRQ;
-  disable_irq(irq);
+  intr_guard guard{I2C0_IRQ};
 
   if (I2C0.ERROR) {
     clear_event(I2C0.ERROR);
@@ -92,11 +90,9 @@ void handler(void)
 
     state.stage = stage_t::NACK;
     I2C0.STOP = 1;
-
-    goto clear_intr;
   }
 
-  if (state.stage == stage_t::W_CMD) {
+  else if (state.stage == stage_t::W_CMD) {
     clear_event(I2C0.TXDSENT);
 
     if (state.cmd_idx < state.cmd_sz) {
@@ -122,11 +118,9 @@ void handler(void)
 
       I2C0.STARTRX = 1;
     }
-
-    goto clear_intr;
   }
 
-  if (state.stage == stage_t::TX_DATA) {
+  else if (state.stage == stage_t::TX_DATA) {
     clear_event(I2C0.TXDSENT);
     if (state.data_idx == state.data_sz) {
       state.stage = stage_t::NACK;
@@ -138,11 +132,9 @@ void handler(void)
       I2C0.TXD = state.data[data_idx++];
       state.data_idx = data_idx;
     }
-
-    goto clear_intr;
   }
 
-  if (state.stage == stage_t::RX_DATA) {
+  else if (state.stage == stage_t::RX_DATA) {
     clear_event(I2C0.RXDREADY);
 
     auto data_idx = state.data_idx;
@@ -161,11 +153,9 @@ void handler(void)
 
       I2C0.RESUME = 1;
     }
-
-    goto clear_intr;
   }
 
-  if (state.stage == stage_t::NACK) {
+  else if (state.stage == stage_t::NACK) {
     clear_event(I2C0.STOPPED);
 
     if (state.mode == mode_t::READ)
@@ -177,13 +167,7 @@ void handler(void)
 
     // then wake up the currently working process
     sched::notify(intr_chan);
-
-    goto clear_intr;
   }
-
-clear_intr:
-  clear_pending(irq);
-  enable_irq(irq);
 }
 
 template <bool is_read>

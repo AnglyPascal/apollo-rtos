@@ -94,14 +94,42 @@ inline void intr_enable()
   asm volatile("cpsie i");
 }
 
+template <typename T>
 class intr_guard
 {
-  uint32_t primask;
+  int irq;
 
 public:
-  intr_guard() noexcept : primask(get_primask()) { intr_disable(); }
-  ~intr_guard() noexcept { set_primask(primask); }
+  intr_guard(void) noexcept
+    requires std::same_as<T, void>
+      : irq(get_primask())
+  {
+    intr_disable();
+  }
+
+  ~intr_guard() noexcept
+    requires std::same_as<T, void>
+  {
+    set_primask(irq);
+  }
+
+  intr_guard(int irq) noexcept
+    requires std::same_as<T, int>
+      : irq{irq}
+  {
+    disable_irq(irq);
+  }
+
+  ~intr_guard() noexcept
+    requires std::same_as<T, int>
+  {
+    clear_pending(irq);
+    enable_irq(irq);
+  }
 };
+
+intr_guard(void) -> intr_guard<void>;
+intr_guard(int) -> intr_guard<int>;
 
 __extern_C__
 void spin(void);

@@ -27,12 +27,10 @@ data_t read()
 void init(void)
 {
   /* Find chip and set to 50Hz, 8 bit, Active */
-  if (i2c::probe(ACC) == I2C_OK) {
-    uint8_t cmd = ACC_CTRL_REG1;
-    i2c::write_reg(ACC, &cmd, 1, 0x23);
-  } else {
-    debug<FATAL>("Can't find accelerometer");
-  }
+  assert(i2c::probe(ACC) == I2C_OK, H_RESET);
+
+  uint8_t cmd = ACC_CTRL_REG1;
+  i2c::write_reg(ACC, &cmd, 1, 0x23);
 }
 
 } // namespace accel
