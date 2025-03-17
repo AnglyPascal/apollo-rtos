@@ -50,7 +50,7 @@ pid_t reg_proc(const proc_def_t *proc_def, void *param)
 
   auto proc = procs.alloc();
   auto pid = procs.pid(proc);
-  assert(proc != nullptr, H_RESET);
+  assert(proc != nullptr, S_RESET);
 
   proc->name = name;
   proc->param = param;
