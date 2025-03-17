@@ -2,9 +2,6 @@
 #include "core/types.h"
 #include "drivers/display.h"
 
-namespace shell
-{
-
 namespace
 {
 
@@ -159,9 +156,9 @@ const image_t period = IMAGE(0, 0, 0, 0, 0, //
                              0, 0, 0, 0, 0, //
                              0, 0, 0, 1, 0);
 
-void show(void *param)
+APP(show, MID2, 68, param)
 {
-  auto buf = (args_t *)param;
+  auto buf = (shell::args_t *)param;
   auto str = buf->str;
 
   while (!curr_proc::term_req() && *str != '\0') {
@@ -181,6 +178,3 @@ void show(void *param)
 
 } // namespace
 
-proc_def_t show_cmd = {"show", MID2, 68, show};
-
-} // namespace shell

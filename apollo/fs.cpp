@@ -3,15 +3,11 @@
 #include "core/types.h"
 #include "utility/debug.h"
 
-namespace shell
-{
-
 namespace
 {
-
-void rm(void *param)
+APP(rm, MID4, 128, param)
 {
-  auto buf = (args_t *)param;
+  auto buf = (shell::args_t *)param;
   auto str = buf->str;
 
   if (*str == '\0')
@@ -21,11 +17,11 @@ void rm(void *param)
   fram::remove(fn);
 }
 
-void ls(void *) { fs::trace(); }
+APP(ls, MID4, 128, param) { fs::trace(); }
 
-void cat(void *param)
+APP(cat, MID4, 128, param)
 {
-  auto str = ((args_t *)param)->str;
+  auto str = ((shell::args_t *)param)->str;
   if (*str == '\0')
     return debug<ERROR>("a file name is required\r\n");
 
@@ -35,11 +31,4 @@ void cat(void *param)
   if (file.ft() != CHAR)
     return debug<ERROR>("only char files allowed\r\n");
 }
-
 } // namespace
-
-proc_def_t rm_cmd = {"rm", MID4, 128, rm};
-proc_def_t ls_cmd = {"ls", MID4, 128, ls};
-proc_def_t cat_cmd = {"cat", MID4, 128, cat};
-
-} // namespace shell

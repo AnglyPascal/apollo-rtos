@@ -34,8 +34,4 @@ struct args_t {
   bool run_bg;
 };
 
-void init();
-
-proc_def_t *match_cmd(string cmd);
-
 } // namespace shell

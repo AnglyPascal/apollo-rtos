@@ -5,10 +5,6 @@
 #include "fs/fs.h"
 #include "utility/lib.h"
 
-namespace procs
-{
-
-
 void single_blk_file_rw()
 {
   fn_t fn = 10;
@@ -58,24 +54,21 @@ void reset_task_test()
     trigger_reset();
 }
 
-void test_proc(void *param)
+PROC(test, MID1, 128, param)
 {
-  /* recover::guard_proc guard{RESET}; */
+  recover::guard_proc guard{RESET};
 
-  /* single_blk_file_rw(); */
-  /* multi_blk_file_rw(); */
+  single_blk_file_rw();
+  multi_blk_file_rw();
 
-  /* delay_loop(1000); */
-  /* sched::decr_priority(LOW1); */
+  delay_loop(1000);
+  sched::decr_priority(LOW1);
 
   /* reset_task_test(); */
 
-  while (1) {
-    /* delay_loop(10000); */
+  while (!curr_proc::term_req()) {
+    delay_loop(10000);
     sched::sleep(500);
   }
 }
 
-proc_def_t test{"test", MID1, 128, test_proc};
-
-} // namespace procs

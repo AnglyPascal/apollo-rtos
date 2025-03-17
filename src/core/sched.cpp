@@ -133,6 +133,32 @@ void idle_task(void *)
 proc_def_t idle_proc_def = {"idle", IDLE, 8, idle_task};
 } // namespace
 
+__extern_C__
+proc_def_t __startup_load[],
+    __startup_start[], __startup_end[];
+
+__extern_C__
+void _setup_startups(void)
+{
+  for (proc_def_t *proc = __startup_start; proc < __startup_end; proc++) {
+    reg_proc(proc, nullptr);
+  }
+}
+void setup_startups(void) __attribute((weak, alias("_setup_startups")));
+
+__extern_C__
+proc_def_t __procs_load[],
+    __procs_start[], __procs_end[];
+
+__extern_C__
+void _setup_procs(void)
+{
+  for (proc_def_t *proc = __procs_start; proc < __procs_end; proc++) {
+    reg_proc(proc, nullptr);
+  }
+}
+void setup_procs(void) __attribute((weak, alias("_setup_procs")));
+
 /* enter idle_task with specified stack (see mpx.s) */
 __extern_C__
 void __run(runnable_t task, byte_t **stk_ptr);
@@ -146,9 +172,8 @@ void init()
   IDLE_PID = reg_proc(&idle_proc_def, nullptr);
   cpu.curr_proc = procs[IDLE_PID];
 
+  setup_startups();
   recover::init();
-  shell::init();
-  display::init();
 
   timer::init();
   last_checked = timer::now();
@@ -198,7 +223,7 @@ void assert_stack()
               curr_stk, stack_end);
 }
 
-void tick() { cpu.curr_proc->tick(); }
+void tick() { cpu.curr_proc->def->tick(); }
 
 } // namespace sched
 
@@ -254,9 +279,9 @@ void trigger_term(void)
   return trigger_reset();
 }
 
-namespace shell
+namespace
 {
-void pkill(void *param)
+APP(pkill, HIGHEST, 128, param)
 {
   auto buf = (shell::args_t *)param;
   auto args = buf->str;
@@ -286,6 +311,4 @@ void pkill(void *param)
 
   send_signal(pid, kill ? SIGKILL : SIGTERM);
 }
-
-proc_def_t pkill_cmd = {"pkill", HIGHEST, 128, pkill};
-} // namespace shell
+} // namespace

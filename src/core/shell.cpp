@@ -10,12 +10,26 @@ namespace shell
 {
 namespace
 {
+__extern_C__
+proc_def_t __apps_load[],
+    __apps_start[], __apps_end[];
+
+proc_def_t *match_cmd(string cmd_str)
+{
+  for (auto proc = __apps_start; proc < __apps_end; proc++) {
+    if (proc->name == cmd_str)
+      return proc;
+  }
+  return nullptr;
+}
+
 chan_t<1> chan;
 args_buffer_t buf;
+static_assert(sizeof(buf) == 0x44);
 
 bool listener(char c);
 
-void shell_proc(void *)
+STARTUP(shell, HIGH1, 256, param)
 {
   serial::register_listener(listener);
 
@@ -122,10 +136,6 @@ bool listener(char c)
   return false;
 }
 
-proc_def_t shell_def = {"shell", HIGH1, 256, shell_proc};
 } // namespace
-
-void init() { sched::reg_proc(&shell_def, nullptr); }
-
 } // namespace shell
 

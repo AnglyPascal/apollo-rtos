@@ -3,27 +3,18 @@
 #include "drivers/display.h"
 #include "drivers/serial.h"
 
-namespace shell
-{
-
 namespace
 {
-
-void echo(void *param)
+APP(echo, MID4, 128, param)
 {
-  auto buf = (args_t *)param;
+  auto buf = (shell::args_t *)param;
   printf(">> %s\r\n", buf->str);
 }
 
-void clear(void *param)
+APP(clear, MID4, 24, param)
 {
   serial::clear_screen();
   display::reset();
 }
-
 } // namespace
 
-proc_def_t echo_cmd = {"echo", MID4, 128, echo};
-proc_def_t clear_cmd = {"clear", MID4, 24, clear};
-
-} // namespace shell

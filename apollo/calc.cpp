@@ -4,14 +4,11 @@
 #include "core/types.h"
 #include "drivers/serial.h"
 
-namespace shell
-{
-
 namespace
 {
 void calculator(const char *str) { printf("= %s\r\n", str); }
 
-args_buffer_t buf{};
+shell::args_buffer_t buf{};
 chan_t<1> chan;
 
 bool listener(char c)
@@ -38,7 +35,7 @@ bool listener(char c)
   return true;
 }
 
-void calc(void *)
+APP(calc, HIGH1, 128, param)
 {
   sigterm_listener_t<__COUNTER__> sig_guard{false};
   serial::listener_guard guard{listener};
@@ -57,6 +54,3 @@ void calc(void *)
 
 } // namespace
 
-proc_def_t calc_cmd = {"calc", HIGH1, 128, calc};
-
-} // namespace shell

@@ -1,4 +1,6 @@
 #include "drivers/accel.h"
+#include "core/recover.h"
+#include "core/sched.h"
 #include "core/shell.h"
 #include "core/signal.h"
 #include "core/types.h"
@@ -9,12 +11,8 @@
 
 #include <utility>
 
-namespace shell
-{
-
 namespace
 {
-
 struct alignas(uint32_t) accel_t {
   int x;
   int y;
@@ -75,7 +73,7 @@ const image_t dirs[3][3] = {
     },
 };
 
-void accel(void *param)
+APP(accel, HIGH1, 128, param)
 {
   auto file = fram::open<accel::buffer>(accel::fn, O_SHARED);
   auto val = file.mmap<const accel::buffer>();
@@ -108,8 +106,25 @@ void accel(void *param)
   display::reset();
 }
 
+int n __recover_section__ = 100;
+
+PROC(accel_bg, HIGH3, 256, param)
+{
+  recover::guard_proc guard{POWER_OFF};
+
+  auto file =
+      fram::open<accel::buffer>(accel::fn, O_WRITE | O_CREATE | O_SHARED);
+  auto buf = file.mmap<accel::buffer>();
+
+  accel::init();
+
+  uint8_t n = MAX<uint8_t>;
+  while (true) {
+    buf->enqueue(accel::read());
+    if (n-- == 0)
+      file.store();
+    sched::sleep(200);
+  }
+  file.store();
+}
 } // namespace
-
-proc_def_t accel_cmd = {"accel", HIGH1, 128, accel};
-
-} // namespace shell

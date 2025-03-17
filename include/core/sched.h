@@ -15,7 +15,8 @@ struct proc_def_t {
   const size_t stk_sz;
   const runnable_t func;
 
-  time_t ticks = 0;
+  mutable time_t ticks = 0;
+  void tick() const { ticks++; }
 };
 
 namespace curr_proc
@@ -60,3 +61,16 @@ void notify(chan_t<chan_len> &chan)
 
 void trace();
 } // namespace sched
+
+#define DEF(name) __##name##_def
+
+#define DEF_MACRO(sec, name, priority, stk_sz, param)                          \
+  void __##name##_func(void *);                                                \
+  const proc_def_t __attribute__((section(#sec), __used__)) DEF(name){         \
+      #name, priority, stk_sz, __##name##_func};                               \
+  void __##name##_func(void *param)
+
+#define STARTUP(...) DEF_MACRO(.startup, ##__VA_ARGS__)
+#define PROC(...) DEF_MACRO(.procs, ##__VA_ARGS__)
+#define APP(...) DEF_MACRO(.apps, ##__VA_ARGS__)
+

@@ -13,6 +13,18 @@ byte_t __data_start[],
     __data_end[], __bss_start[], __bss_end[], __end[], __etext[], __stack[],
     __stack_limit;
 
+__extern_C__
+proc_def_t __startup_load[],
+    __startup_start[], __startup_end[];
+
+__extern_C__
+proc_def_t __procs_load[],
+    __procs_start[], __procs_end[];
+
+__extern_C__
+proc_def_t __apps_load[],
+    __apps_start[], __apps_end[];
+
 template <debug_t debug_lev>
 inline void debug_addr()
 {
@@ -31,6 +43,12 @@ inline void __start(void)
 {
   _memcpy(__data_start, __etext, __data_end - __data_start);
   _memset(__bss_start, 0, __bss_end - __bss_start);
+
+  _memcpy(__startup_start, __startup_load,
+          (size_t)__startup_end - (size_t)__startup_start);
+  _memcpy(__procs_start, __procs_load,
+          (size_t)__procs_end - (size_t)__procs_start);
+  _memcpy(__apps_start, __apps_load, (size_t)__apps_end - (size_t)__apps_start);
 
   debug_addr<TRACE>();
 

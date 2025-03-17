@@ -52,7 +52,7 @@ constexpr image_t blank = IMAGE(0, 0, 0, 0, 0, //
                                 0, 0, 0, 0, 0);
 image_t image;
 
-void task(void *)
+STARTUP(display, LOW2, 128, param)
 {
   GPIO.DIR = LED_MASK;
   reset();
@@ -67,14 +67,10 @@ void task(void *)
   }
 }
 
-proc_def_t display_task{"display", LOW2, 128, task};
-
 } // namespace
 
 void show(const image_t img) { _memcpy(image, img, sizeof(image_t)); }
 
 void reset() { show(blank); }
-
-void init() { sched::reg_proc(&display_task, nullptr); }
 
 } // namespace display

@@ -1,14 +1,12 @@
-#include "core/memory.h"
 #include "core/boot.h"
+#include "core/memory.h"
 #include "core/shell.h"
 #include "core/signal.h"
 #include "core/types.h"
 #include "core/waitlist.h"
 #include "drivers/serial.h"
+#include "drivers/timer.h"
 #include "fs/fs.h"
-
-namespace shell
-{
 
 namespace
 {
@@ -18,13 +16,14 @@ inline void do_trace()
   kprintf("\r\nboot level: %s\r\n", boot::lev_str());
   sched::trace();
   waitlist::trace();
+  profile::trace();
   fs::trace();
   heap::trace();
 }
 
-void trace(void *param)
+APP(trace, MID4, 128, param)
 {
-  auto &buf = *(args_t *)param;
+  auto &buf = *(shell::args_t *)param;
   auto args = buf.str;
 
   bool run_once = false;
@@ -45,9 +44,5 @@ void trace(void *param)
     do_trace();
   }
 }
-
 } // namespace
 
-proc_def_t trace_cmd = {"trace", MID4, 128, trace};
-
-} // namespace shell

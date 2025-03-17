@@ -3,9 +3,6 @@
 #include "core/types.h"
 #include "drivers/display.h"
 
-namespace shell
-{
-
 namespace
 {
 
@@ -21,9 +18,9 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
                                   0, 0, 1, 0, 0,  //
                                   0, 0, 0, 0, 0); //
 
-void heart(void *param)
+APP(heart, LOW3, 128, param)
 {
-  auto buf = (args_t *)param;
+  auto buf = (shell::args_t *)param;
   auto str = buf->str;
 
   auto n = (*str == '\0') ? 10 : atoi(str);
@@ -45,7 +42,3 @@ void heart(void *param)
 }
 
 } // namespace
-
-proc_def_t heart_cmd = {"heart", LOW3, 128, heart};
-
-} // namespace shell

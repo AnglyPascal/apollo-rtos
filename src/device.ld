@@ -42,18 +42,38 @@ SECTIONS {
     } > RAM
 
     __recover_load = __etext + __data_end - __data_start;
-
-    .recover : AT (__recover_load)
-    {
+    .recover : AT (__recover_load) {
         __recover_start = .;
-
         KEEP(*(.recover)) ;
-
         . = ALIGN(4);
         __recover_end = .;
-        __end = .;
     } > RAM
 
+    __startup_load = __recover_load + __recover_end - __recover_start;
+    .startup : AT (__startup_load) {
+        __startup_start = .;
+        KEEP(*(.startup)) ;
+        . = ALIGN(4);
+        __startup_end = .;
+    } > RAM
+
+    __procs_load = __startup_load + __startup_end - __startup_start;
+    .procs : AT (__procs_load) {
+        __procs_start = .;
+        KEEP(*(.procs)) ;
+        . = ALIGN(4);
+        __procs_end = .;
+    } > RAM
+
+    __apps_load = __procs_load + __procs_end - __procs_start;
+    .apps : AT (__apps_load) {
+        __apps_start = .;
+        KEEP(*(.apps)) ;
+        . = ALIGN(4);
+        __apps_end = .;
+    } > RAM
+
+    __end = .;
 
     /* Set stack top to end of RAM, and move stack limit down by
        size of stack */
