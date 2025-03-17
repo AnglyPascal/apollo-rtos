@@ -1,14 +1,14 @@
 #include "core/sched.h"
-#include "core/shell.h"
 #include "core/signal.h"
 #include "core/types.h"
 #include "drivers/serial.h"
+#include "utility/args.h"
 
 namespace
 {
 void calculator(const char *str) { printf("= %s\r\n", str); }
 
-shell::args_buffer_t buf{};
+args_buffer_t buf{};
 chan_t<1> chan;
 
 bool listener(char c)

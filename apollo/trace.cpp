@@ -1,12 +1,12 @@
 #include "core/boot.h"
 #include "core/memory.h"
-#include "core/shell.h"
 #include "core/signal.h"
 #include "core/types.h"
 #include "core/waitlist.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
 #include "fs/fs.h"
+#include "utility/args.h"
 
 namespace
 {
@@ -23,7 +23,7 @@ inline void do_trace()
 
 APP(trace, MID4, 128, param)
 {
-  auto &buf = *(shell::args_t *)param;
+  auto &buf = *(args_t *)param;
   auto args = buf.str;
 
   bool run_once = false;

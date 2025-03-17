@@ -2,7 +2,6 @@
 
 #include "core/irq.h"
 #include "core/recover.h"
-#include "core/shell.h"
 #include "core/types.h"
 #include "core/waitlist.h"
 #include "drivers/display.h"
@@ -11,6 +10,7 @@
 #include "drivers/timer.h"
 #include "utility/debug.h"
 #include "utility/lib.h"
+#include "utility/args.h"
 
 #include "procs.h"
 #include "stack_allocator.h"
@@ -283,7 +283,7 @@ namespace
 {
 APP(pkill, HIGHEST, 128, param)
 {
-  auto buf = (shell::args_t *)param;
+  auto buf = (args_t *)param;
   auto args = buf->str;
 
   bool kill = args[0] == '-' && args[1] == '9';

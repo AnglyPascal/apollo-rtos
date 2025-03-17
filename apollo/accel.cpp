@@ -1,12 +1,12 @@
 #include "drivers/accel.h"
 #include "core/recover.h"
 #include "core/sched.h"
-#include "core/shell.h"
 #include "core/signal.h"
 #include "core/types.h"
 #include "drivers/display.h"
 #include "drivers/serial.h"
 #include "fs/fs.h"
+#include "utility/args.h"
 #include "utility/circular_buffer.h"
 
 #include <utility>
@@ -78,7 +78,7 @@ APP(accel, HIGH1, 128, param)
   auto file = fram::open<accel::buffer>(accel::fn, O_SHARED);
   auto val = file.mmap<const accel::buffer>();
 
-  bool run_bg = ((shell::args_t *)param)->run_bg;
+  bool run_bg = ((args_t *)param)->run_bg;
   sigterm_listener_t<__COUNTER__> guard{run_bg};
 
   constexpr int threshold = 10;

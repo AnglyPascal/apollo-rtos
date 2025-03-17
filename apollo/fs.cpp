@@ -1,13 +1,13 @@
 #include "fs/fs.h"
-#include "core/shell.h"
 #include "core/types.h"
+#include "utility/args.h"
 #include "utility/debug.h"
 
 namespace
 {
 APP(rm, MID4, 128, param)
 {
-  auto buf = (shell::args_t *)param;
+  auto buf = (args_t *)param;
   auto str = buf->str;
 
   if (*str == '\0')
@@ -21,7 +21,7 @@ APP(ls, MID4, 128, param) { fs::trace(); }
 
 APP(cat, MID4, 128, param)
 {
-  auto str = ((shell::args_t *)param)->str;
+  auto str = ((args_t *)param)->str;
   if (*str == '\0')
     return debug<ERROR>("a file name is required\r\n");
 

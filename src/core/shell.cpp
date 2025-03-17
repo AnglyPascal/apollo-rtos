@@ -1,10 +1,9 @@
-#include "core/shell.h"
-
 #include "core/memory.h"
 #include "core/sched.h"
 #include "core/types.h"
 #include "drivers/serial.h"
 #include "utility/debug.h"
+#include "utility/args.h"
 
 namespace shell
 {

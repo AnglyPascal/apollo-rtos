@@ -1,6 +1,7 @@
-#include "core/shell.h"
+#include "core/sched.h"
 #include "core/types.h"
 #include "drivers/display.h"
+#include "utility/args.h"
 
 namespace
 {
@@ -158,7 +159,7 @@ const image_t period = IMAGE(0, 0, 0, 0, 0, //
 
 APP(show, MID2, 68, param)
 {
-  auto buf = (shell::args_t *)param;
+  auto buf = (args_t *)param;
   auto str = buf->str;
 
   while (!curr_proc::term_req() && *str != '\0') {

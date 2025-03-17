@@ -1,11 +1,7 @@
 #pragma once
 
-#include "core/sched.h"
 #include "core/types.h"
-#include "utility/debug.h"
 
-namespace shell
-{
 constexpr size_t args_len = 64;
 
 struct args_buffer_t {
@@ -33,5 +29,3 @@ struct args_t {
   char str[args_len];
   bool run_bg;
 };
-
-} // namespace shell
