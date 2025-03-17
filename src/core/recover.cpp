@@ -202,8 +202,6 @@ guard_task::~guard_task()
 
 void init()
 {
-  // FIXME: this reuses the previous version of the file
-  // so any changes to the file size will cause conflicts
   fram::open(file, rec_fn, sizeof(rec_tbl), O_WRITE | O_CREATE | O_PERM);
   file.mmap(rec_tbl);
 

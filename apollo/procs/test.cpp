@@ -65,9 +65,6 @@ void test_proc(void *param)
 {
   recover::guard_proc guard{RESET};
 
-  // FIXME: move from here
-  /* i2c::scan(); */
-
   single_blk_file_rw();
   multi_blk_file_rw();
 
@@ -78,7 +75,6 @@ void test_proc(void *param)
 
   while (1) {
     delay_loop(10000);
-    /* kprintf("%u\r\n", random()); */
     sched::sleep(500);
   }
 }

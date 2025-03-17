@@ -236,6 +236,7 @@ public:
     }
   }
 
+  // FIXME: forcefully format upon flash
   static void format() { fs.format(); }
 
   static void umount() { fs.umount(); }

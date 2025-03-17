@@ -27,10 +27,7 @@ using pid_t = uint8_t;
 inline constexpr pid_t null_pid = MAX<pid_t>;
 
 using priority_t = int32_t;
-
-using std::pair;
-
-enum priorities : priority_t {
+enum : priority_t {
   EMPTY = 0,
 
   IDLE = 1,
@@ -57,7 +54,6 @@ enum priorities : priority_t {
   HIGHEST = MAX<priority_t>,
 };
 
-// FIXME: where should we put this?
 enum {
   O_READ = 0,
   O_CREATE = 1 << 0,
@@ -73,6 +69,8 @@ enum file_type_t {
   CHAR = 1 << 0,
   BIN = 1 << 1,
 };
+
+using std::pair;
 
 struct string {
   const char *str;

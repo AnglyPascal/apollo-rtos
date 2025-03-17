@@ -43,8 +43,6 @@ void init(void)
   txidle = 1;
 }
 
-/** FIXME: works for now, but what about processes that are asleep?
- *  not a good implementation */
 namespace
 {
 class listeners_t
