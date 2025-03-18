@@ -3,7 +3,6 @@
 #include "core/sched.h"
 #include "drivers/i2c.h"
 #include "fs/fs.h"
-#include "utility/lib.h"
 
 void single_blk_file_rw()
 {

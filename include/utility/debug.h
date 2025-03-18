@@ -1,8 +1,7 @@
 #pragma once
 
 #include "core/types.h"
-#include "drivers/serial.h"
-#include "utility/lib.h"
+#include "utility/format.h"
 
 enum debug_t {
   FATAL = 0,
@@ -30,9 +29,9 @@ void debug(const char *fmt, Args... args)
 {
   if constexpr (level <= DEBUG_LEV) {
     if constexpr (level <= ERROR)
-      serial::kprintf(fmt, args...);
+      kprintf(fmt, args...);
     else
-      serial::printf(fmt, args...);
+      printf(fmt, args...);
   }
 }
 

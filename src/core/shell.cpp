@@ -2,8 +2,8 @@
 #include "core/sched.h"
 #include "core/types.h"
 #include "drivers/serial.h"
-#include "utility/debug.h"
 #include "utility/args.h"
+#include "utility/debug.h"
 
 namespace shell
 {
@@ -101,13 +101,13 @@ bool listener(char c)
   }
 
   if (c == CTRL('d')) {
-    serial::clear_screen();
+    clear_screen();
     trigger_reset();
     return true;
   }
 
   if (c == CTRL('l')) {
-    serial::clear_screen();
+    clear_screen();
     return true;
   }
 

@@ -14,7 +14,7 @@ APP(echo, MID4, 128, param)
 
 APP(clear, MID4, 24, param)
 {
-  serial::clear_screen();
+  clear_screen();
   display::reset();
 }
 } // namespace

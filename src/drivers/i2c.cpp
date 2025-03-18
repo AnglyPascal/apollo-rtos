@@ -4,8 +4,8 @@
 #include "core/irq.h"
 #include "core/sched.h"
 #include "drivers/gpio.h"
-#include "drivers/timer.h"
 #include "utility/debug.h"
+#include "utility/profile.h"
 
 #include "i2c_async.h"
 #include "i2c_sync.h"

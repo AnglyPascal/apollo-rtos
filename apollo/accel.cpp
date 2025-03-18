@@ -94,7 +94,7 @@ APP(accel, HIGH1, 128, param)
       display::show(dirs[dy][dx]);
 
       if (n++ % 16 == 0 && !run_bg) {
-        serial::clear_screen();
+        clear_screen();
         printf("x: %d, y: %d, z: %d\r\n", x, y, z);
       }
     }
@@ -102,7 +102,7 @@ APP(accel, HIGH1, 128, param)
     sched::sleep(50);
   }
 
-  serial::clear_screen();
+  clear_screen();
   display::reset();
 }
 

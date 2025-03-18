@@ -8,9 +8,9 @@
 #include "drivers/i2c.h"
 #include "drivers/serial.h"
 #include "drivers/timer.h"
-#include "utility/debug.h"
-#include "utility/lib.h"
 #include "utility/args.h"
+#include "utility/debug.h"
+#include "utility/format.h"
 
 #include "procs.h"
 #include "stack_allocator.h"

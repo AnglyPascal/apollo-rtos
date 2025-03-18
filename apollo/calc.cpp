@@ -40,7 +40,7 @@ APP(calc, HIGH1, 128, param)
   sigterm_listener_t<__COUNTER__> sig_guard{false};
   serial::listener_guard guard{listener};
 
-  serial::clear_screen();
+  clear_screen();
 
   while (!curr_proc::term_req()) {
     buf.reset();
@@ -49,7 +49,7 @@ APP(calc, HIGH1, 128, param)
     calculator(buf.str);
   }
 
-  serial::clear_screen();
+  clear_screen();
 }
 
 } // namespace

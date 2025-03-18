@@ -54,7 +54,7 @@ inline void __start(void)
 
   led::init();
   serial::init();
-  serial::clear_screen();
+  clear_screen();
 
   i2c::init();
   fs::init();

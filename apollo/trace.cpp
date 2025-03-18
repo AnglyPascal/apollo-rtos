@@ -4,9 +4,9 @@
 #include "core/types.h"
 #include "core/waitlist.h"
 #include "drivers/serial.h"
-#include "drivers/timer.h"
 #include "fs/fs.h"
 #include "utility/args.h"
+#include "utility/profile.h"
 
 namespace
 {
@@ -35,11 +35,11 @@ APP(trace, MID4, 128, param)
   if (run_once) {
     sched::decr_priority(LOW3);
     while (!curr_proc::term_req()) {
-      serial::clear_screen();
+      clear_screen();
       do_trace();
       sched::sleep(1000);
     }
-    serial::clear_screen();
+    clear_screen();
   } else {
     do_trace();
   }
