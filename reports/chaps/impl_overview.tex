@@ -1,53 +1,164 @@
 \section{Implementation Architecture and Design}
 
-Apollo-RTOS is a real time operating system inspired by the AGC for the
-\texttt{micro:bit} v1 device. It follows a monolithic kernel design, and is built
-around a cooperating scheduler with preemptive capabilities. 
+Apollo-RTOS is a real-time operating system inspired by the AGC, designed for the
+\texttt{micro:bit} v1 device. It follows a monolithic kernel architecture and is built
+around a cooperative scheduler with preemptive capabilities. 
 
-In this section, we will give a brief overview of the different modules inside the OS,
-and lay out the interconnections between the modules. We will also explain the
-structure of the code base.
+This section provides an overview of the core modules in Apollo-RTOS and their
+interconnections, followed by a discussion of the codebase structure.
 
 \subsection{Overview}
 
-The major modules of the Apollo-RTOS can be summarized as: 
+The major modules of Apollo-RTOS are:
 
-\paragraph*{Scheduler} is the center piece of the OS. The scheduler 
+\paragraph*{Scheduler} The core of the OS, responsible for:
 \begin{itemize}
-    \item keeps track of the running processes,
-    \item provides the interface for creating and terminating processes, changing
-        priorities, pausing and resuming processes, etc., and
-    \item ensures that context switch between processes is done properly.
-\end{itemize} 
-
-\paragraph*{Waitlist} provides cronjob like functionality to the OS. It is used to
-create deadline sensitive tasks, which are used throughout the system to accomplish
-various jobs within a set amount of time.
-
-\paragraph*{Memory manager} handles dynamically allocated memory. The memory manager
-implements a simple freelist based \texttt{malloc} to allocate and deallocate runtime
-memory. Process stacks are also allocated and handled by the memory manager.
-
-\paragraph*{Recovery} module handles the recovery mechanism that protects critical
-processes and tasks against various types of resets. 
-
-\paragraph*{Drivers} There are a few drivers that handle various tasks:
-\begin{itemize}
-    \item \textbf{Serial} handles the communication over the UART. 
-    \item \textbf{I2C} handles communication with the I2C master on the
-        \texttt{microbit}. 
-    \item \textbf{Display} manages the \(5 \times 5\) LED display on the board.
+    \item Managing process execution, including creation, termination, priority
+        changes, pausing, and resuming.
+    \item Handling context switching between processes.
 \end{itemize}
 
-\paragraph*{File system} provides a permanent storage. It is implemented on a FRAM
-added to the \texttt{micro:bit} via I2C. A separate optional file system on the FLASH
-memory can also be enabled.
+\paragraph*{Memory Manager} Handles all dynamic memory allocation. It implements a
+freelist-based \texttt{malloc} for allocating and deallocating runtime memory and
+manages process stack allocations.
 
-\paragraph*{Shell} provides a Unix-like shell that can be used to run, debug, and
-control different processes over the UART. The Shell keeps a list of all available
-commands and their corresponding process.
+\paragraph*{Recovery} Ensures system stability by protecting critical processes and
+tasks from various resets and failures.
+
+\paragraph*{Waitlist} Implements a deadline-driven task scheduler, similar to cron
+jobs, enabling time-sensitive operations to be executed at precise intervals.
+
+\paragraph*{Drivers} Interface with the hardware components of the \texttt{micro:bit}.
+The key drivers include:
+\begin{itemize}
+    \item \textbf{Timer}: Apollo-RTOS utilizes two 16-bit timers—\texttt{Timer1} as a
+        system clock and \texttt{Timer2} for profiling.
+    \item \textbf{Serial}: Manages UART communication.
+    \item \textbf{I2C}: Handles communication with the I2C master on the
+        \texttt{micro:bit}.
+    \item \textbf{Display}: Controls the \(5 \times 5\) LED matrix on the board.
+\end{itemize}
+
+\paragraph*{File System} Provides persistent storage, implemented using an external
+FRAM over I2C. An optional Flash-based file system can also be enabled.
+
+\paragraph*{Shell} Implements a Unix-like command-line interface that allows users to
+manage and debug processes over UART. It maintains a list of available commands mapped
+to various processes.
+
+\paragraph*{Signals and Mutexes} Enable low-overhead inter-process communication (IPC)
+and synchronization mechanisms among the processes.
+
+\paragraph*{Debugging and Error Handling} Provides essential debugging utilities,
+including:
+\begin{itemize}
+    \item \texttt{debug}: Outputs diagnostic information.
+    \item \texttt{assert}: Handles runtime error detection.
+\end{itemize}
 
 
+\subsection{Codebase Structure}
 
-\subsection{Code-base structure}
+The codebase follows a standard structure, with headers residing in the
+\texttt{include/} directory and implementations in \texttt{src/}. These directories are
+further divided into subdirectories to group related files.
+
+A brief overview of the key directories and files is as follows:
+
+\begin{itemize}[left=0pt]
+    \item \texttt{\textbf{include/}}: Contains headers for core functionality.
+        \begin{itemize}[left=0pt]
+            \item \texttt{\textbf{core/}}: Core system components.
+                \begin{itemize}[left=0pt]
+                    \item \texttt{hardware.h} --- Hardware register descriptions
+                        (adapted from \citet{microbian}).
+                    \item \texttt{types.h} --- Type aliases and constants shared across
+                        the codebase.
+                    \item \texttt{irq.h} --- Header-only interrupt handling utilities.
+                    \item \texttt{boot.h} --- Functions for retrieving the current boot
+                        level.
+                    \item \texttt{sched.h} --- Scheduler interface.
+                    \item \texttt{waitlist.h} --- Methods for registering waitlist
+                        tasks.
+                    \item \texttt{memory.h} --- Memory management utilities.
+                    \item \texttt{recover.h} --- Recovery mechanisms for processes and
+                        tasks.
+                    \item \texttt{signal.h} --- Methods for inter-process signaling.
+                \end{itemize}
+            \item \texttt{\textbf{drivers/}}: Hardware drivers.
+                \begin{itemize}[left=0pt]
+                    \item \texttt{timer.h} --- Provides system time (\texttt{now}) and
+                        profiling (\texttt{debug\_ticks}).
+                    \item \texttt{display.h} --- Convenience functions for displaying
+                        images on the LED matrix.
+                    \item \texttt{i2c.h} --- Methods for I2C communication.
+                    \item \texttt{accel.h} --- Reads accelerometer data.
+                    \item \texttt{gpio.h} --- GPIO utility functions.
+                    \item \texttt{serial.h} --- Serial I/O functions, including an
+                        interface for redirecting input from the shell to other
+                        processes.
+                \end{itemize}
+            \item \texttt{\textbf{utility/}}: General-purpose utilities.
+                \begin{itemize}[left=0pt]
+                    \item \texttt{allocator.h} --- Core memory pool allocator used by
+                        different \texttt{malloc} implementations.
+                    \item \texttt{format.h} --- Provides printf-style formatting
+                        functions.
+                    \item \texttt{debug.h} --- Conditional debugging output based on
+                        verbosity levels; also includes the \texttt{assert} macro.
+                    \item \texttt{mutex.h} --- Lightweight mutex implementation using
+                        wait queues and \texttt{sleep/wakeup} from \texttt{sched.h}.
+                    \item \texttt{profile.h} --- Macros for enabling function and
+                        process profiling.
+                    \item \texttt{args.h} --- Data structures for passing command-line
+                        arguments to processes.
+                    \item \texttt{bitset.h} --- Bitset implementation.
+                    \item \texttt{circular\_buffer.h} --- Circular buffer
+                        implementation.
+                \end{itemize}
+            \item \texttt{\textbf{fs/}}: Header-only file system implementation
+                (detailed later).
+                \begin{itemize}[left=0pt]
+                    \item \texttt{fs\_bck.h} --- Backend for reading/writing device
+                        storage.
+                    \item \texttt{fs\_impl.h} --- Manages open files, runtime memory
+                        maps, and file access.
+                    \item \texttt{fs\_desc.h} --- Type definitions for template-based
+                        file system operations.
+                    \item \texttt{fs.h} --- Top-level file system interface, enabling
+                        separate instances for FLASH and FRAM storage.
+                \end{itemize}
+        \end{itemize}
+    \item \texttt{\textbf{src/}}: Mirrors \texttt{include/}, implementing the
+        corresponding functionality.
+        \begin{itemize}[left=0pt]
+            \item \texttt{vector\_table.c} --- Defines the interrupt vector table.
+            \item \texttt{mpx.s} --- Handles context switching logic.
+            \item \texttt{device.ld} --- Linker script defining memory layout.
+            \item \texttt{startup.cpp} --- Initializes data sections and sets up core
+                system modules.
+                \end{itemize}
+    \item \texttt{\textbf{apollo/}}: Defines processes and built-in shell commands for
+        Apollo-RTOS.
+    \item \texttt{\textbf{tests/}}: Contains test cases demonstrating various aspects
+        of the system.
+\end{itemize}
+
+\begin{center}
+\begin{minipage}{.9\linewidth}
+\begin{lstlisting}[style=mytxt]
+==================================================================
+ Language       Files      Lines       Code    Comments    Blanks
+==================================================================
+ Assembly           1         98         55         28         15
+ C                  1        114         83         11         20
+ C++ Header        31       3402       2646        120        636
+ C++               27       2694       2128         75        491
+==================================================================
+ Total             60       6308       4912        234       1162
+==================================================================
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
 

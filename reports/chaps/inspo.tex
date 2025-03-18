@@ -1,6 +1,6 @@
 \section{Inspiration behind Apollo-RTOS}
 
-The real-time operating system developed in this project, \textit{Apollo-RTOS}, draws
+The real-time operating system developed in this project, Apollo-RTOS, draws
 inspiration from both the Apollo Guidance Computer (AGC) operating system and the
 modern Linux OS. While the scheduler and error handling concepts are derived from the
 AGC, the naming conventions, user interface, and implementation are influenced by
@@ -39,7 +39,7 @@ the following design choices:
         monolithic kernel architecture due to its simpler implementation and better
         execution efficiency in a constrained environment.
 
-    \item \textbf{Library Calls Instead of System Calls}: Traditional system calls are
+    \item \textbf{Library Calls Instead of System Calls:} Traditional system calls are
         beneficial only when user and kernel space are strictly separated. Since
         Apollo-RTOS does not enforce such isolation, we opted for direct library
         function calls, significantly simplifying implementation.
@@ -48,6 +48,12 @@ the following design choices:
         memory introduces risks like race conditions and synchronization issues, it
         remains the fastest and simplest IPC method, making it the preferred choice for
         Apollo-RTOS.
+
+    \item \textbf{Liberty to Use Memory Liberally}: While the \texttt{micro:bit} has
+        limited memory, it still offers significantly more than the AGC. As Donald
+        Knuth famously said, "premature optimization is the root of all evil," our
+        priority is a functional and maintainable implementation rather than
+        aggressively minimizing memory usage.
 \end{itemize}
 
 Additionally, we drew inspiration from the \texttt{microbian} OS for the
@@ -55,16 +61,16 @@ Additionally, we drew inspiration from the \texttt{microbian} OS for the
 hardware description headers, startup code, and interrupt handler implementations in
 certain parts of our design.
 
+% \subsection{Language and Development Ecosystem}
 
-% \begin{enumerate}
-%     \item Hardware overview (nRF51822 microcontroller, memory, I/O)
-%     \item Constraints and capabilities
-%     \item Comparison with AGC hardware
-%         \begin{enumerate}
-%             \item Processing power
-%             \item Memory availability
-%             \item I/O capabilities
-%             \item Power requirements 
-%         \end{enumerate}
-%     \item Development environment and toolchain 
-% \end{enumerate}
+For our language and development ecosystem, we chose to work with C++ for several
+reasons:
+\begin{itemize}
+    \item C++ reduces boilerplate code compared to C with its concise syntax for object
+        creation, templates, and RAII paradigm.
+    \item The C++ compiler provides extensive optimizations through templates,
+        \texttt{constexpr} variables and functions, and references.
+    \item C++ templates and type deduction allow for cleaner, more expressive code,
+        improving development experience.
+    \item And finally, a personal preference: \textit{I just wanted to learn more C++.}
+\end{itemize}

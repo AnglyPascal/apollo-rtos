@@ -60,6 +60,7 @@
     \newpage %
 
     % \doublespacing
+    % \renewcommand\codestyle{\linespread{1.5}\ttfamily\codefontsize}
 
     \pagestyle{empty}
     \input{chaps/abstract} %
@@ -90,4 +91,49 @@
     \fancyhf[loh,reh]{\leftmark}
     \fancyhf[leh,roh]{\rightmark}
 }
+
+
+\renewcommand{\labelitemi}{\scriptsize $\blacksquare$}
+\renewcommand{\labelitemii}{$\bullet$}
+\renewcommand{\labelitemiii}{$\circ$}
+\renewcommand{\labelitemiv}{$\circ$}
+
+
+\lstdefinestyle{myagc}{
+    language=C++,
+    style=numbers,
+    style=fonts,
+    style=colors,
+    morekeywords={
+        constexpr, noexcept, decltype, alignas, alignof, declval, 
+        forward, move, 
+    },
+    emph={[1]
+        reg_proc, incr_priority, decr_priority, cpu, change_proc, cxt_switch, sleep,
+        wakeup, notify, wait, reg, run,
+    },
+    emphstyle={[1]\stdlibstyle},
+    emph={[2]
+        % std, 
+        vector, unordered_map, unordered_set, priority_queue, deque,
+        shared_ptr, unique_ptr, weak_ptr, thread,
+        tuple, integral_constant, is_same, derived_from, conditional,
+        enable_if, true_type, false_type, 
+    },
+    emphstyle={[2]\stdlibstyle},
+    emph={[3]nullptr, NULL},
+    emphstyle={[3]\specialvalstyle},
+    emph={[4]
+        Args, T, word_t, byte_t, size_t, string,
+        uint8_t, uint16_t, uint32_t, uint64_t, 
+        int8_t, int16_t, int32_t, int64_t, 
+        int, float, unsigned, double, char, void,
+        pid_t, priority_t, proc_def_t, runnable_t, time_t, fn_t, 
+        proc_t, waitlist_t,
+    },
+    emphstyle={[4]\typestyle},
+    literate=,
+}
+
+\def\file#1{\texttt{\small #1}}
 
