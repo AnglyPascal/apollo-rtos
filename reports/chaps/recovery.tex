@@ -1,0 +1,173 @@
+\section{Error Handling and Recovery}
+
+For a critical mission like the Apollo program, where astronauts' lives depended on
+flawless execution, thorough testing of the entire codebase was essential. However, no
+matter how well-tested a system is, some errors only show up randomly due to hardware
+faults or unforeseen corner cases. To handle such situations, the AGC’s operating
+system had a robust error handling and recovery mechanism.
+
+Because of the thorough testing during development, the AGC developers assumed that any
+error occurring at runtime was likely from some external source rather than a software
+bug. This made the age-old solution of “just rebooting it” a reasonable recovery
+strategy.
+
+Of course, an unexpected restart during a critical operation could cause problems. To
+mitigate this, the AGC maintained a restart table, where processes could store recovery
+information, ensuring they could resume correctly after a reset.
+
+Apollo-RTOS follows a similar strategy for error handling and recovery. Before
+explaining the implementation, we need to discuss how the system determines its current
+state.
+
+\subsection{Boot Levels}
+
+From an error-handling perspective, the device can be in one of four states:
+\begin{itemize}
+    \item \texttt{FLASH} – The device has just been flashed. Everything is shiny and
+        new, and all hardware has been reset.
+    \item \texttt{POWER} – The device was unplugged and powered back on, resulting in a
+        state similar to \texttt{FLASH}.
+    \item \texttt{BOOT} – The reset button was pressed, causing a full restart, though
+        some registers may retain their values.
+    \item \texttt{RESET} – A software reset occurred. RAM contents are retained, but
+        execution restarts from the beginning.
+\end{itemize}
+According to the Nordic nRF51 technical reference manual \citep{board_trm}, RAM
+contents are retained in a soft reset, but may be corrupted in other forms of reset.
+
+Now, suppose an error occurs. There are three ways to handle it:
+\begin{itemize}
+    \item Terminate the faulty process and let the system continue.
+    \item Trigger a soft reset, rebooting the entire system automatically.
+    \item Halt and wait for manual intervention, requiring a physical reset.
+\end{itemize}
+
+A power outage is a more extreme case. In theory, once the device loses power, the
+mission has already failed. But since Apollo-RTOS isn’t responsible for landing a
+spacecraft, we take a more lenient approach: when power is restored, the system
+attempts to resume major tasks that were running before the outage.
+
+\subsubsection{How to Detect Boot Stages}
+
+To distinguish between these boot stages, we use the retention properties of different
+memory regions:
+\begin{itemize}
+    \item \texttt{FLASH} – Flash memory is completely overwritten when reflashed. If a
+        magic value at a specific flash address is missing, we know the system was just
+        flashed.
+    \item \texttt{RESET} – Since RAM is retained during a soft reset, we store a magic
+        number at a particular RAM address. If it’s still there after a reboot, we’ve
+        had a soft reset.
+    \item \texttt{POWER} – At first power-on, the
+    \lstinline[style=myagc]|POWER.RESETREAS| register is set to . This register tracks
+    reset causes, so technically, we could use it to detect soft resets as well—but we
+    prefer the magic number solution.
+    \item \texttt{BOOT} – If none of the above conditions apply, we assume we’re in a
+    normal boot state.
+\end{itemize}
+
+All of this logic is encapsulated in the \lstinline[style=myagc]|boot| namespace, providing a simple way to determine the system’s current state and react accordingly.
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/code/boot.h}},
+]
+namespace boot
+{
+boot_lev_t lev(); /* tells us the current boot level */
+void init(); /* discovers what the current level is */
+} // namespace boot
+\end{lstlisting}
+
+As a demonstration, here’s what Apollo-RTOS prints on boot:
+\begin{lstlisting}[style=mytxt]
+    boot level: flash
+    boot stat: n_flash = 395, n_boot = 22, n_power = 19, n_reset = 114
+\end{lstlisting}
+This output shows the current boot level (flash) and the number of times the system has gone through different reset modes since the last FRAM file system format (one week ago).
+
+
+\subsection{Error handling}
+
+The scary part about not having a memory protection unit for the RAM is that a process
+can virtually rewrite any memory address. So in situations where we would really like
+to get a \texttt{segfault}, we will get silence, only for the system to crash horribly
+long time later.
+
+So it's up to the programmer to ensure that the programs are free of bugs. The best way
+to ensure that is by having lots of checks throughout the code that checks parameters,
+results of calcuations, and anything that could go wrong.
+
+The C-header \texttt{<assert>} provides a macro \lstinline[style=myagc]|assert| that
+allows us to check that something holds, throwing an error if it doesn't. Since we
+don't have a mechanism for throwing errors in our microcontroller, we have to implement
+our own \lstinline[style=myagc]|assert|.
+
+Before that, let's talk about how we debug things in a microcontroller. The only true
+answer to that question is: by printing stuff. So we need an implementation of
+\lstinline[style=myagc]|printf|. This \lstinline[style=myagc]|printf| implementation in
+Apollo-RTOS uses a buffer to send characters over the serial bus asynchronously. So we
+also provide a blocking implementation in \lstinline[style=myagc]|kprintf|. We then can
+implement a convenience function \lstinline[style=myagc]|debug|, which only outputs
+stuff if the debug level is high enough.
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/utility/debug.h}},
+]
+template <debug_t level, typename... Args>
+void debug(const char *fmt, Args... args)
+{
+  if constexpr (level <= DEBUG_LEV) {
+    if constexpr (level <= ERROR)
+      kprintf(fmt, args...);
+    else
+      printf(fmt, args...);
+  }
+}
+\end{lstlisting}
+
+With that, we can now implement a lightweight \lstinline[style=myagc]|assert| method.
+We use the macro as \lstinline[style=myagc]|assert(expr, lev)| expecting to cause a
+reset at the level \lstinline[style=myagc]|lev| if the expression
+\lstinline[style=myagc]|expr| evaluates to \lstinline[style=myagc]|false|.
+\lstinline[style=myagc]|lev| can be one of the three values:
+\begin{itemize}
+    \item \lstinline[style=myagc]|H_RESET|: causes a hardware reset if the assertion is
+        false,
+    \item \lstinline[style=myagc]|S_RESET|: causes a soft reset,
+    \item \lstinline[style=myagc]|TERM|: terminates the current process.
+\end{itemize}
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/utility/debug.h}},
+    linebackgroundcolor={\line{5} \line{11} \line{15} \line{18} \line{21}}
+]
+template <auto lev, typename... Args>
+void __assert(bool ex, Args... args)
+{
+  if (ex) 
+    return; // everything under control
+
+  if constexpr (lev == H_RESET) {
+    if constexpr (sizeof...(args) != 0)
+      /* print debug information */
+
+    /* halt for manual intervention */
+  }
+
+  if constexpr (lev == S_RESET)
+    /* cause a soft reset */
+
+  if constexpr (lev == TERM)
+    /* terminate the current process */
+}
+
+#define assert(EX, LEV, ...) __assert<LEV>((EX), ##__VA_ARGS__)
+\end{lstlisting}
+
+\newpage
+\subsection{Recovery}
+
+Now that we've handled the errors and caused an appropriate reset, we can talk about
+how the recovery mechanism actually works.
+

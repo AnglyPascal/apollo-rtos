@@ -1,0 +1,521 @@
+\section{Memory Management and File System} 
+
+A central part of Apollo-RTOS is its memory allocation and management system. All
+runtime allocation is handled through instances of a pool allocator, which provides a
+simple and efficient form of dynamic memory management.
+\begin{emptythm}
+    \begin{itemize}
+        \item The allocator maintains a linked list of free memory chunks.
+        \item On an allocation request, it searches the free list for a chunk of
+            sufficient size.
+        \item If a suitable chunk is found, it is returned; otherwise, more memory is
+            requested from the global allocator.
+        \item When \lstinline[style=myagc]|free| is called, the chunk is returned to
+            the free list.
+    \end{itemize}
+\end{emptythm}
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/utility/allocator.h}},
+    linebackgroundcolor={\line{12} \line{16} \line{19} \line{22}}
+]
+template <byte_t *(*alloc_func)(size_t), size_t alignment>
+class allocator
+{
+  chunk_t free_hd; 
+  static constexpr size_t header_sz = sizeof(chunk_t);
+
+public:
+  // allocate chunk of sz bytes
+  byte_t *alloc(size_t sz)
+  {
+    sz = roundup(sz, alignment);
+    auto chnk_sz = header_sz + sz;
+
+    chunk_t *chunk = /* find a chunk in free_hd, nullptr otherwise */;
+    if (chunk == nullptr) {
+      chunk = (chunk_t *)alloc_func(chnk_sz); // get new chunk
+      chunk->sz = sz;
+    } else {
+      /* remove chunk from free_hd */
+    }
+
+    return (byte_t *)chunk + header_sz;
+  }
+
+  // return chunk allocated by this allocator
+  void dealloc(byte_t *ptr)
+  {
+    if (ptr == nullptr)
+      return;
+    auto chunk = (chunk_t *)(ptr - header_sz);
+    /* insert chunk to free_hd */
+  }
+};
+\end{lstlisting}
+
+Having an instantiable allocator instead of a global \lstinline[style=myagc]|malloc|
+function has key benefits:
+\begin{itemize}
+    \item Since the hardware lacks a Memory Protection Unit (MPU), this helps isolate
+        unrelated memory allocations in software, reducing memory corruption risks.
+    \item It provides a convenient interface for creating local pool allocators.
+\end{itemize}
+
+Using this allocator, we implement kernel-space memory management via
+\lstinline[style=myagc]|kmalloc| and \lstinline[style=myagc]|kfree|.
+\begin{lstlisting}[
+    style=myagc, 
+    title={\file{src/core/memory.cpp}}
+]
+namespace kmem
+{
+allocator<alloc_heap, 8> kpool;
+
+void *kmalloc(size_t sz) { return kpool.alloc(sz); }
+
+void kfree(void *ptr)
+{
+  if (ptr == nullptr)
+    return;
+  kpool.dealloc((byte_t *)ptr);
+}
+} // namespace kmem
+\end{lstlisting}
+
+For user-space memory allocation, the implementation is more involved. When a process
+allocates memory, it is expected to free it explicitly. However, if the process
+encounters an error or is terminated prematurely, the scheduler must clean up any
+unfreed memory.
+
+\begin{emptythm}
+    Each process descriptor maintains a list of allocated memory chunks. When a process
+    terminates, all remaining allocations in this list are freed automatically.
+\end{emptythm}
+
+\begin{lstlisting}[
+    style=myagc, 
+    title={\file{src/core/memory.cpp}}
+]
+namespace heap
+{
+allocator<alloc_heap, 8> pool;
+
+void *malloc(size_t sz)
+{
+  byte_t *ptr = pool.alloc(sz);
+  /* insert chunk to the current process' allocated list */
+  return ptr;
+}
+
+void free(void *ptr)
+{
+  if (ptr == nullptr)
+    return;
+  /* remove chunk from process' allocated list */
+  pool.dealloc((byte_t *)ptr);
+}
+
+// called at process teardown
+void cleanup(chunk_t *hd)
+{
+  while (hd->next != nullptr) {
+    auto ptr = (byte_t *)hd->next + sizeof(chunk_t);
+    /* remove hd->next from the list */
+    pool.dealloc(ptr);
+  }
+}
+} // namespace heap
+\end{lstlisting}
+
+
+\subsection{File System}
+
+\paragraph*{Flash} The \texttt{micro:bit} features approximately 256KB of flash memory.
+A build of Apollo-RTOS with the \texttt{-O2} flag produces a binary of about 92KB,
+while using \texttt{-Os} reduces it to 76KB. In either case, there is ample remaining
+space in flash that can be used for long-term storage. However, flash memory has
+significant drawbacks:
+\begin{itemize}
+    \item Inefficient writes: Writing to flash requires first erasing entire 1KB pages,
+        taking about \textbf{22.3ms} per page. Writing individual bytes afterward takes
+        \textbf{20$\mu$s} each \citep{board_spec}.
+    \item Limited endurance: The \texttt{micro:bit}'s flash memory has an endurance of
+        only \textbf{20,000 erase cycles} and retains data for approximately \textbf{10
+        years} under normal conditions. Excessive writes degrade reliability.
+\end{itemize}
+Despite these limitations, reading from flash is fast since the CPU has direct access
+to it—after all, the program itself runs from flash. This makes flash memory suitable
+for read-heavy, infrequent-write storage needs.
+
+\paragraph*{FRAM} Ferroelectric RAM (FRAM) addresses flash memory's shortcomings.
+Unlike flash, FRAM is non-volatile, with significantly higher endurance and retention
+rates. The MB85RC2567 FRAM chip \citep{fram} used in Apollo-RTOS provides:
+\begin{itemize}
+    \item \textbf{\(10^{12}\) erase cycles} -- far exceeding flash longevity.
+    \item \textbf{95+ years} of data retention under normal conditions.
+    \item 32KB capacity, operating at 1MHz I2C, though we use 100KHz.
+\end{itemize}
+However, FRAM has its own trade-offs:
+\begin{itemize}
+    \item I2C communication overhead: Since the \texttt{micro:bit} lacks integrated
+        FRAM, it is connected as an external I2C peripheral. This introduces bus
+        contention, affecting read/write performance.
+    \item Slower reads than flash: Unlike flash, which the CPU can access directly,
+        FRAM requires I2C transactions, making reads slower. However, writes are
+        significantly faster than flash.
+\end{itemize}
+
+Since both storage options have their strengths and weaknesses, Apollo-RTOS implements
+file systems on both. Instead of maintaining two separate file systems, we designed an
+abstract block device that can be instantiated with different parameters for each
+storage medium.
+
+A block device is characterized by:
+\begin{itemize}
+    \item Constants defining block size, total blocks, etc.
+    \item Read/Write methods for interacting with the device.
+\end{itemize}
+Since these constants are frequently used in file system operations, we implemented
+them as template parameters rather than function parameters. This allows the compiler
+to optimize operations more effectively.
+
+Thus, our file system implementation is entirely header-only, residing in the
+\texttt{include/fs/} directory.
+
+
+\subsection{File system implementation}
+
+The file system consists of two layers of tables with extensive bookkeeping. Below, we
+outline key concepts and methods.
+
+\paragraph*{\texttt{fs\_desc\_t}} defines the file system parameters. Two instances—one
+for flash, another for FRAM—are constructed at compile time and passed as template
+parameters to the implementation.
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/fs/fs\_desc.h}},
+    linebackgroundcolor={\lines{18}{19} \lines{4}{5} \line{8} \line{10}}
+]
+template <...>
+struct fs_desc_t {
+  using addr_t = /* type of address supported by device */;
+    // for flash, it is uint32_t since writes must be word aligned
+    // for fram, it can be uint16_t to save space 
+
+  size_t blk_sz; /* size of a block */
+    // for flash, it is 1024, 
+    //   since that's the smallest unit we can effectively write
+    // for FRAM, it is 128
+
+  size_t max_num_blks; /* man number of blocks per file */
+  size_t n_inodes; /* number of files */
+
+  size_t n_open_files; /* number of open files */
+
+  // methods to transfer data to and from the target device
+  void (*write)(addr_t addr, uint8_t *buf, size_t buf_sz);
+  void (*read)(addr_t addr, uint8_t *buf, size_t buf_sz);
+};
+\end{lstlisting}
+
+
+\subsubsection{File system backend}
+
+Each file is represented by an \lstinline[style=myagc]|inode_t|, inspired by Linux
+inodes, containing file metadata.
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/fs/fs\_bck.h}},
+    linebackgroundcolor={}
+]
+template <typename desc_t, desc_t desc>
+struct inode_t {
+  using addr_t = typename desc_t::addr_t;
+  using blk_addr_t = uint8_t; 
+    // in either flash and fram, we can refer to a block by a 8 bit uint
+
+  size_t nblks; /* number of blocks in this file */
+  blk_addr_t blks[desc.max_num_blks]; /* blocks in this file */
+
+  uint32_t flag; /* stats encoded into a single uint32_t */
+};
+\end{lstlisting}
+
+We use \lstinline[style=myagc]|fn_t = uint8_t| as the file name. We currently don't map
+file name strings to the corresopnding inode, and directly refer the file by the inode
+number.
+
+The file system header maintains:
+\begin{itemize}
+    \item A table of inodes.
+    \item A \lstinline[style=myagc]|bitset| tracking free and occupied blocks.
+\end{itemize}
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/fs/fs\_bck.h}},
+    linebackgroundcolor={}
+]
+template <typename desc_t, desc_t desc>
+struct fs_hd_t {
+  inode_t inode_tbl[desc.n_inodes];
+  bitset<N_BLKS> free_set; /* N_BLKS is total number of available blks */
+
+  bool valid() const;
+  void format(); // format the file system
+
+  // find the inode for the file fn
+  inode_t &find(fn_t fn);
+
+  // find nblks unclaimed blks and assign them to the given buffer
+  void alloc_blks(blk_addr_t *buf, size_t nblks);
+
+  // reclaim the given blks
+  void dealloc_blks(blk_addr_t *buf, size_t nblks);
+};
+\end{lstlisting}
+
+
+The file system backend is then a wrapper around the header, that provides methods for:
+\begin{itemize}
+    \item \lstinline[style=myagc]|open| and \lstinline[style=myagc]|remove| files.
+    \item \lstinline[style=myagc]|load| and \lstinline[style=myagc]|store| data.
+    \item \lstinline[style=myagc]|mount| and \lstinline[style=myagc]|format|
+        operations.
+\end{itemize}
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/fs/fs\_bck.h}},
+    linebackgroundcolor={}
+]
+template <typename desc_t, desc_t desc>
+class fs_t
+{
+  fs_hd_t fs_hd;
+
+public:
+  void format();
+  void mount(); /* if the header is not valid, it also formats it */
+  void umount() const; 
+
+  // Open a file using Linux like flags O_CREATE, O_WRITE, O_SHARED etc.
+  const inode_t *open(fn_t fn, size_t sz, uint32_t flags);
+
+  void remove(fn_t fn);
+
+  // Load the contents of the file to the given buffer
+  void load(const inode_t *inode, uint8_t *buf, size_t buf_sz) const;
+
+  // Store the contents of the given buffer to the file
+  void store(const inode_t *inode, uint8_t *buf, size_t buf_sz) const;
+
+  // Store the contents of the buffer at a particular offset.
+  void store(const inode_t *inode, size_t off, uint8_t *buf,
+             size_t buf_sz) const;
+};
+\end{lstlisting}
+
+\lstinline[style=myagc]|load| and \lstinline[style=myagc]|store| map buffer contents to
+blocks, allowing files to have non-contiguous block allocations.
+
+% FIXME TODO in the future maybe?
+Currently a file's size cannot be modified. But it should be fairly simple to increase
+the size of a file, just by allocating more blocks to it. 
+
+
+\subsubsection{File System Frontend}
+
+The frontend maintains a table of open files and maps them to runtime memory addresses.
+This mapping can be either private or shared:
+\begin{itemize}
+    \item Private mapping: A file is mapped to a runtime buffer local to the process.
+    \item Shared mapping: Multiple processes access the same runtime representation of
+        the file, enabling inter-process communication (IPC).
+\end{itemize}
+This mechanism is inspired by the \lstinline[style=myagc]|mmap| function in Linux.
+
+File operations occur in the following stages:
+
+\paragraph*{Opening a File} When a process requests to open a file \texttt{fn}:
+\begin{itemize}
+    \item The frontend retrieves the associated inode, creating one if it doesn't
+        exist.
+    \item It locates an available file descriptor in the open files table.
+    \item A file handler is wrapped around the descriptor and returned to the process.
+\end{itemize}
+
+\paragraph*{Mapping a File} The mapping strategy depends on whether the
+\lstinline[style=myagc]|O_SHARED| flag is set during the \lstinline[style=myagc]|open|
+call:
+\begin{itemize}
+    \item Shared mapping:
+        \begin{itemize}
+            \item A buffer is allocated, and its address is stored in the file
+                descriptor.
+            \item If a mapping already exists, it is reused.
+            \item All \lstinline[style=myagc]|load| and \lstinline[style=myagc]|store|
+                operations use this shared buffer.
+        \end{itemize}
+    \item Private mapping:
+        \begin{itemize}
+            \item A buffer is allocated and stored in the file handler.
+            \item Other processes cannot access this mapping.
+        \end{itemize}
+\end{itemize}
+
+\paragraph*{Loading and Storing a File} Once mapping is established, all
+\lstinline[style=myagc]|load| and \lstinline[style=myagc]|store| operations reference
+the appropriate buffer from either the file descriptor (shared mapping) or file handler
+(private mapping).
+
+The file descriptor maintains:
+\begin{itemize}
+    \item A pointer to the underlying inode.
+    \item A reference count for read and write operations.
+    \item Information on shared memory mappings.
+\end{itemize}
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/fs/fs\_impl.h}},
+    linebackgroundcolor={}
+]
+class fd_t
+{
+  uint8_t w_cnt, r_cnt; /* read and write reference counter */
+
+public:
+  fn_t fn;
+  mutable mutex<8> mtx = {"fd"}; /* file operations should be atomic */
+  const inode_t *inode; /* the underlying file */
+  mmap_unit_t mu; /* mapping information */
+
+public:
+  // if this file descriptor refers the file fn, increse ref count
+  // otherwise mark this descriptor in use
+  void acquire(fn_t _fn, const inode_t *_inode, bool w_en);
+
+  // decrease ref count, 
+  // if it was the last reference to the file, close this descriptor
+  void release(bool w_en);
+};
+\end{lstlisting}
+
+The file handler is what the process interacts with. It holds a pointer to the file
+descriptor and provides methods for interacting with the file, ensuring smooth access
+and management.
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/fs/fs\_impl.h}},
+    linebackgroundcolor={}
+]
+class file_t
+{
+  fd_t *fd;
+  mmap_unit_t mu; /* private mapping information */
+  const bool is_shared; /* is the mapping shared? */
+  const bool w_en = false; /* have write permission? */
+
+public:
+  // open the file in an RAII style, close it in the desctructor
+  file_t(fn_t fn, size_t _sz, uint32_t flags);
+
+  ~file_t();
+  void close();
+
+  // create runtime mapping
+  void *mmap(size_t sz);
+
+  // instead of allocating new memory, use the given memory address 
+  void mmap(uint8_t *buf, size_t sz);
+
+  // remove the mapping
+  void unmap();
+
+  void load();
+  void store();
+  // store a chunk of size sz at offset off
+  void store(size_t off, size_t sz);
+};
+\end{lstlisting}
+
+Finally, the top-level file system implementation maintains:
+\begin{itemize}
+    \item An array of open files.
+    \item An \lstinline[style=myagc]|fs_t| instance referring to the backend.
+    \item Methods for interacting with the file system backend.
+\end{itemize}
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/fs/fs\_impl.h}},
+    linebackgroundcolor={}
+]
+template <typename desc_t, desc_t desc>
+class fs_impl_t
+{
+  // the backend implementation
+  inline static fs_t fs;
+
+  // pool allocator providing memory for shared mapping
+  inline static allocator<alloc_heap, 4> pool; 
+
+  // table of open files
+  inline static fd_t open_files[desc.n_open_files] = {};
+
+public:
+  static file_t open(fn_t fn, size_t sz, uint32_t flags);
+  static void remove(fn_t fn);
+  static void mount();
+  static void format();
+};
+\end{lstlisting}
+
+
+\subsubsection{File system instantiation}
+
+So far, the file system has been an abstract concept implemented through a complex
+network of templates. To create actual file systems, we need to instantiate these
+templates with specific parameters. After defining the required parameters for both the
+flash and FRAM file systems, the instantiation process becomes straightforward:
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/fs/fs.h}},
+    linebackgroundcolor={}
+]
+// instantiate with the parameters for the flash fs
+class flash : public fs_impl_t<_flash::desc_t, _flash::desc> { };
+
+// the same for the fram fs
+class fram : public fs_impl_t<_fram::desc_t, _fram::desc> { };
+\end{lstlisting}
+
+
+Now, we can use files as follows:
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{apollo/test.cpp}},
+]
+void file_rw_test()
+{
+  fn_t fn = 10;
+
+  auto file = fram::open(fn, 16, O_WRITE | O_CREATE);
+  auto t = (char *)file.mmap(16);
+
+  const char *s = "It IS a string";
+  while (*s != '\0')
+    *t++ = *s++;
+  *t = '\0';
+
+  file.store();
+  // the file is automatically closed by the destructor
+}
+\end{lstlisting}
+

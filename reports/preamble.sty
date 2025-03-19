@@ -106,11 +106,15 @@
     style=colors,
     morekeywords={
         constexpr, noexcept, decltype, alignas, alignof, declval, 
-        forward, move, 
+        forward, move, requires,
     },
     emph={[1]
-        reg_proc, incr_priority, decr_priority, cpu, change_proc, cxt_switch, sleep,
-        wakeup, notify, wait, reg, run,
+        reg_proc, incr_priority, decr_priority, cpu, change_proc, cxt_switch, 
+        sleep, wakeup, notify, wait, 
+        reg, run, 
+        alloc, dealloc, malloc, kmalloc, free, kfree, new, delete, knew, cleanup,
+        format, mount, open, remove, read, write, xfer, load, store, umount,
+        debug, assert, kprintf, printf,
     },
     emphstyle={[1]\stdlibstyle},
     emph={[2]
@@ -118,22 +122,36 @@
         vector, unordered_map, unordered_set, priority_queue, deque,
         shared_ptr, unique_ptr, weak_ptr, thread,
         tuple, integral_constant, is_same, derived_from, conditional,
-        enable_if, true_type, false_type, 
+        enable_if, true_type, false_type, wait, notify, notify_all, 
+        same_as, bitset, circular_buffer,
     },
     emphstyle={[2]\stdlibstyle},
     emph={[3]nullptr, NULL},
     emphstyle={[3]\specialvalstyle},
     emph={[4]
         Args, T, word_t, byte_t, size_t, string,
-        uint8_t, uint16_t, uint32_t, uint64_t, 
+        bool, uint8_t, uint16_t, uint32_t, uint64_t, 
         int8_t, int16_t, int32_t, int64_t, 
         int, float, unsigned, double, char, void,
+        % 
         pid_t, priority_t, proc_def_t, runnable_t, time_t, fn_t, 
         proc_t, waitlist_t,
+        intr_guard, lock_guard, mutex, chan_t, chunk_t, allocator,
+        addr_t, blk_addr_t, nblks_t, file_type_t, fs_desc_t, 
+        inode_t, fd_t, file_t, fs_hd_t, fs_t, desc_t,
+        boot_lev_t, debug_t,
     },
     emphstyle={[4]\typestyle},
     literate=,
 }
 
 \def\file#1{\texttt{\small #1}}
+
+
+\newcommand{\placetextbox}[3]{% \placetextbox{<horizontal pos>}{<vertical pos>}{<stuff>}
+  \setbox0=\hbox{#3}% Put <stuff> in a box
+  \AddToShipoutPictureFG*{% Add <stuff> to current page foreground
+    \put(\LenToUnit{#1\paperwidth},\LenToUnit{#2\paperheight}){\vtop{{\null}\makebox[0pt][c]{#3}}}%
+  }%
+}%
 
