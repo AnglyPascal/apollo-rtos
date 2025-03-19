@@ -84,9 +84,5 @@ void scan()
       kprintf("| %d: %x\r\n", i++, addr);
 }
 
-__extern_C__
-void i2c0_spi0_handler(void)
-{
-  async::handler();
-}
+__extern_C__ void i2c0_spi0_handler(void) { async::handler(); }
 } // namespace i2c

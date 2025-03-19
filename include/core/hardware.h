@@ -148,7 +148,9 @@ extern volatile clock_t CLOCK;
 
 /* Memory protection unit */
 struct mpu_t {
-  _PADDING(1544);
+  _PADDING(1536);
+  uint32_t PROTENSET0;     // 0x600
+  uint32_t PROTENSET1;     // 0x604
   uint32_t DISABLEINDEBUG; // 0x608
 };
 

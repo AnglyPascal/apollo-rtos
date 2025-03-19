@@ -59,6 +59,14 @@ void notify(chan_t<chan_len> &chan)
   wakeup(chan.dequeue());
 }
 
+template <size_t chan_len>
+void notify_all(chan_t<chan_len> &chan)
+{
+  intr_guard guard;
+  while (!chan.empty())
+    wakeup(chan.dequeue());
+}
+
 void trace();
 } // namespace sched
 

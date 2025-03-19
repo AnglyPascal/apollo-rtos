@@ -23,8 +23,7 @@ namespace timer
 
 constexpr time_t TICK = 1;
 
-__always_inline__
-inline void timer_init(volatile timer_t &TIMER)
+__always_inline__ inline void timer_init(volatile timer_t &TIMER)
 {
   /* We use Timer 1 because its 16-bit mode is adequate for a clock with up to
    * 1us resolution and 1ms period, leaving the 32-bit Timer 0 for other
@@ -60,11 +59,9 @@ uint8_t stk[timer_stk_sz];
 uint8_t *stk_end = stk + timer_stk_sz;
 } // namespace
 
-__extern_C__
-void pendsv_handler(void);
+__extern_C__ void pendsv_handler(void);
 
-__always_inline__
-inline void sched_invoke()
+__always_inline__ inline void sched_invoke()
 {
   if (MILLIS - sched::last_checked > sched::invoke_interval) {
     debug<FATAL>("scheduler invoked. proc: %s\r\n", curr_proc::name().str);
@@ -74,8 +71,7 @@ inline void sched_invoke()
   }
 }
 
-__extern_C__
-void timer1_handler(void)
+__extern_C__ void timer1_handler(void)
 {
   if (TIMER1.COMPARE[0]) {
     MILLIS += TICK;
@@ -98,8 +94,7 @@ void timer1_handler(void)
 
 volatile time_t debug_ticks = 0;
 
-__extern_C__
-void timer2_handler(void)
+__extern_C__ void timer2_handler(void)
 {
   if (TIMER2.COMPARE[0]) {
     debug_ticks += TICK;

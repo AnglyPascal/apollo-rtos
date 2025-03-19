@@ -2,9 +2,7 @@
 #include "utility/allocator.h"
 #include "utility/debug.h"
 
-__extern_C__
-uint8_t __stack_limit[],
-    __end[];
+__extern_C__ uint8_t __stack_limit[], __end[];
 
 namespace
 {

@@ -39,21 +39,21 @@ void trigger_term(void);
 
 template <debug_t lev, typename... Args>
   requires(lev <= WARN)
-__always_inline__
-inline void __assert(bool ex, Args... args)
+void __assert(bool ex, Args &&...args)
 {
   if (ex)
     return;
 
-  auto dump = []<typename... Ts>(const char *src, const char *func, Ts... ts) {
+  auto dump = []<typename... Ts>(const char *src, const char *func,
+                                 Ts &&...ts) {
     debug<ERROR>("\r\nassertion failed ``%s``, in %s\r\n", src, func);
     if constexpr (sizeof...(ts) != 0)
-      debug<ERROR>(ts...);
+      debug<ERROR>(std::forward<Ts>(ts)...);
   };
 
   if constexpr (lev == H_RESET) {
     if constexpr (sizeof...(args) != 0)
-      dump(args...);
+      dump(std::forward<Args>(args)...);
     return trigger_hardfault();
   }
 

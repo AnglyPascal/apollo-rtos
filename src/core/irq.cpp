@@ -20,8 +20,7 @@ void delay_loop(uint32_t usecs)
 }
 
 /* spin -- show Seven Stars of Death */
-__extern_C__
-void spin(void)
+__extern_C__ void spin(void)
 {
   intr_disable();
 
@@ -34,6 +33,5 @@ void spin(void)
   }
 }
 
-__extern_C__
-void default_handler(void) __attribute((weak, alias("spin")));
+__extern_C__ void default_handler(void) __attribute((weak, alias("spin")));
 

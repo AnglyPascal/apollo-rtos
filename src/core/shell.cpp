@@ -9,9 +9,7 @@ namespace shell
 {
 namespace
 {
-__extern_C__
-proc_def_t __apps_load[],
-    __apps_start[], __apps_end[];
+__extern_C__ proc_def_t __apps_load[], __apps_start[], __apps_end[];
 
 proc_def_t *match_cmd(string cmd_str)
 {

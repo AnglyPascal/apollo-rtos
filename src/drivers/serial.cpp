@@ -76,8 +76,7 @@ void register_listener(listener_t listener) { listeners.push(listener); }
 
 void unregister_listener() { listeners.pop(); }
 
-__extern_C__
-void uart_handler(void)
+__extern_C__ void uart_handler(void)
 {
   if (UART.RXDRDY) {
     char ch = UART.RXD;

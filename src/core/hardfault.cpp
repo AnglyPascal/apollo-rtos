@@ -5,8 +5,7 @@
 #include "fs/fs.h"
 #include "utility/debug.h"
 
-__extern_C__
-void hardfault_handler_body(uint32_t *fault_stack)
+__extern_C__ void hardfault_handler_body(uint32_t *fault_stack)
 {
   serial::putc = serial::busy_putc;
 

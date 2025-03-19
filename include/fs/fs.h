@@ -15,7 +15,7 @@ void read(addr_t addr, uint8_t *buf, size_t buf_sz);
 
 static constexpr size_t BLK_SZ = 1 << 10;
 static constexpr addr_t FLASH_END = 256 * BLK_SZ;
-static constexpr size_t N_BLKS = 180;
+static constexpr size_t N_BLKS = 128;
 
 using desc_t = fs_desc_t<fn_t, blk_addr_t, addr_t, nblks_t, BLK_SZ>;
 

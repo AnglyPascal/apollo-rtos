@@ -66,8 +66,7 @@ pid_t reg_proc(const proc_def_t *def, void *param)
 
 bool needs_swap() { return cpu.hi_proc != cpu.curr_proc; }
 
-__noinline__
-void change_proc()
+__noinline__ void change_proc()
 {
   intr_enable();
   last_checked = timer::now();
@@ -75,8 +74,7 @@ void change_proc()
     reschedule();
 }
 
-__extern_C__
-void *cxt_switch(void *stk_ptr)
+__extern_C__ void *cxt_switch(void *stk_ptr)
 {
   assert_dump(cpu.hi_proc->priority > 0, H_RESET);
   assert_dump(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET);
@@ -133,12 +131,9 @@ void idle_task(void *)
 proc_def_t idle_proc_def = {"idle", IDLE, 8, idle_task};
 } // namespace
 
-__extern_C__
-proc_def_t __startup_load[],
-    __startup_start[], __startup_end[];
+__extern_C__ proc_def_t __startup_load[], __startup_start[], __startup_end[];
 
-__extern_C__
-void _setup_startups(void)
+__extern_C__ void _setup_startups(void)
 {
   for (proc_def_t *proc = __startup_start; proc < __startup_end; proc++) {
     reg_proc(proc, nullptr);
@@ -146,12 +141,9 @@ void _setup_startups(void)
 }
 void setup_startups(void) __attribute((weak, alias("_setup_startups")));
 
-__extern_C__
-proc_def_t __procs_load[],
-    __procs_start[], __procs_end[];
+__extern_C__ proc_def_t __procs_load[], __procs_start[], __procs_end[];
 
-__extern_C__
-void _setup_procs(void)
+__extern_C__ void _setup_procs(void)
 {
   for (proc_def_t *proc = __procs_start; proc < __procs_end; proc++) {
     reg_proc(proc, nullptr);
@@ -160,8 +152,7 @@ void _setup_procs(void)
 void setup_procs(void) __attribute((weak, alias("_setup_procs")));
 
 /* enter idle_task with specified stack (see mpx.s) */
-__extern_C__
-void __run(runnable_t task, byte_t **stk_ptr);
+__extern_C__ void __run(runnable_t task, byte_t **stk_ptr);
 
 /* assign idle_task to the main process, sets up all the other processes, then
  * enter the idle_task in thread mode */
@@ -255,8 +246,7 @@ void default_handler<SIGKILL>(void)
   exit();
 }
 
-__extern_C__
-void handle_signals(void)
+__extern_C__ void handle_signals(void)
 {
   cpu.curr_proc->signals.handle_signals();
 }

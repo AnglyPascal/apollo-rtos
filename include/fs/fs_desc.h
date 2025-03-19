@@ -13,8 +13,6 @@ struct fs_desc_t {
   using fn_t = _fn_t;
   using nblks_t = _nblks_t;
 
-  static constexpr fn_t null_fn = MAX<fn_t>;
-
   fs_xfer_t<addr_t> write;
   fs_xfer_t<addr_t> read;
 

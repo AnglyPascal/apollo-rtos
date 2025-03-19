@@ -6,9 +6,7 @@
 
 #define RAM_MAGIC 0xbabedadd
 
-__extern_C__
-byte_t __recover_load[],
-    __recover_start[], __recover_end[];
+__extern_C__ byte_t __recover_load[], __recover_start[], __recover_end[];
 
 namespace fs
 {
@@ -85,7 +83,10 @@ void init()
     boot_lev = boot_lev_t::RESET;
 
   {
-    auto file = fram::open<boot_stat_t>(boot_fn, O_WRITE | O_CREATE | O_PERM);
+    // FIXME: if the mapping is not shared, it uses heap::malloc, but no process
+    // is set up, so malloc's attempt to write to process' used_hd fails
+    auto file = fram::open<boot_stat_t>(boot_fn,
+                                        O_WRITE | O_CREATE | O_PERM | O_SHARED);
     auto stat = file.mmap<boot_stat_t>();
 
     stat->incr(boot_lev);

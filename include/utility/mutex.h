@@ -9,9 +9,12 @@ class mutex
 {
 public:
   const char *name;
+
+private:
   chan_t<chan_len> lock_chan;
   bool busy = false;
 
+public:
   mutex() : name{""}, lock_chan{}, busy{false} {}
 
   mutex(const char *name) : name{name}, lock_chan{}, busy{false} {}
