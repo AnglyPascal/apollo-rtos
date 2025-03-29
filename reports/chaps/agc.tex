@@ -14,6 +14,16 @@ data. Astronauts interacted with the AGC using the Display and Keyboard (DSKY), 
 receive information. This interface was critical for making manual adjustments and
 monitoring the system during missions.
 
+\begin{center}
+\begin{minipage}{.6\linewidth}
+    \begin{figure}[H]
+        \centering \includegraphics[width=.7\linewidth]{margaret_hamilton}
+        \caption{Margaret Hamilton standing next to listings of the software she and
+        her MIT team produced for the Apollo Project.}
+    \end{figure}
+\end{minipage}
+\end{center}
+
 Due to these constraints, the operating system, called the Executive, had to
 efficiently manage resources. It ensured that important tasks were prioritized over
 less critical ones and that key functions could continue even if the system experienced
@@ -23,12 +33,6 @@ The Executive was written in AGC assembly, where each instruction was 16 bits lo
 Because the instruction set was small, the system also included a sophisticated
 interpreter that acted as a virtual machine, providing more advanced
 pseudo-instructions beyond the basic AGC instructions.
-
-\begin{figure}[H]
-    \centering \includegraphics[width=.45\linewidth]{margaret_hamilton}
-    \caption{Margaret Hamilton standing next to listings of the software she and her
-    MIT team produced for the Apollo Project.}
-\end{figure}
 
 The details of the AGC Executive explained below is taken from \citet{agc_book}.
 

@@ -24,7 +24,7 @@
     \textbf{Trinity 2025} %
 }
 
-\renewcommand{\maketitlehooka}{} %
+\renewcommand{\maketitlehooka}{\vspace{-5em}} %
 \renewcommand{\maketitlehookb}{ %
     \vspace{2cm} %
     \centering %
@@ -36,7 +36,8 @@
 }
 \renewcommand{\maketitlehookd}{%
     \vspace{1cm}%
-    \input{wordcount} words (using \texttt{texcount}) %
+    {\ttfamily \input{wordcount}} words \\
+    (using \small \texttt{texcount -inc -nobib -sum=1,1,0,1,0,0,0}) %
 }
 
 % % Formatting title spacing
@@ -54,20 +55,28 @@
 
 \AtBeginDocument{\addtocontents{toc}{\protect\thispagestyle{empty}}} 
 
+\newif\ifdouble\doublefalse
+\doubletrue
+
 \newcommand{\preamble}{ %
     \maketitle %
     \thispagestyle{empty} %
     \newpage %
 
-    % \doublespacing
-    % \renewcommand\codestyle{\linespread{1.5}\ttfamily\codefontsize}
+    \ifdouble
+        \doublespacing
+        \renewcommand\codestyle{\linespread{1.3}\ttfamily\codefontsize}
+        \captionsetup[figure]{font={stretch=1.3}}
+    \fi
 
     \pagestyle{empty}
     \input{chaps/abstract} %
     \newpage %
 
+    \ifdouble \setstretch{1.5} \fi
     \mainmatter %
     \tableofcontents %
+    \ifdouble \doublespacing \fi
 
     \pagestyle{fancy}
     \newpage 
@@ -96,7 +105,7 @@
 \renewcommand{\labelitemi}{\scriptsize $\blacksquare$}
 \renewcommand{\labelitemii}{$\bullet$}
 \renewcommand{\labelitemiii}{$\circ$}
-\renewcommand{\labelitemiv}{$\circ$}
+\renewcommand{\labelitemiv}{$\bigcdot$}
 
 
 \lstdefinestyle{myagc}{
@@ -114,7 +123,13 @@
         reg, run, 
         alloc, dealloc, malloc, kmalloc, free, kfree, new, delete, knew, cleanup,
         format, mount, open, remove, read, write, xfer, load, store, umount,
-        debug, assert, kprintf, printf,
+        debug, assert, kprintf, printf, getc, busy_putc, intr_putc, putc,
+        _memcpy, _memset, 
+        recover, init, __reset, __stack, __vectors, 
+        __run, setup_startups,
+        get_msp, set_msp, 
+        push, pop, enqueue, dequeue, send,
+        lock, unlock,
     },
     emphstyle={[1]\stdlibstyle},
     emph={[2]
@@ -139,10 +154,14 @@
         intr_guard, lock_guard, mutex, chan_t, chunk_t, allocator,
         addr_t, blk_addr_t, nblks_t, file_type_t, fs_desc_t, 
         inode_t, fd_t, file_t, fs_hd_t, fs_t, desc_t,
-        boot_lev_t, debug_t,
+        boot_lev_t, debug_t, lev_t, guard_proc, guard_task,
+        listener_guard, listener_t, stage_t, image_t,
+        args_buffer_t, 
     },
     emphstyle={[4]\typestyle},
     literate=,
+    morecomment=[l]{|},
+    morecomment=[l]{+---},
 }
 
 \def\file#1{\texttt{\small #1}}
@@ -155,3 +174,7 @@
   }%
 }%
 
+\usepackage{subcaption}
+\renewcommand\@memmain@floats{%
+  \counterwithin{figure}{section}
+}

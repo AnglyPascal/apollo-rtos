@@ -328,7 +328,64 @@ void wakeup(pid_t pid) {
 \end{lstlisting}
 
 
+\subsection{Idle Process and Scheduler Initialization}
+\label{sec:idle_proc}
+
+Since it could happen that all the running processes are waiting for some event to
+occur, when they are all sleeping, something needs to keep running in the cpu. That's
+the job for the \lstinline[style=myagc]|IDLE_PROC|. This is the lowest priority
+process defined when the scheduler is initialized during startup that basically just
+loops 
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/core/sched.cpp}},
+    linebackgroundcolor={\line{5} \lineC{3}{thmBgC!90!black}
+    \lineC{11}{thmBgC!90!black} \lines{18}{20}},
+]
+void idle_task(void *)
+{
+  intr_enable(); // re-enable interrupts after setup is done
+  while (true) 
+    change_proc(); 
+    // idle process always checks if any other process is ready to run
+}
+
+void sched::init()
+{
+  intr_disable(); // disable interrupt while setup is ongoing
+
+  IDLE_PID = reg_proc(&idle_proc_def, nullptr);
+  cpu.curr_proc = procs[IDLE_PID];
+
+  // ... set up rest of the processes
+
+  cpu.curr_proc->stk_ptr = /* setup the stack for the idle_task */;
+  /* setup the assigned stack and jump directly to idle_task */
+  __run(idle_task, &cpu.curr_proc->stk_ptr);
+}
+\end{lstlisting}
+
+\lstinline[style=myagc]|__run| is an assembly function, that just loads the stack
+pointer to the \lstinline[style=myagc]|sp| register, and jumps to the function
+provided:
+\begin{lstlisting}[style=myarm]
+@@@ enter process mode
+    .global __run
+    .thumb_func
+__run:
+    ldr r2, [r1]                @ load idle proc's stack value 
+    msr msp, r2
+    isb                         @ Drain the pipeline
+    bx r0                       @ Call the body
+\end{lstlisting}
+
+The \lstinline[style=myagc]|sched::init| function needs to do some other initialization
+as well to setup the processes that will be running after the startup, and we'll
+discuss them in \autoref{sec:rec_init}.
+
+
 \subsection{Waitlist: Preemptive Scheduling}
+\label{sec:waitlist}
 
 The waitlist is implemented as a sorted linked list of tasks:
 

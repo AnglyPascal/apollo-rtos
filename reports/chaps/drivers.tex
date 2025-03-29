@@ -1,0 +1,488 @@
+\section{Drivers}
+
+Drivers provide methods for interacting with different hardware components on a device.
+Typically, hardware components expose registers that control various functionalities.
+The role of a driver is to abstract these low-level register interactions and provide a
+user-friendly interface.
+
+\subsection{Timers}
+
+The Nordic nRF51 board on the \texttt{micro:bit} features three timers:
+\begin{itemize}
+    \item \texttt{TIMER0} – A 32-bit timer.
+    \item \texttt{TIMER1} and \texttt{TIMER2} – 16-bit timers.
+\end{itemize}
+
+Apollo-RTOS configures the two 16-bit timers as 1MHz timers, generating an interrupt
+every 1s. These timers serve distinct purposes:
+\begin{itemize}
+    \item \lstinline[style=myagc]|TIMER1| – Maintains the system clock.
+    \item \lstinline[style=myagc]|TIMER2| – Used for profiling.
+\end{itemize}
+
+The initialization function for both timers is straightforward, primarily involving
+writing values to specific registers in the correct order. This implementation was
+inspired by \citet{microbian}.
+
+The interrupt handling for \lstinline[style=myagc]|TIMER1| (the system timer) is more
+intricate and will be discussed next.
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/timer.cpp}},
+    linebackgroundcolor={\lines{14}{15} \line{20} \lineD{7}},
+]
+volatile time_t MILLIS = 0;
+
+extern "C" void timer1_handler(void)
+{
+  // increment MILLIS
+
+  sched::assert_stack(); // check for stack overflow 
+
+  // run the waitlist tasks every (update_interval)us
+  if (MILLIS % waitlist::update_interval == 0) {
+    intr_guard guard;
+
+    // setup temporary stk to run waitlist tasks
+    auto prev_stk = (uint8_t *)get_msp();
+    set_msp(/* temporary stack */); 
+
+    waitlist::run();
+
+    // restore original stack
+    set_msp(prev_stk);
+  }
+}
+\end{lstlisting}
+
+As mentioned earlier in \autoref{sec:waitlist}, at regular intervals (every
+\lstinline[style=myagc]|update_interval|\(\mu\)s), the waitlist is checked for any
+pending tasks. Since the timer interrupt can occur at any point in execution, there is
+a risk of stack overflow. To mitigate this, waitlist tasks are executed on a separate
+stack. This is why a temporary stack is created and set up in lines 14-15.
+
+
+\subsubsection{Profiling}
+
+This is an experimental feature currently under development. % FIXME TODO
+The idea is to use \lstinline[style=myagc]|TIMER2| to track CPU time consumed by each
+process and function. At present, it performs reasonably well for profiling processes
+but struggles with function-level profiling. 
+
+For processes, users can type \lstinline[style=mybash]|trace| in the shell to display
+process statuses along with their CPU usage: \vspace{-1em}
+\begin{center}
+\begin{minipage}{.7\linewidth}
+\begin{lstlisting}[style=mytxt]
+curr_proc: trace
+  |  0. idle 	 : (idle),   [runnable], 38.938217%
+  |  1. shell 	 : (high),   [asleep],    0.18498%
+  |  2. display  : (low),    [runnable], 48.945616%
+  |  3. accel_bg : (high),   [runnable],  0.18498%
+  |  4. test 	 : (low),    [asleep],    1.609323%
+  |  5. trace 	 : (medium), [runnable], 14.95450%
+\end{lstlisting}
+\end{minipage}
+\end{center}
+As seen in the output, most CPU time is currently spent in the
+\lstinline[style=myagc]|idle| and \lstinline[style=myagc]|display| processes—mainly
+because I haven't written a more demanding workload. A significant portion is also used
+for printing this information over the serial bus, reaffirming the well-known overhead
+of I/O operations.
+
+This behavior is implemented in the \lstinline[style=myagc]|timer2_handler|:
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/timer.cpp}},
+    linebackgroundcolor={\lines{7}{8}},
+]
+volatile time_t debug_ticks = 0;
+
+extern "C" void timer2_handler(void)
+{
+  // increment debug_ticks
+
+  sched::tick(); // increment tick for the current process
+  profile::tick(); // increment tick for the currently running function
+  // but only do this for functions that have profiling enabled
+}
+\end{lstlisting}
+
+
+\subsection{Serial}
+
+The serial driver manages the UART connection. The
+\lstinline[style=myagc]|serial::init()| function initializes the UART device and
+enables interrupts. The \lstinline[style=myagc]|serial| namespace provides three core
+functions:
+
+\begin{itemize}
+    \item \lstinline[style=myagc]|void busy_putc(char)|: A
+        \lstinline[style=myagc]|putc| function that disables interrupts and busy-waits
+        until the character is sent.
+    \item \lstinline[style=myagc]|char getc()|: Waits for a character when interrupts
+        are disabled.
+    \item \lstinline[style=myagc]|void intr_putc(char)|: A buffered
+        \lstinline[style=myagc]|putc| implementation that uses interrupts.
+\end{itemize}
+
+The \lstinline[style=myagc]|busy_putc| and \lstinline[style=myagc]|getc| functions are
+straightforward: they send or receive a character and wait for the device to become
+ready. The \lstinline[style=myagc]|intr_putc| function, however, is more interesting
+and is partially inspired by the implementation by \citet{microbian}.
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/serial.cpp}},
+    linebackgroundcolor={\lines{12}{13} \line{17}},
+]
+volatile int txidle; /* Whether UART is idle */
+circular_buffer<char, NBUF> buf;
+
+void intr_putc(char ch)
+{
+  // if the buffer is full
+  while (buf.size() == NBUF)
+    pause(); // enter standby state waiting for an interrupt
+
+  // if the UART is idle, send the character immediately
+  if (txidle) {
+    UART.TXD = ch; 
+    txidle = 0; // mark the UART busy
+  } 
+  // otherwise enqueue the character
+  else 
+    buf.enqueue(ch);
+}
+\end{lstlisting}
+
+With this setup, when functions like \lstinline[style=myagc]|printf| send multiple
+characters, usually only the first character is transmitted immediately. The remaining
+characters are placed into a circular buffer, and it becomes the UART interrupt
+handler’s responsibility to send them asynchronously.
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/serial.cpp}},
+    linebackgroundcolor={\line{9} \line{11}},
+]
+extern "C" void uart_handler(void)
+{
+  // ... handle the receive path here
+
+  // UART finished transmission
+  if (UART.TXDRDY) { 
+    UART.TXDRDY = 0;
+    if (buf.empty()) // no more characters to send
+      txidle = 1; // mark UART idle
+    else
+      UART.TXD = buf.dequeue(); // otherwise send the next character
+  }
+
+  // ... clear and re-enable interrupts
+}
+\end{lstlisting}
+
+
+\subsubsection{Listening on the UART}
+
+In Apollo-RTOS, all incoming UART characters are, by default, sent to the
+\lstinline[style=myagc]|shell| process. This creates the illusion that the entire
+operating system is simply the shell, allowing user interaction through commands.
+
+However, some processes may need to momentarily take control of input, similar to
+starting a Python shell within a Bash shell. To enable this, the
+\lstinline[style=myagc]|serial| driver maintains a stack of ``listeners" that process
+incoming characters. The UART handler sends each character from the top of the listener
+stack downward. If a listener ``consumes" the character, it is not passed to any other
+listeners.
+
+To explain what I mean:
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/drivers/serial.h}},
+]
+using listener_t = bool (*)(char);
+
+void register_listener(listener_t);
+void unregister_listener();
+\end{lstlisting}
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/serial.cpp}},
+    % linebackgroundcolor={\line{9} \line{11}},
+]
+class {
+  listener_t stack[16] = {nullptr};
+  size_t idx = 0;
+
+public:
+  void push(listener_t listener) { stack[idx++] = listener; }
+  void pop() { idx--; }
+
+  void send(char c)
+  {
+    auto i = idx;
+    while (i > 0) {
+      if (stack[--i](c)) 
+        break; // if consumed, don't send c to the rest of the listenrs
+    }
+  }
+} listeners;
+
+void register_listener(listener_t listener) { listeners.push(listener); }
+void unregister_listener() { listeners.pop(); }
+\end{lstlisting}
+
+Finally in the UART handler, all incoming characters get sent to
+\lstinline[style=myagc]|listeners|
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/serial.cpp}},
+]
+extern "C" void uart_handler(void)
+{
+  if (UART.RXDRDY) {
+    listeners.send(UART.RXD); // send the character to the listeners
+    UART.RXDRDY = 0;
+  }
+
+  // ... the rest
+}
+\end{lstlisting}
+
+Of course, this registering and unregistering pattern can be put into an RAII class:
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{include/drivers/serial.h}},
+]
+struct listener_guard {
+  listener_guard(listener_t listener) { register_listener(listener); }
+  ~listener_guard() { unregister_listener(); }
+};
+\end{lstlisting}
+
+
+\subsection{I2C}
+
+The I2C master on the Nordic nRF51 enables communication with devices connected to the
+\texttt{micro:bit} via the I2C bus. It operates at frequencies of 100KHz or 400KHz. For
+this project, we use the 100KHz configuration provided by \citet{microbian}.
+
+Apollo-RTOS includes two I2C driver implementations: synchronous and asynchronous. The
+synchronous implementation is straightforward, with all read and write operations
+busy-waiting until completion. This implementation is used before the scheduler is
+initialized.
+
+Once the scheduler is active, the asynchronous implementation takes over. In this mode,
+the I2C backend uses a mutex to synchronize requests from different processes. From the
+process's perspective, each I2C operation appears atomic. However, due to the nature of
+I2C communication, sending multiple bytes triggers multiple interrupts. To maintain the
+illusion of atomicity, the process is put to sleep while communication is in progress.
+
+Below is a brief explanation of how the I2C master communicates with slave devices:
+\begin{itemize}[left=0pt]
+    \item First, the device address is written to the
+        \lstinline[style=myagc]|I2C0.ADDRESS| register. This address is unique to each
+        device and ranges between \texttt{0x03} and \texttt{0x77}.
+    \item Next, the bytes constituting the "command" are written. After each byte, an
+        acknowledgment interrupt is raised, signaling the system to send the next byte.
+    \item After all command bytes are sent, the process differs for read and write
+        operations:
+        \begin{itemize}[left=0pt]
+            \item For write operations, bytes are sent sequentially, with
+                acknowledgment interrupts confirming each transmission.
+            \item For read operations:
+                \begin{itemize}[left=0pt]
+                    \item The \lstinline[style=myagc]|STARTRX| register is set to
+                        \texttt{1}.
+                        \begin{itemize}[left=0pt]
+                            \item If this is the last byte to be read, the
+                                \lstinline[style=myagc]|STOP| bit in the
+                                \lstinline[style=myagc]|SHORTS| register is set.
+                            \item Otherwise, the \lstinline[style=myagc]|SUSPEND| bit
+                                is set.
+                        \end{itemize}
+                    \item The device writes the requested data to the
+                        \lstinline[style=myagc]|RXD| register and raises an interrupt.
+                    \item The interrupt is detected, and the data is read from the
+                        \lstinline[style=myagc]|RXD| register.
+                    \item If more bytes are to be read, the
+                        \lstinline[style=myagc]|RESUME| register is set to \texttt{1}.
+                \end{itemize}
+        \end{itemize}
+\end{itemize}
+
+To manage this process, we implement a state machine with four states:
+\begin{itemize}
+    \item \lstinline[style=myagc]|W_CMD|: Writing command bytes.
+    \item \lstinline[style=myagc]|TX_DATA|: Transmitting data.
+    \item \lstinline[style=myagc]|RX_DATA|: Receiving data.
+    \item \lstinline[style=myagc]|NACK|: Finalizing the operation and performing
+        cleanup.
+\end{itemize}
+
+The communication begins in the \lstinline[style=myagc]|xfer| method:
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/i2c\_async.h}},
+    linebackgroundcolor={}
+]
+template <bool is_read>
+int xfer(uint8_t addr,
+         uint8_t *cmd, size_t cmd_sz, 
+         uint8_t *buf, size_t buf_sz)
+{
+  // acquire lock before continuing
+  mtx.lock(); 
+
+  // ... copy the buffer addresses and buffer sizes
+
+  // initial state is W_CMD
+  state.stage = stage_t::W_CMD;
+  I2C0.ADDRESS = addr;
+
+  // start transmission and send the first byte
+  I2C0.STARTTX = 1;
+  I2C0.TXD = *cmd;
+
+  // put the current process to sleep until woken up after completion
+  sched::wait(intr_chan);
+   
+  // ... report any error that might've occured
+}
+\end{lstlisting}
+
+This method just starts the transmission, and puts the process to sleep. The real magic
+(or nightmare if implemented incorrectly) happens in the interrupt handler:
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/i2c\_async.h}},
+    linebackgroundcolor={\lines{5}{6} \lines{8}{30} \lines{32}{44} \lines{46}{60}
+    \lines{62}{67}}
+]
+void handler(void)
+{
+  intr_guard guard{I2C0_IRQ};
+
+  if (I2C0.ERROR)
+    // ... if there was an error, cancel the communication
+
+  else if (state.stage == stage_t::W_CMD) {
+    // ... receive acklowledgement                                      
+                                                         +------------+ 
+    // still writing the command                         |  W_CMD     | 
+    if (state.cmd_idx < state.cmd_sz)                    +------------+ 
+      // ... send next byte                                             
+
+    // no data to send or receive, so stop 
+    else if (state.data_sz == 0)
+      // ... stop
+
+    // if we're writing
+    else if (state.mode == mode_t::WRITE) {
+      state.stage = stage_t::TX_DATA;
+      // ... send the first data byte
+    }
+
+    // we're reading
+    else {
+      state.stage = stage_t::RX_DATA;
+      // ... set the SHORTS register and STARTRX = 1
+    }
+  }
+
+  else if (state.stage == stage_t::TX_DATA) {
+    // ... receive acklowledgement
+                                                         +------------+              
+    // finished writing                                  |  TX_DATA   |               
+    if (state.data_idx == state.data_sz)                 +------------+               
+      // ... stop                                                       
+
+    // more bytes to write
+    else {
+      state.stage = stage_t::TX_DATA;
+      // ... send the next byte
+    }
+  }
+
+  else if (state.stage == stage_t::RX_DATA) {
+    // ... receive acklowledgement
+                                                         +------------+              
+    // ... copy byte from I2C0.RXD                       |  RX_DATA   |               
+                                                         +------------+               
+    // finished reading, move to NACK
+    if (state.data_idx == state.data_sz)
+      state.stage = stage_t::NACK;
+
+    // continue reading
+    else {
+      state.stage = stage_t::RX_DATA;
+      // ... set the SHORTS register and RESUME = 1
+    }
+  }
+
+  else if (state.stage == stage_t::NACK) {               
+    // ... receive acklowledgement                      +------------+
+                                                        |  NACK      | 
+    mtx.unlock(); // release the lock                   +------------+
+    sched::notify(intr_chan); // then wake up the waiting process
+  }
+}
+\end{lstlisting}
+
+With this implementation, multiple processes can communicate over the I2C bus without
+conflicts. All requests are serialized using the \lstinline[style=myagc]|mutex|,
+ensuring orderly access to the bus. Additionally, while one process is communicating
+over the I2C bus, it does not monopolize the CPU. Instead, it allows other processes to
+continue executing, improving overall system efficiency.
+
+
+
+
+\subsection{Display}
+
+\subsection{Display}
+
+The \(5 \times 5\) LED matrix is arranged into three columns in a counter-intuitive
+format. To control these LEDs, we utilized the convenience macros provided by
+\citet{microbian}. The LEDs are managed through GPIO registers and require constant
+updates to display smooth animations. To achieve this, the
+\lstinline[style=myagc]|display| driver is implemented as a low-priority process, with
+its priority set just above the \lstinline[style=myagc]|idle_proc|.
+
+The implementation is straightforward:
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/drivers/display.cpp}},
+    linebackgroundcolor={\line{12}}
+]
+image_t image;
+
+/* definition of display */
+{
+  GPIO.DIR = LED_MASK;
+  reset(); // clear the image out at the beginning
+
+  while (true) {
+    int n = 0;
+    // display the three rows of the image, and wait for a little
+    while (n < 3) {
+      GPIO.OUT = image[n++];
+      delay_loop(5000);
+    }
+    sched::sleep(10);
+  }
+}
+\end{lstlisting}
+
+A method named \lstinline[style=myagc]|set_image| is provided to allow processes to
+update the global variable \lstinline[style=myagc]|image| with the desired display
+image. The display driver continuously renders the image stored in this variable.
+
+As discussed earlier in \autoref{sec:rec_init}, this process is always started during
+system initialization.
+
+

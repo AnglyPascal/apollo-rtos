@@ -1,7 +1,37 @@
 \section{Conclusion}
 
-\begin{enumerate}
-    \item Summary of achievements
-    \item Reflections on the AGC's enduring design principles
-    \item Broader implications for OS design 
-\end{enumerate}
+This project aimed to develop an operating system inspired by the Apollo Guidance
+Computer (AGC), focusing on its scheduling and error-handling algorithms. The result,
+Apollo-RTOS, reimagines the core ideas of the AGC with modern concepts, demonstrating
+that the AGC's algorithms were ahead of their time and remain relevant for efficient
+operating system design.
+
+The strength of these algorithms lies in their simplicity, a theme central to
+Apollo-RTOS's implementation. This simplicity makes the system easy to understand,
+explain, and verify compared to more complex designs. Apollo-RTOS shows that even with
+the \texttt{micro:bit}'s limited resources—a 16MHz CPU and 16KB of RAM—careful design
+can achieve significant functionality. The system can concurrently run 16 processes,
+serialize their execution deterministically, and handle errors gracefully, making it a
+strong candidate for real-world applications.
+
+However, there is still room for improvement. Testing in this project was limited, and
+it was impossible to explore every possible combination of events within the given
+timeframe. Many hardware features were not tested under adverse conditions, which is
+crucial before real-world deployment. Additionally, the implementation is not fully
+optimized. Memory and CPU usage were managed leniently, without strict restrictions on
+execution time. For an RTOS, strict guarantees on upper bounds for each operation are
+essential, and Apollo-RTOS currently lacks these guarantees or has not yet been tested
+for them.
+
+In terms of features, Apollo-RTOS does not yet support all hardware components
+available on the \texttt{micro:bit}. Notably, it lacks drivers for the SPI bus,
+watchdog timer, sensors, radio device, and others. Some limitations also stem from the
+hardware constraints of the \texttt{micro:bit} v1. For example, the Cortex M0 processor
+lacks a floating-point unit (FPU), requiring software libraries to handle
+floating-point arithmetic. Integrating such a library remains a task for future work.
+
+Despite these limitations, Apollo-RTOS highlights how historical concepts can still be
+applied in modern contexts. It also demonstrates the feasibility of creating a general
+purpose, lightweight, efficient, and reliable operating system for resource-constrained
+microcontrollers, opening new possibilities for real-world applications.
+

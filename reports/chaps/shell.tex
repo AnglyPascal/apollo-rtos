@@ -1,0 +1,149 @@
+\section{Shell and Shell Commands}
+
+Apollo-RTOS provides a Linux-like \lstinline[style=myagc]|shell| that listens to inputs
+on the serial bus, and once a full command has been sent out, it schedules a the
+corresponding process.
+
+The \lstinline[style=myagc]|shell| is a high priority process, that spends most of its
+time asleep. At startup, it registers a \lstinline[style=myagc]|listener| that wakes up
+shell when it receives a \lstinline[style=myagc]|'\r'| or \lstinline[style=myagc]|'\n'|
+character. The \lstinline[style=myagc]|shell| then becomes the highest priority process
+and processes the command as soon as it is allowed to run. 
+
+When processing the command, \lstinline[style=myagc]|shell| allocates some memory to
+copy the command line arguments, and passess it to the process it schedules. It then
+clears out it's internal buffer, and goes to sleep again.
+
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/core/shell.cpp}},
+    linebackgroundcolor={\line{10} \line{19}},
+]
+chan_t<1> chan; // channel of length 1 for the shell to wait on
+args_buffer_t buf; // buffer where the command is accumulated
+
+/* definition of shell */
+{
+  serial::register_listener(listener);
+
+  while ((volatile bool)true) {
+    buf.reset();
+    sched::wait(chan); // wait until the listener wakes it up
+
+    const char *cmd = /* extract the command string */;
+    proc_def_t *cmd_def = /* find corresponding process defintiion */;
+
+    if (cmd_def == nullptr)
+      continue; // ignore this command
+
+    auto param = /* allocate memory and copy the arguments */;
+    sched::reg_proc(cmd_def, param);
+
+    // ... rinse and repeat
+  }
+}
+\end{lstlisting}
+
+And the \lstinline[style=myagc]|listener| is implemented as such:
+\begin{lstlisting}[
+    style=myagc,
+    title={\file{src/core/shell.cpp}},
+    linebackgroundcolor={\line{10} \line{16}},
+    morekeywords={listener}
+]
+bool listener(char c)
+{
+  // ... handle some special characters
+
+  // print the character back 
+  serial::intr_putc(c);
+
+  // if the character is a normal character, append it to the buffer
+  if (c >= 32 && c < 127) {
+    buf.push(c);
+    return true;
+  }
+
+  // if the CR or Return character is received, wake up the shell process
+  if (c == '\r' || c == '\n') {
+    sched::notify(chan);
+    return true;
+  }
+
+  // any unhandled character resets the buffer
+  printf("\'%d\'\r\n", c);
+  buf.reset();
+
+  // this listener processes all characters, 
+  // and is the last listener in the listeners stack
+  return true;
+}
+\end{lstlisting}
+
+
+
+\subsection{Notable Shell Commands}
+
+Currently there are a few shell commands that are useful to demonstrate different
+aspects of the system. Here are some of them:
+
+\paragraph*{\lstinline[style=myagc]|trace|} This command produces a dump of the current
+processes, waitlist tasks, current open files etc:
+\begin{lstlisting}[style=mytxt]
+    trace
+
+    boot level: reset
+    curr_proc: trace
+      |  0. idle : (idle), [runnable], 44.88736%
+      |  1. shell : (high), [asleep], 0.0%
+      |  2. display : (low), [runnable], 54.258086%
+      |  3. accel_bg : (high), [runnable], 0.31%
+      |  4. test : (low), [asleep], 1.652978%
+      |  5. trace : (medium), [runnable], 0.2881%
+    waitlist:
+      |  test
+      |    interval: 48
+    fram fs:
+      |  free_blks: 244, free: 31232, in use: 1536
+      |  [O] 0: size = 1024, type = bin, blks: 1, 2, 3, 4, 5, 6, 7, 8
+      |  [C] 2: size = 128, type = bin, blks: 0
+      |  [O] 5: size = 128, type = bin, blks: 9
+\end{lstlisting}
+
+\paragraph*{\lstinline[style=myagc]|echo|} Does what the name
+suggests: echoes the argument:
+\begin{lstlisting}[style=mytxt]
+    echo hello world
+    >> hello world
+\end{lstlisting}
+
+
+\paragraph*{\lstinline[style=myagc]|accel|} Starts a small compass like program on the
+LEDs that always point an arrow towards the ground:
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.3\textwidth}
+        \centering
+        \includegraphics[height=2in]{accel_bw1}
+    \end{subfigure}%
+    % 
+    \begin{subfigure}[t]{0.3\textwidth}
+        \centering
+        \includegraphics[height=2in]{accel_bw3}
+    \end{subfigure}%
+    %
+    \begin{subfigure}[t]{0.3\textwidth}
+        \centering
+        \includegraphics[height=2in]{accel_bw2}
+    \end{subfigure}
+
+    \caption{Result of \lstinline[style=myagc]|accel|}
+\end{figure}
+
+
+\paragraph*{\lstinline[style=myagc]|calc|} Starts a sub-shell like command that is
+``supposed'' to implement a calculator. Right now, it just takes over the inputs, and
+echoes the arguments it receives.
+
+

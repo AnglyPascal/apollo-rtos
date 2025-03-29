@@ -18,15 +18,28 @@ The major modules of Apollo-RTOS are:
     \item Handling context switching between processes.
 \end{itemize}
 
+\paragraph*{Waitlist} Implements a deadline-driven task scheduler, similar to cron
+jobs, enabling time-sensitive operations to be executed at precise intervals.
+
+\paragraph*{Signals and Mutexes} Enable low-overhead inter-process communication (IPC)
+and synchronization mechanisms among the processes.
+
 \paragraph*{Memory Manager} Handles all dynamic memory allocation. It implements a
 freelist-based \texttt{malloc} for allocating and deallocating runtime memory and
 manages process stack allocations.
 
+\paragraph*{File System} Provides persistent storage, implemented using an external
+FRAM over I2C. An optional Flash-based file system can also be enabled.
+
+\paragraph*{Debugging and Error Handling} Provides essential debugging utilities,
+including:
+\begin{itemize}
+    \item \texttt{debug}: Outputs diagnostic information.
+    \item \texttt{assert}: Handles runtime error detection.
+\end{itemize}
+
 \paragraph*{Recovery} Ensures system stability by protecting critical processes and
 tasks from various resets and failures.
-
-\paragraph*{Waitlist} Implements a deadline-driven task scheduler, similar to cron
-jobs, enabling time-sensitive operations to be executed at precise intervals.
 
 \paragraph*{Drivers} Interface with the hardware components of the \texttt{micro:bit}.
 The key drivers include:
@@ -39,22 +52,9 @@ The key drivers include:
     \item \textbf{Display}: Controls the \(5 \times 5\) LED matrix on the board.
 \end{itemize}
 
-\paragraph*{File System} Provides persistent storage, implemented using an external
-FRAM over I2C. An optional Flash-based file system can also be enabled.
-
 \paragraph*{Shell} Implements a Unix-like command-line interface that allows users to
 manage and debug processes over UART. It maintains a list of available commands mapped
 to various processes.
-
-\paragraph*{Signals and Mutexes} Enable low-overhead inter-process communication (IPC)
-and synchronization mechanisms among the processes.
-
-\paragraph*{Debugging and Error Handling} Provides essential debugging utilities,
-including:
-\begin{itemize}
-    \item \texttt{debug}: Outputs diagnostic information.
-    \item \texttt{assert}: Handles runtime error detection.
-\end{itemize}
 
 
 \subsection{Codebase Structure}
