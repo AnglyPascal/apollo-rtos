@@ -46,5 +46,6 @@
 
 ## Report:
 
-- Write about the difference in my waitlist implementation vs AGC's
-
+- write about the difference in my waitlist implementation vs AGC's
+- argue that apollo-rtos is not modular, it's monolithic. So it's not straightforward
+    to produce a minimal build with a selected subset of features

@@ -6,8 +6,6 @@
 
 #define RAM_MAGIC 0xbabedadd
 
-__extern_C__ byte_t __recover_load[], __recover_start[], __recover_end[];
-
 namespace fs
 {
 bool first_boot();
@@ -96,9 +94,5 @@ void init()
   }
 
   POWER.RESETREAS = 0xFFFFFFFF;
-
-  // initialize recovery section
-  if (boot::lev() != boot_lev_t::RESET)
-    _memcpy(__recover_start, __recover_load, __recover_end - __recover_start);
 }
 } // namespace boot

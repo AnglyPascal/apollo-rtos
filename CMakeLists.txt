@@ -14,7 +14,7 @@ set(CMAKE_ASM_COMPILER "arm-none-eabi-as")
 set(CMAKE_OBJCOPY "arm-none-eabi-objcopy")
 set(CMAKE_OBJDUMP "arm-none-eabi-objdump")
 
-find_package(PythonInterp 3 REQUIRED)
+find_package(Python3 COMPONENTS Interpreter)
 set(PYTHON_EXECUTABLE "python3")
 
 set(ARCH "-mcpu=cortex-m0 -mthumb")
@@ -48,6 +48,12 @@ function(add_custom_executable target_name target_dir)
   add_executable(${target_name} ${KERNEL_SRC} ${TARGET_SRC})
 
   set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "${target_name}.elf")
+
+  add_custom_command(
+    TARGET ${target_name}
+    PRE_BUILD
+    COMMAND cpp -P src/device.ld.in -o "${LINKSCRIPT}"
+  )
 
   add_custom_command(
     TARGET ${target_name}
@@ -85,6 +91,7 @@ endfunction()
 set(TARGETS
   apollo apollo
   recover tests/recover
+  unit_tests tests/unit_tests
 )
 list(LENGTH TARGETS num_targets)
 math(EXPR num_targets "${num_targets} / 2 - 1")

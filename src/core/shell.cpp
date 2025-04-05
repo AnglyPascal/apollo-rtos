@@ -9,11 +9,11 @@ namespace shell
 {
 namespace
 {
-__extern_C__ proc_def_t __apps_load[], __apps_start[], __apps_end[];
+SECTION_ADDR(apps);
 
 proc_def_t *match_cmd(string cmd_str)
 {
-  for (auto proc = __apps_start; proc < __apps_end; proc++) {
+  for (SECTION_ITER(apps, proc_def_t, proc)) {
     if (proc->name == cmd_str)
       return proc;
   }

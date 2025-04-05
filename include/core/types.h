@@ -151,3 +151,12 @@ constexpr size_t roundup(size_t sz, size_t align)
   return (sz + align - 1) & ~(align - 1);
 }
 
+#define SECTION_ADDR(name)                                                     \
+  __extern_C__ byte_t __##name##_load[], __##name##_start[], __##name##_end[]
+
+#define SECTION_INIT(name)                                                     \
+  _memcpy(__##name##_start, __##name##_load, __##name##_end - __##name##_start)
+
+#define SECTION_ITER(name, type, var)                                          \
+  type *var = (type *)__##name##_start; var < (type *)__##name##_end; var++
+

@@ -2,6 +2,7 @@
 
 #include "core/irq.h"
 #include "core/recover.h"
+#include "core/test.h"
 #include "core/types.h"
 #include "core/waitlist.h"
 #include "drivers/display.h"
@@ -131,23 +132,20 @@ void idle_task(void *)
 proc_def_t idle_proc_def = {"idle", IDLE, 8, idle_task};
 } // namespace
 
-__extern_C__ proc_def_t __startup_load[], __startup_start[], __startup_end[];
+SECTION_ADDR(startup);
+SECTION_ADDR(procs);
 
 __extern_C__ void _setup_startups(void)
 {
-  for (proc_def_t *proc = __startup_start; proc < __startup_end; proc++) {
+  for (SECTION_ITER(startup, proc_def_t, proc))
     reg_proc(proc, nullptr);
-  }
 }
 void setup_startups(void) __attribute((weak, alias("_setup_startups")));
 
-__extern_C__ proc_def_t __procs_load[], __procs_start[], __procs_end[];
-
 __extern_C__ void _setup_procs(void)
 {
-  for (proc_def_t *proc = __procs_start; proc < __procs_end; proc++) {
+  for (SECTION_ITER(procs, proc_def_t, proc))
     reg_proc(proc, nullptr);
-  }
 }
 void setup_procs(void) __attribute((weak, alias("_setup_procs")));
 

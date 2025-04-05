@@ -11,6 +11,17 @@ OUTPUT_FORMAT ("elf32-littlearm")
 /* Setting the entry address helps GDB to find the stack bottom */
 ENTRY(__reset)
 
+#define SECT(name) .name
+
+#define DEFINE_SECTION(name, prev)                                          \
+    __##name##_load = __##prev##_load + __##prev##_end - __##prev##_start;  \
+    SECT(name) : AT(__##name##_load) {                                      \
+        __##name##_start = .;                                               \
+        KEEP(*(SECT(name)))                                                 \
+        . = ALIGN(4);                                                       \
+        __##name##_end = .;                                                 \
+    } > RAM
+
 SECTIONS {
     .text : {
         KEEP(*(.vectors))
@@ -19,10 +30,10 @@ SECTIONS {
         KEEP(*(.init_array))
 
         . = ALIGN(4);
-        __etext = .;
+        __data_load = .;
     } > FLASH
 
-    .data : AT (__etext) {
+    .data : AT (__data_load) {
         __data_start = .;
 
         *(.data*)
@@ -41,37 +52,11 @@ SECTIONS {
         __bss_end = .;
     } > RAM
 
-    __recover_load = __etext + __data_end - __data_start;
-    .recover : AT (__recover_load) {
-        __recover_start = .;
-        KEEP(*(.recover)) ;
-        . = ALIGN(4);
-        __recover_end = .;
-    } > RAM
-
-    __startup_load = __recover_load + __recover_end - __recover_start;
-    .startup : AT (__startup_load) {
-        __startup_start = .;
-        KEEP(*(.startup)) ;
-        . = ALIGN(4);
-        __startup_end = .;
-    } > RAM
-
-    __procs_load = __startup_load + __startup_end - __startup_start;
-    .procs : AT (__procs_load) {
-        __procs_start = .;
-        KEEP(*(.procs)) ;
-        . = ALIGN(4);
-        __procs_end = .;
-    } > RAM
-
-    __apps_load = __procs_load + __procs_end - __procs_start;
-    .apps : AT (__apps_load) {
-        __apps_start = .;
-        KEEP(*(.apps)) ;
-        . = ALIGN(4);
-        __apps_end = .;
-    } > RAM
+    DEFINE_SECTION(recover, data)
+    DEFINE_SECTION(startup, recover)
+    DEFINE_SECTION(procs, startup)
+    DEFINE_SECTION(apps, procs)
+    DEFINE_SECTION(tests, apps)
 
     __end = .;
 
