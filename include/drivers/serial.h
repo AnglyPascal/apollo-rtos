@@ -21,30 +21,14 @@ void intr_putc(char ch);
 
 inline void (*putc)(char) = intr_putc;
 
-void getline(const char *prompt, char *buf, int nbuf);
-
 using listener_t = bool (*)(char);
 
 void register_listener(listener_t);
 void unregister_listener();
 
-class listener_guard
-{
-  bool do_listen;
-
-public:
-  listener_guard(listener_t listener, bool do_listen = true)
-      : do_listen(do_listen)
-  {
-    if (do_listen)
-      register_listener(listener);
-  }
-
-  ~listener_guard()
-  {
-    if (do_listen)
-      unregister_listener();
-  }
+struct listener_guard {
+  listener_guard(listener_t listener) { register_listener(listener); }
+  ~listener_guard() { unregister_listener(); }
 };
 
 } // namespace serial

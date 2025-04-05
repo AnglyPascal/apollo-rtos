@@ -10,17 +10,9 @@
     .global __run
     .thumb_func
 __run:
-    @ mrs r2, msp 
-    @ str r2, [r1]
-
     @ load idle proc's stack value 
     ldr r2, [r1]
     msr msp, r2
-
-    @@ msr msp, r1              @ Set up the stack
-    @@ movs r2, #2              @ Use psp for stack pointer
-    @@ msr control, r2
-
     isb                         @ Drain the pipeline
     bx r0                       @ Call the body
 

@@ -63,7 +63,7 @@ inline volatile state_t state{};
 
 #define clear_event(event)                                                     \
   do {                                                                         \
-    assert_dump(event, H_RESET);                                               \
+    assert(event, H_RESET);                                                    \
     event = 0;                                                                 \
   } while (0);
 
@@ -76,7 +76,6 @@ void init()
   new (&mtx) mutex<8>{"i2c"};
 }
 
-template <typename T = void>
 void handler(void)
 {
   intr_guard guard{I2C0_IRQ};
@@ -95,20 +94,32 @@ void handler(void)
   else if (state.stage == stage_t::W_CMD) {
     clear_event(I2C0.TXDSENT);
 
+    // still writing the command
     if (state.cmd_idx < state.cmd_sz) {
       auto cmd_idx = state.cmd_idx;
       I2C0.TXD = state.cmd[cmd_idx++];
       state.cmd_idx = cmd_idx;
-    } else if (state.data_sz == 0) {
+    }
+
+    // else, finished writing the command
+
+    // no data to send or receive, so stop
+    else if (state.data_sz == 0) {
       state.stage = stage_t::NACK;
       I2C0.STOP = 1;
-    } else if (state.mode == mode_t::WRITE) {
+    }
+
+    // if we're writing, then move to TX_DATA state
+    else if (state.mode == mode_t::WRITE) {
       state.stage = stage_t::TX_DATA;
 
       auto data_idx = state.data_idx;
       I2C0.TXD = state.data[data_idx++];
       state.data_idx = data_idx;
-    } else {
+    }
+
+    // we're reading, so move to RX_DATA state
+    else {
       state.stage = stage_t::RX_DATA;
 
       if (state.data_idx < state.data_sz - 1)
@@ -125,7 +136,10 @@ void handler(void)
     if (state.data_idx == state.data_sz) {
       state.stage = stage_t::NACK;
       I2C0.STOP = 1;
-    } else {
+    }
+
+    // more bytes to write
+    else {
       state.stage = stage_t::TX_DATA;
 
       auto data_idx = state.data_idx;
@@ -141,9 +155,13 @@ void handler(void)
     state.data[data_idx++] = (uint8_t)I2C0.RXD;
     state.data_idx = data_idx;
 
+    // finished reading, move to NACK
     if (state.data_idx == state.data_sz) {
       state.stage = stage_t::NACK;
-    } else {
+    }
+
+    // continue reading
+    else {
       state.stage = stage_t::RX_DATA;
 
       if (state.data_idx < state.data_sz - 1)
@@ -191,10 +209,12 @@ int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 
   I2C0.ADDRESS = addr;
 
-  intr_disable();
+  {
+    intr_guard guard{I2C0_IRQ};
 
-  I2C0.STARTTX = 1;
-  I2C0.TXD = *cmd;
+    I2C0.STARTTX = 1;
+    I2C0.TXD = *cmd;
+  }
 
   sched::wait(intr_chan);
 

@@ -1,6 +1,7 @@
 #include "core/recover.h"
 
 #include "core/boot.h"
+#include "core/hardware.h"
 #include "core/memory.h"
 #include "core/sched.h"
 #include "core/waitlist.h"
@@ -69,7 +70,7 @@ static_assert(alignof(entry_hd_t) == alignof(uint32_t));
 template <>
 struct alignas(uint32_t) entry_t<PROC> : entry_hd_t {
   const proc_def_t *proc_def;
-  uint32_t dummy;
+  _PADDING(4);
 
   void recover(lev_t curr_lev)
   {

@@ -67,7 +67,6 @@ STARTUP(shell, HIGH1, 256, param)
     auto cmd_def = match_cmd(cmd);
     if (cmd_def == nullptr) {
       debug<ERROR>("\r\nwrong command: \"%s\"\r\n", cmd);
-      buf.reset();
       continue;
     }
 
@@ -130,7 +129,7 @@ bool listener(char c)
   printf("\'%d\'\r\n", c);
   buf.reset();
 
-  return false;
+  return true;
 }
 
 } // namespace

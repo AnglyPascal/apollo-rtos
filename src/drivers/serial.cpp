@@ -45,7 +45,7 @@ void init(void)
 
 namespace
 {
-class listeners_t
+class
 {
   listener_t stack[16] = {nullptr};
   size_t idx = 0;
@@ -67,9 +67,7 @@ public:
         break;
     }
   }
-};
-
-listeners_t listeners;
+} listeners;
 } // namespace
 
 void register_listener(listener_t listener) { listeners.push(listener); }
