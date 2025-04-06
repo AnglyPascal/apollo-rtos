@@ -10,6 +10,7 @@
 // arm gcc specific attributes
 #define __always_inline__ __attribute__((always_inline))
 #define __noinline__ __attribute__((noinline))
+#define __weak__ __attribute__((weak))
 #define __extern_C__ extern "C"
 #define __naked__ __attribute__((naked))
 
@@ -139,16 +140,15 @@ inline constexpr size_t pg_sz = 1024;
 
 inline void trigger_hardfault() { asm("udf #0"); }
 
-inline void trigger_reset()
-{
-  asm("ldr r0, =0xE000ED0C");
-  asm("ldr r1, =0x05FA0004");
-  asm("str r1, [r0]");
-}
+inline void trigger_reset() { *(volatile uint32_t *)0xE000ED0C = 0x05FA0004; }
 
 constexpr size_t roundup(size_t sz, size_t align)
 {
-  return (sz + align - 1) & ~(align - 1);
+  auto upper = sz + align - 1;
+  if ((align & (align - 1)) == 0)
+    return upper & ~(align - 1);
+  else
+    return upper - upper % align;
 }
 
 #define SECTION_ADDR(name)                                                     \
@@ -158,5 +158,7 @@ constexpr size_t roundup(size_t sz, size_t align)
   _memcpy(__##name##_start, __##name##_load, __##name##_end - __##name##_start)
 
 #define SECTION_ITER(name, type, var)                                          \
-  type *var = (type *)__##name##_start; var < (type *)__##name##_end; var++
+  type *var = (type *)__##name##_start;                                        \
+  var < (type *)__##name##_end;                                                \
+  var++
 

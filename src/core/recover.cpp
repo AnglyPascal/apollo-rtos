@@ -76,6 +76,7 @@ struct alignas(uint32_t) entry_t<PROC> : entry_hd_t {
   {
     if (lev < curr_lev)
       return;
+    debug<ERROR>("lev: %d\r\n", lev);
     sched::reg_proc(proc_def, copy_data());
   }
 };

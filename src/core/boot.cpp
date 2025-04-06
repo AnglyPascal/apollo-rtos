@@ -43,10 +43,11 @@ struct boot_stat_t {
 
   void trace() const
   {
-    kprintf("boot level: %s\r\n", boot::lev_str());
-    kprintf(
-        "boot stat: n_flash = %d, n_boot = %d, n_power = %d, n_reset = %d\r\n",
-        n_flash, n_boot, n_power, n_reset);
+    kprintf("boot level: " BOLD YELLOW "%s\r\n" DEFAULT, boot::lev_str());
+    kprintf("boot stat: " BLUE "n_flash" DEFAULT " = %d, " BLUE "n_boot" DEFAULT
+            " = %d, " BLUE "n_power" DEFAULT " = %d, " BLUE "n_reset" DEFAULT
+            " = %d\r\n",
+            n_flash, n_boot, n_power, n_reset);
   }
 };
 } // namespace
@@ -80,19 +81,20 @@ void init()
   else
     boot_lev = boot_lev_t::RESET;
 
-  {
-    // FIXME: if the mapping is not shared, it uses heap::malloc, but no process
-    // is set up, so malloc's attempt to write to process' used_hd fails
-    auto file = fram::open<boot_stat_t>(boot_fn,
-                                        O_WRITE | O_CREATE | O_PERM | O_SHARED);
-    auto stat = file.mmap<boot_stat_t>();
-
-    stat->incr(boot_lev);
-    stat->trace();
-
-    file.store();
-  }
-
   POWER.RESETREAS = 0xFFFFFFFF;
+}
+
+void stat()
+{
+  // FIXME: if the mapping is not shared, it uses heap::malloc, but no process
+  // is set up, so malloc's attempt to write to process' used_hd fails
+  auto file =
+      fram::open<boot_stat_t>(boot_fn, O_WRITE | O_CREATE | O_PERM | O_SHARED);
+  auto stat = file.mmap<boot_stat_t>();
+
+  stat->incr(lev());
+  stat->trace();
+
+  file.store();
 }
 } // namespace boot

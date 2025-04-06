@@ -5,13 +5,11 @@
 #include "utility/args.h"
 #include "utility/debug.h"
 
-namespace shell
-{
 namespace
 {
 SECTION_ADDR(apps);
 
-proc_def_t *match_cmd(string cmd_str)
+__always_inline__ inline proc_def_t *match_cmd(string cmd_str)
 {
   for (SECTION_ITER(apps, proc_def_t, proc)) {
     if (proc->name == cmd_str)
@@ -24,7 +22,47 @@ chan_t<1> chan;
 args_buffer_t buf;
 static_assert(sizeof(buf) == 0x44);
 
-bool listener(char c);
+bool listener(char c)
+{
+  switch (c) {
+  case DEL:
+  case BS:
+    printf("\b \b");
+    buf.pop();
+    return true;
+
+  case CTRL('d'):
+    clear_screen();
+    trigger_reset();
+    return true;
+
+  case CTRL('l'):
+    clear_screen();
+    return true;
+
+  case CTRL('c'):
+    buf.reset();
+    printf("^C\r\n");
+    return true;
+
+  default:
+    serial::putc(c);
+
+    if (c >= 32 && c < 127) {
+      buf.push(c);
+      return true;
+    }
+
+    if (c == '\r' || c == '\n') {
+      sched::notify(chan);
+      return true;
+    }
+
+    printf("\'%d\'\r\n", c);
+    buf.reset();
+    return true;
+  }
+}
 
 STARTUP(shell, HIGH1, 256, param)
 {
@@ -89,49 +127,5 @@ STARTUP(shell, HIGH1, 256, param)
   }
 }
 
-bool listener(char c)
-{
-  if (c == DEL || c == BS) {
-    printf("\b \b");
-    buf.pop();
-    return true;
-  }
-
-  if (c == CTRL('d')) {
-    clear_screen();
-    trigger_reset();
-    return true;
-  }
-
-  if (c == CTRL('l')) {
-    clear_screen();
-    return true;
-  }
-
-  if (c == CTRL('c')) {
-    buf.reset();
-    printf("^C\r\n");
-    return true;
-  }
-
-  serial::putc(c);
-
-  if (c >= 32 && c < 127) {
-    buf.push(c);
-    return true;
-  }
-
-  if (c == '\r' || c == '\n') {
-    sched::notify(chan);
-    return true;
-  }
-
-  printf("\'%d\'\r\n", c);
-  buf.reset();
-
-  return true;
-}
-
 } // namespace
-} // namespace shell
 

@@ -11,7 +11,9 @@ __extern_C__ void hardfault_handler_body(uint32_t *fault_stack)
 
   uint32_t pc = fault_stack[6];
   uint32_t lr = fault_stack[5];
-  debug<FATAL>("\r\nhardfault\r\npc: %x, lr: %x\r\n", pc, lr);
+  debug<FATAL>("\r\n" BOLD RED "hardfault" DEFAULT "\r\npc: " BOLD YELLOW
+               "%x" DEFAULT ", lr: " BOLD YELLOW "%x" DEFAULT "\r\n",
+               pc, lr);
 
   while (1) {
     char ch = serial::getc();

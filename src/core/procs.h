@@ -9,9 +9,9 @@ namespace
 {
 const char *states[] = {
     "[empty]",
-    "[runnable]",
-    "[asleep]",
-    "[running]",
+    GREEN "[runnable]" DEFAULT,
+    BLUE "[asleep]" DEFAULT,
+    YELLOW "[running]" DEFAULT,
 };
 
 const char *priority_levels[] = {
@@ -36,10 +36,12 @@ struct proc_t {
   bool term_req = false;
   signals_t signals = {};
 
-  void trace(pid_t pid, uint32_t total_ticks)
+  void trace(pid_t pid, uint32_t total_ticks, bool curr)
   {
     int state = 0;
-    if (priority > 0)
+    if (curr)
+      state = 3;
+    else if (priority > 0)
       state = 1;
     else if (priority < 0)
       state = 2;
@@ -60,8 +62,8 @@ struct proc_t {
       prio_lev = 5;
 
     rational_t perc{(int32_t)def->ticks * 100, total_ticks};
-    debug<INFO>("  |  %d. %s : (%s), %s, %f%\r\n", pid, name.str,
-                priority_levels[prio_lev], states[state], perc);
+    debug<INFO>("  |  %d. " BLUE "%s" DEFAULT " : (%s), %s, %f%\r\n", pid,
+                name.str, priority_levels[prio_lev], states[state], perc);
     debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", stack, stk_sz,
                  stk_ptr);
     debug<TRACE>("  |    heap usage:\r\n");
@@ -109,12 +111,12 @@ public:
     return max_proc;
   }
 
-  void trace(uint32_t total_ticks)
+  void trace(pid_t curr, uint32_t total_ticks)
   {
     for (auto pid = 0; pid < _N_PROCS; pid++) {
       auto &proc = procs[pid];
       if (proc.priority != EMPTY)
-        proc.trace(pid, total_ticks);
+        proc.trace(pid, total_ticks, pid == curr);
     }
   }
 

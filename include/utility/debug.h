@@ -28,10 +28,19 @@ template <debug_t level, typename... Args>
 void debug(const char *fmt, Args... args)
 {
   if constexpr (level <= DEBUG_LEV) {
-    if constexpr (level <= ERROR)
+    if constexpr (level <= ERROR) {
+      kprintf(BOLD RED);
       kprintf(fmt, args...);
-    else
+      kprintf(DEFAULT);
+    } else {
+      if constexpr (level == WARN)
+        printf(YELLOW);
+      else if constexpr (level == INFO)
+        printf(BLUE);
+
       printf(fmt, args...);
+      printf(DEFAULT);
+    }
   }
 }
 
@@ -46,7 +55,9 @@ void __assert(bool ex, Args &&...args)
 
   auto dump = []<typename... Ts>(const char *src, const char *func,
                                  Ts &&...ts) {
-    debug<ERROR>("\r\nassertion failed ``%s``, in %s\r\n", src, func);
+    debug<ERROR>("\r\n assertion " BOLD RED "failed" DEFAULT " ``" RED
+                 "%s" DEFAULT "``, in " YELLOW "%s" DEFAULT "\r\n",
+                 src, func);
     if constexpr (sizeof...(ts) != 0)
       debug<ERROR>(std::forward<Ts>(ts)...);
   };

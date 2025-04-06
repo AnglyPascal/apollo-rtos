@@ -13,5 +13,7 @@ namespace boot
 {
 boot_lev_t lev();
 const char *lev_str();
+void stat();
+
 void init();
 } // namespace boot

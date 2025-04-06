@@ -28,7 +28,10 @@ inline void off() { GPIO.OUTCLR = LED_MASK; }
 namespace display
 {
 void show(const image_t);
+
 void image_set(int x, int y, image_t img);
+void image_set(int x, int y);
+
 void reset();
 void init();
 } // namespace display

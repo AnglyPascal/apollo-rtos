@@ -10,6 +10,7 @@
 #include "utility/debug.h"
 
 __extern_C__ byte_t __end[], __stack[], __stack_limit;
+__extern_C__ bool __has_tests;
 
 SECTION_ADDR(data);
 SECTION_ADDR(bss);
@@ -18,7 +19,6 @@ SECTION_ADDR(recover);
 SECTION_ADDR(startup);
 SECTION_ADDR(procs);
 SECTION_ADDR(apps);
-SECTION_ADDR(tests);
 
 template <debug_t debug_lev>
 inline void debug_addr()
@@ -32,19 +32,6 @@ inline void debug_addr()
 
   debug<debug_lev>("\tbss_start:  %x\r\n", __bss_start);
   debug<debug_lev>("\tbss_end:    %x\r\n", __bss_end);
-}
-
-void run_tests()
-{
-  for (SECTION_ITER(tests, test_t, test)) {
-    auto [name, func] = *test;
-    auto pass = func();
-
-    if (pass)
-      printf("passed: %s\r\n", name);
-    else
-      printf("failed: %s\r\n", name);
-  }
 }
 
 __extern_C__ void __reset(void)
@@ -64,7 +51,6 @@ __extern_C__ void __reset(void)
   SECTION_INIT(startup);
   SECTION_INIT(procs);
   SECTION_INIT(apps);
-  SECTION_INIT(tests);
 
   debug_addr<TRACE>();
 
@@ -81,7 +67,10 @@ __extern_C__ void __reset(void)
   if (boot::lev() != boot_lev_t::RESET)
     SECTION_INIT(recover);
 
-  run_tests();
+  if (__has_tests)
+    tests::run();
+  else
+    boot::stat();
 
   sched::init();
 

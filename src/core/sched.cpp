@@ -77,8 +77,8 @@ __noinline__ void change_proc()
 
 __extern_C__ void *cxt_switch(void *stk_ptr)
 {
-  assert_dump(cpu.hi_proc->priority > 0, H_RESET);
-  assert_dump(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET);
+  assert(cpu.hi_proc->priority > 0, H_RESET);
+  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET);
 
   intr_guard guard;
 
@@ -135,19 +135,17 @@ proc_def_t idle_proc_def = {"idle", IDLE, 8, idle_task};
 SECTION_ADDR(startup);
 SECTION_ADDR(procs);
 
-__extern_C__ void _setup_startups(void)
+void __weak__ setup_startups(void)
 {
   for (SECTION_ITER(startup, proc_def_t, proc))
     reg_proc(proc, nullptr);
 }
-void setup_startups(void) __attribute((weak, alias("_setup_startups")));
 
-__extern_C__ void _setup_procs(void)
+void __weak__ setup_procs(void)
 {
   for (SECTION_ITER(procs, proc_def_t, proc))
     reg_proc(proc, nullptr);
 }
-void setup_procs(void) __attribute((weak, alias("_setup_procs")));
 
 /* enter idle_task with specified stack (see mpx.s) */
 __extern_C__ void __run(runnable_t task, byte_t **stk_ptr);
@@ -174,8 +172,9 @@ void init()
 
 void trace()
 {
-  debug<INFO>("curr_proc: %s\r\n", cpu.curr_proc->name.str);
-  procs.trace(timer::total_ticks());
+  debug<INFO>("curr_proc: " YELLOW "%s" DEFAULT "\r\n",
+              cpu.curr_proc->name.str);
+  procs.trace(curr_proc::pid(), timer::total_ticks());
 }
 
 void default_alarm(void *ptr)
@@ -207,9 +206,9 @@ void assert_stack()
   auto stack_end = (uint8_t *)stack + cpu.curr_proc->stk_sz;
   auto curr_stk = (void *)get_msp();
 
-  assert_dump(stack <= curr_stk && curr_stk <= stack_end, H_RESET,
-              "\r\n%s, %x, %x, %x\r\n", cpu.curr_proc->name.str, stack,
-              curr_stk, stack_end);
+  assert(stack <= curr_stk && curr_stk <= stack_end, H_RESET,
+         "\r\n%s, %x, %x, %x\r\n", cpu.curr_proc->name.str, stack, curr_stk,
+         stack_end);
 }
 
 void tick() { cpu.curr_proc->def->tick(); }

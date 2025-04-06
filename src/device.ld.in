@@ -56,7 +56,9 @@ SECTIONS {
     DEFINE_SECTION(startup, recover)
     DEFINE_SECTION(procs, startup)
     DEFINE_SECTION(apps, procs)
+
     DEFINE_SECTION(tests, apps)
+    __has_tests = __tests_start < __tests_end;
 
     __end = .;
 
