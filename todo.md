@@ -25,15 +25,11 @@
 
 ## Testing
 
-- automatic registration of tests:
-    - tests are functions
-    - the top level testing framework process calls the tests one by one
-    - each test then might spawn some processes, and then it waits for those processes
-        to return <-- TODO -->
-        - this could be done manually, using some shared variables
-            - for now this is the solution
-        - could be made into a feature
-    - need a way to turn off start-up processes: shell, display etc
+- each test then might spawn some processes, and then it waits for those processes
+    to return <-- TODO -->
+    - this could be done manually, using some shared variables
+        - for now this is the solution
+    - could be made into a feature
 
 * tests that need to be done
     - scheduler ordering is based on the priority
@@ -41,7 +37,6 @@
         - need to keep one timer running even after interrupts are turned on before and
             after waitlist
     - waitlist doesn't take too long to run
-    - 
 
 
 ## Report:

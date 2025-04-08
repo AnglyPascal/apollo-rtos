@@ -456,7 +456,7 @@ Finally, the top-level file system implementation maintains:
     title={\file{include/fs/fs\_impl.h}},
     linebackgroundcolor={}
 ]
-template <typename desc_t, desc_t desc>
+template <desc_t desc>
 class fs_impl_t
 {
   // the backend implementation
@@ -489,10 +489,10 @@ flash and FRAM file systems, the instantiation process becomes straightforward:
     linebackgroundcolor={}
 ]
 // instantiate with the parameters for the flash fs
-class flash : public fs_impl_t<_flash::desc_t, _flash::desc> { };
+class flash : public fs_impl_t<_flash::desc> { };
 
 // the same for the fram fs
-class fram : public fs_impl_t<_fram::desc_t, _fram::desc> { };
+class fram : public fs_impl_t<_fram::desc> { };
 \end{lstlisting}
 
 
