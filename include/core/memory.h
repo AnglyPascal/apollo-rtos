@@ -13,7 +13,7 @@ struct chunk_t {
   void insert_next(chunk_t *chunk)
   {
     chunk->next = next;
-    chunk->prev = nullptr;
+    chunk->prev = this;
 
     if (next != nullptr)
       next->prev = chunk;

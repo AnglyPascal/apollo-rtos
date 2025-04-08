@@ -7,9 +7,11 @@
 #include "utility/debug.h"
 #include "utility/mutex.h"
 
-template <typename desc_t, desc_t desc>
+template <auto desc>
 class fs_impl_t
 {
+  using desc_t = std::remove_cv_t<decltype(desc)>;
+
 private:
   using inode_t = _inode_t<desc_t, desc>;
   using fs_t = _fs_t<desc_t, desc>;
