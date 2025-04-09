@@ -10,6 +10,35 @@ template <size_t chan_len>
 struct chan_t : public circular_buffer<pid_t, chan_len> {
 };
 
+namespace sched
+{
+template <size_t chan_len>
+void wait(chan_t<chan_len> &chan);
+
+template <size_t chan_len>
+void notify(chan_t<chan_len> &chan);
+} // namespace sched
+
+struct barrier_t {
+  const size_t num;
+  size_t arrived = 0;
+  chan_t<1> chan;
+
+  barrier_t(size_t num) : num{num} {}
+
+  void acquire()
+  {
+    if (++arrived == num)
+      sched::wait(chan);
+  }
+
+  void release()
+  {
+    if (--arrived == 0)
+      sched::notify(chan);
+  }
+};
+
 struct proc_def_t {
   const string name;
   const priority_t priority;
@@ -63,6 +92,21 @@ void wait(chan_t<chan_len> &chan)
   intr_guard guard;
   chan.enqueue(curr_proc::pid());
   sleep();
+}
+
+void notify_exit(pid_t pid, barrier_t *bar);
+
+template <typename... Args>
+  requires(std::same_as<Args, pid_t> && ...)
+void wait(Args... args)
+{
+  barrier_t bar{sizeof...(args)};
+  (
+      [&]() {
+        notify_exit(args, &bar);
+        bar.acquire();
+      }(),
+      ...);
 }
 
 template <size_t chan_len>

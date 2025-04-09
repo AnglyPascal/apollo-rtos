@@ -14,15 +14,11 @@ PROC_MANUAL(proc2, HIGH2, 8, param) { results[idx++] = *(uint32_t *)param; }
 
 SYS_TEST(sched_basic_priority)
 {
-  sched::reg_proc(&PROC_DEF(proc0), 2);
-  sched::reg_proc(&PROC_DEF(proc1), 1);
-  sched::reg_proc(&PROC_DEF(proc2), 0);
+  auto p0 = sched::reg_proc(&PROC_DEF(proc0), 2);
+  auto p1 = sched::reg_proc(&PROC_DEF(proc1), 1);
+  auto p2 = sched::reg_proc(&PROC_DEF(proc2), 0);
 
-  // FIXME: write a proper await mechanism
-  sched::decr_priority(LOW1);
-  while (idx != 3)
-    ;
-  sched::incr_priority(HIGHEST);
+  sched::wait(p0, p1, p2);
 
   return results[0] == 0 && results[1] == 1 && results[2] == 2;
 }

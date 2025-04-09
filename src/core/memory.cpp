@@ -103,7 +103,7 @@ namespace heap
 
 namespace
 {
-allocator<alloc_heap, 8> pool;
+allocator<alloc_heap, 4> pool;
 }
 
 void *malloc(size_t sz)
@@ -156,7 +156,7 @@ namespace kmem
 {
 namespace
 {
-allocator<alloc_heap, 8> kpool;
+allocator<alloc_heap, 4> kpool;
 }
 
 void *kmalloc(size_t sz) { return kpool.alloc(sz); }

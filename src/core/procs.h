@@ -20,6 +20,7 @@ const char *priority_levels[] = {
 } // namespace
 
 struct proc_def_t;
+struct barrier_t;
 
 struct proc_t {
   string name = {};
@@ -29,12 +30,23 @@ struct proc_t {
   byte_t *stack = nullptr;
   size_t stk_sz = 0;
 
-  const proc_def_t *def;
-  void *param;
+  const proc_def_t *def = nullptr;
+  void *param = nullptr;
   chunk_t used_hd = {};
 
   bool term_req = false;
+  barrier_t *bar = nullptr;
   signals_t signals = {};
+
+  void reset()
+  {
+    priority = EMPTY;
+
+    term_req = false;
+    bar = nullptr;
+
+    signals = {};
+  }
 
   void trace(pid_t pid, uint32_t total_ticks, bool curr)
   {
@@ -91,7 +103,7 @@ public:
     return &procs[pid];
   }
 
-  inline void dealloc(proc_t *proc) { proc->priority = EMPTY; }
+  inline void dealloc(proc_t *proc) { proc->reset(); }
 
   proc_t *max_priority()
   {

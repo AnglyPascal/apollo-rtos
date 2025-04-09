@@ -35,8 +35,13 @@ volatile time_t last_checked = 0;
 
 void exit()
 {
-  kmem::kfree(cpu.curr_proc->param);
-  heap::cleanup(&cpu.curr_proc->used_hd);
+  auto proc = cpu.curr_proc;
+
+  if (proc->bar != nullptr)
+    proc->bar->release();
+
+  kmem::kfree(proc->param);
+  heap::cleanup(&proc->used_hd);
 
   intr_disable();
   decr_priority(0);
@@ -65,6 +70,13 @@ pid_t reg_proc(const proc_def_t *def, void *param)
   return pid;
 }
 
+void notify_exit(pid_t pid, barrier_t *bar)
+{
+  auto proc = procs[pid];
+  assert(proc->bar == nullptr, S_RESET);
+  proc->bar = bar;
+}
+
 bool needs_swap() { return cpu.hi_proc != cpu.curr_proc; }
 
 __noinline__ void change_proc()
@@ -82,11 +94,12 @@ __extern_C__ void *cxt_switch(void *stk_ptr)
 
   intr_guard guard;
 
-  if (cpu.curr_proc->priority == 0) {
-    stack_allocator.release((proc_t *)cpu.curr_proc);
-    procs.dealloc((proc_t *)cpu.curr_proc);
+  auto proc = (proc_t *)cpu.curr_proc;
+  if (proc->priority == 0) {
+    stack_allocator.release(proc);
+    procs.dealloc(proc);
   } else {
-    cpu.curr_proc->stk_ptr = (byte_t *)stk_ptr;
+    proc->stk_ptr = (byte_t *)stk_ptr;
   }
 
   cpu.curr_proc = cpu.hi_proc;
