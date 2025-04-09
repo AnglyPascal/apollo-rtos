@@ -10,7 +10,8 @@ namespace tests
 SEC_ADDR(unit_tests);
 SEC_ADDR(sys_tests);
 
-size_t idx __recover_section__ = 0;
+size_t i_unit __recover_section__ = 0;
+size_t i_sys __recover_section__ = 0;
 size_t n_unit_tests __recover_section__ = 0;
 size_t n_sys_tests __recover_section__ = 0;
 
@@ -54,11 +55,11 @@ inline void report()
   kprintf("\r\n");
 }
 
-inline void run_tests(test_t *tests, size_t n_tests)
+inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
 {
   while (idx < n_tests) {
     auto [name, func, passed] = tests[idx++];
-    kprintf("running test %s\r\n", name);
+    debug<TRACE>("running test %s\r\n", name);
     *passed = func();
     trigger_reset();
   }
@@ -66,8 +67,7 @@ inline void run_tests(test_t *tests, size_t n_tests)
 
 PROC_MANUAL(sys_tests, HIGHEST, 512, param)
 {
-  idx = 0;
-  run_tests((test_t *)SEC_START(sys_tests), n_sys_tests);
+  run_tests((test_t *)SEC_START(sys_tests), i_sys, n_sys_tests);
   report();
 }
 
@@ -84,7 +84,7 @@ void run()
     SEC_INIT(sys_tests);
   }
 
-  run_tests((test_t *)SEC_START(unit_tests), n_unit_tests);
+  run_tests((test_t *)SEC_START(unit_tests), i_unit, n_unit_tests);
   sched::reg_proc(&PROC_DEF(sys_tests), nullptr);
 }
 

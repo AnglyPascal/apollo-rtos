@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/memory.h"
 #include "core/types.h"
 #include "utility/circular_buffer.h"
 
@@ -32,7 +33,21 @@ namespace sched
 void init();
 
 pid_t reg_proc(const proc_def_t *proc_def, void *param);
+
+template <typename T>
+  requires(!std::is_pointer_v<std::remove_reference_t<std::remove_cv_t<T>>> &&
+           !std::same_as<T, nullptr_t>)
+pid_t reg_proc(const proc_def_t *proc_def, T &&t)
+{
+  return reg_proc(proc_def, kmem::knew<T>(std::forward<T>(t)));
+}
+
 void incr_priority(pid_t pid, priority_t priority);
+inline void incr_priority(priority_t priority)
+{
+  return incr_priority(curr_proc::pid(), priority);
+}
+
 void decr_priority(priority_t priority);
 
 inline constexpr time_t invoke_interval = 2048;

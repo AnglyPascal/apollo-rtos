@@ -78,3 +78,4 @@ void __assert(bool ex, Args &&...args)
 #define assert_dump(EX, LEV, ...)                                              \
   __assert<LEV>((EX), #EX, __func__, ##__VA_ARGS__)
 
+#define halt() assert(false, H_RESET)
