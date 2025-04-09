@@ -224,7 +224,7 @@ guard_task::~guard_task()
   file.store(tbl.offset(&entry), sizeof(entry));
 }
 
-SECTION_ADDR(recover);
+SEC_ADDR(recover);
 
 void init()
 {
@@ -235,7 +235,7 @@ void init()
 
   // initialize recovery section
   if (boot_lev != boot_lev_t::RESET)
-    SECTION_INIT(recover);
+    SEC_INIT(recover);
 
   if (boot_lev == boot_lev_t::BOOT || boot_lev == boot_lev_t::FLASH) {
     tbl.reset();

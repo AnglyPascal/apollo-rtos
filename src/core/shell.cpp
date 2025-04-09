@@ -7,11 +7,11 @@
 
 namespace
 {
-SECTION_ADDR(apps);
+SEC_ADDR(apps);
 
 __always_inline__ inline proc_def_t *match_cmd(string cmd_str)
 {
-  for (SECTION_ITER(apps, proc_def_t, proc)) {
+  for (SEC_ITER(apps, proc_def_t, proc)) {
     if (proc->name == cmd_str)
       return proc;
   }

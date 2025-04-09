@@ -2,41 +2,90 @@
 #include "core/boot.h"
 #include "core/memory.h"
 #include "core/recover.h"
+#include "core/sched.h"
 #include "utility/debug.h"
 
 namespace tests
 {
-SECTION_ADDR(tests);
+SEC_ADDR(unit_tests);
+SEC_ADDR(sys_tests);
 
-int idx __recover_section__ = 0;
+size_t idx __recover_section__ = 0;
+size_t n_unit_tests __recover_section__ = 0;
+size_t n_sys_tests __recover_section__ = 0;
+
+inline void report()
+{
+  boot::stat();
+
+  int passed_tests = 0;
+  int total_tests = 0;
+
+  auto total_result = [&]() {
+    (passed_tests == total_tests)
+        ? kprintf(GREEN "all")
+        : kprintf(BOLD RED "(%d/%d)", passed_tests, total_tests);
+    kprintf(" tests passed" DEFAULT "\r\n");
+  };
+
+  auto result = [&](auto test) {
+    (*test->passed)
+        ? kprintf(BLUE "%s: " DEFAULT GREEN "Passed" DEFAULT "\r\n", test->name)
+        : kprintf(BOLD BLUE "%s: " DEFAULT RED "Failed" DEFAULT "\r\n",
+                  test->name);
+
+    passed_tests += *test->passed;
+    total_tests++;
+  };
+
+  kprintf("\r\n" BOLD "Unit test results:" DEFAULT "\r\n");
+  for (SEC_ITER(unit_tests, const test_t, test))
+    result(test);
+  total_result();
+
+  passed_tests = 0;
+  total_tests = 0;
+
+  kprintf("\r\n" BOLD "System test results:" DEFAULT "\r\n");
+  for (SEC_ITER(sys_tests, const test_t, test))
+    result(test);
+  total_result();
+
+  kprintf("\r\n");
+}
+
+inline void run_tests(test_t *tests, size_t n_tests)
+{
+  while (idx < n_tests) {
+    auto [name, func, passed] = tests[idx++];
+    kprintf("running test %s\r\n", name);
+    *passed = func();
+    trigger_reset();
+  }
+}
+
+PROC_MANUAL(sys_tests, HIGHEST, 512, param)
+{
+  idx = 0;
+  run_tests((test_t *)SEC_START(sys_tests), n_sys_tests);
+  report();
+}
 
 void run()
 {
-  SECTION_INIT(tests);
+  n_unit_tests = SEC_LENGTH(unit_tests, test_t);
+  n_sys_tests = SEC_LENGTH(sys_tests, test_t);
 
-  int i = 0;
-  for (SECTION_ITER(tests, test_t, test)) {
-    if (i++ != idx)
-      continue;
+  if (n_unit_tests == 0 && n_sys_tests == 0)
+    return boot::stat();
 
-    auto [name, func, passed] = *test;
-    *passed = func();
-
-    idx++;
-    trigger_reset();
+  if (boot::lev() != boot_lev_t::RESET) {
+    SEC_INIT(unit_tests);
+    SEC_INIT(sys_tests);
   }
 
-  boot::stat();
-  kprintf("\r\n" BOLD "Test results:" DEFAULT "\r\n");
-
-  for (SECTION_ITER(tests, const test_t, test)) {
-    auto [name, func, passed] = *test;
-
-    if (*passed)
-      kprintf(BLUE "%s: " DEFAULT GREEN "Passed" DEFAULT "\r\n", name);
-    else
-      kprintf(BOLD BLUE "%s: " DEFAULT RED "Failed" DEFAULT "\r\n", name);
-  }
+  run_tests((test_t *)SEC_START(unit_tests), n_unit_tests);
+  sched::reg_proc(&PROC_DEF(sys_tests), nullptr);
 }
 
 } // namespace tests

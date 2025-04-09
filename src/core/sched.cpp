@@ -118,32 +118,29 @@ void decr_priority(priority_t priority)
 
 namespace
 {
-
 static pid_t IDLE_PID = 0;
 
-void idle_task(void *)
+PROC_MANUAL(idle, IDLE, 8, param)
 {
   intr_enable();
   while (true) {
     change_proc(); // NOTE: comment to test invoker
   }
 }
-
-proc_def_t idle_proc_def = {"idle", IDLE, 8, idle_task};
 } // namespace
 
-SECTION_ADDR(startup);
-SECTION_ADDR(procs);
+SEC_ADDR(startup);
+SEC_ADDR(procs);
 
 void __weak__ setup_startups(void)
 {
-  for (SECTION_ITER(startup, proc_def_t, proc))
+  for (SEC_ITER(startup, proc_def_t, proc))
     reg_proc(proc, nullptr);
 }
 
 void __weak__ setup_procs(void)
 {
-  for (SECTION_ITER(procs, proc_def_t, proc))
+  for (SEC_ITER(procs, proc_def_t, proc))
     reg_proc(proc, nullptr);
 }
 
@@ -156,7 +153,7 @@ void init()
 {
   intr_disable();
 
-  IDLE_PID = reg_proc(&idle_proc_def, nullptr);
+  IDLE_PID = reg_proc(&PROC_DEF(idle), nullptr);
   cpu.curr_proc = procs[IDLE_PID];
 
   setup_startups();
@@ -167,7 +164,7 @@ void init()
 
   cpu.set_up = true;
   cpu.curr_proc->stk_ptr = cpu.curr_proc->stack + cpu.curr_proc->stk_sz - 16;
-  __run(idle_task, &cpu.curr_proc->stk_ptr);
+  __run(PROC_FUNC(idle), &cpu.curr_proc->stk_ptr);
 }
 
 void trace()

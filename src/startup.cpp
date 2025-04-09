@@ -9,14 +9,12 @@
 #include "fs/fs.h"
 #include "utility/debug.h"
 
-__extern_C__ bool __has_tests;
+SEC_ADDR(data);
+SEC_ADDR(bss);
 
-SECTION_ADDR(data);
-SECTION_ADDR(bss);
-
-SECTION_ADDR(startup);
-SECTION_ADDR(procs);
-SECTION_ADDR(apps);
+SEC_ADDR(startup);
+SEC_ADDR(procs);
+SEC_ADDR(apps);
 
 __extern_C__ void __reset(void)
 {
@@ -29,12 +27,12 @@ __extern_C__ void __reset(void)
   // protect the first half of the flash
   MPU.PROTENSET0 = 0xFFFFFFFF;
 
-  SECTION_INIT(data);
-  SECTION_ZERO(bss);
+  SEC_INIT(data);
+  SEC_ZERO(bss);
 
-  SECTION_INIT(startup);
-  SECTION_INIT(procs);
-  SECTION_INIT(apps);
+  SEC_INIT(startup);
+  SEC_INIT(procs);
+  SEC_INIT(apps);
 
   led::init();
   serial::init();
@@ -44,13 +42,9 @@ __extern_C__ void __reset(void)
   fs::init();
 
   boot::init();
+
   recover::init();
-
-  if (__has_tests)
-    tests::run();
-  else
-    boot::stat();
-
+  tests::run();
   sched::init();
 
   // should never get here

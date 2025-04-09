@@ -1,11 +1,5 @@
-#TODO:
-
-## Error handling:
-
-- fatal: causes hardfault, requires manual intervention, clears out the hardware setup?
-- error: causes soft reset, flushes i2c etc? 
-- warn: terminates the current process by sending a kill signal
-
+TODO
+----
 
 ## hardware setup
 
@@ -14,19 +8,18 @@
 - setup magnetometer
 - radio
 
+
 ## new features
 
 - trace unification, and dump signal
 - message pass signals
 - character files
 
-- why can you press ctrl-D and cause reset when the reset table is being set up??
-
 
 ## Testing
 
 - each test then might spawn some processes, and then it waits for those processes
-    to return <-- TODO -->
+    to return
     - this could be done manually, using some shared variables
         - for now this is the solution
     - could be made into a feature

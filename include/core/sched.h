@@ -70,15 +70,17 @@ void notify_all(chan_t<chan_len> &chan)
 void trace();
 } // namespace sched
 
-#define DEF(name) __##name##_def
+#define PROC_DEF(name) __##name##_def
+#define PROC_FUNC(name) __##name##_func
 
 #define DEF_MACRO(sec, name, priority, stk_sz, param)                          \
-  void __##name##_func(void *);                                                \
-  const proc_def_t __attribute__((section(#sec), __used__)) DEF(name){         \
-      #name, priority, stk_sz, __##name##_func};                               \
-  void __##name##_func(void *param)
+  void PROC_FUNC(name)(void *);                                                \
+  const proc_def_t __attribute__((section(#sec), __used__)) PROC_DEF(name){    \
+      #name, priority, stk_sz, PROC_FUNC(name)};                               \
+  void PROC_FUNC(name)(void *param)
 
 #define STARTUP(...) DEF_MACRO(.startup, ##__VA_ARGS__)
 #define PROC(...) DEF_MACRO(.procs, ##__VA_ARGS__)
 #define APP(...) DEF_MACRO(.apps, ##__VA_ARGS__)
+#define PROC_MANUAL(...) DEF_MACRO(.data, ##__VA_ARGS__)
 

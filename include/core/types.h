@@ -151,17 +151,27 @@ constexpr size_t roundup(size_t sz, size_t align)
     return upper - upper % align;
 }
 
-#define SECTION_ADDR(name)                                                     \
-  __extern_C__ byte_t __##name##_load[], __##name##_start[], __##name##_end[]
+#define SEC_START(name) __##name##_start
+#define SEC_END(name) __##name##_end
+#define SEC_LOAD(name) __##name##_load
 
-#define SECTION_INIT(name)                                                     \
-  _memcpy(__##name##_start, __##name##_load, __##name##_end - __##name##_start)
+#define SEC_ADDR(name)                                                     \
+  __extern_C__ byte_t SEC_LOAD(name)[], SEC_START(name)[], SEC_END(name)[]
 
-#define SECTION_ZERO(name)                                                     \
-  _memset(__##name##_start, 0, __##name##_end - __##name##_start)
+#define SEC_INIT(name)                                                     \
+  _memcpy(SEC_START(name), SEC_LOAD(name), SEC_END(name) - SEC_START(name))
 
-#define SECTION_ITER(name, type, var)                                          \
-  type *var = (type *)__##name##_start;                                        \
-  var < (type *)__##name##_end;                                                \
+#define SEC_ZERO(name)                                                     \
+  _memset(SEC_START(name), 0, SEC_END(name) - SEC_START(name))
+
+#define SEC_LENGTH(name, type)                                             \
+  ((size_t)SEC_END(name) - (size_t)SEC_START(name)) / sizeof(type)
+
+#define SEC_IDX(name, type)                                                \
+  ((size_t)SEC_END(name) - (size_t)SEC_END(name)) / sizeof(type)
+
+#define SEC_ITER(name, type, var)                                          \
+  type *var = (type *)SEC_START(name);                                         \
+  var < (type *)SEC_END(name);                                                 \
   var++
 

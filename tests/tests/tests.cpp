@@ -3,10 +3,6 @@
 #include "drivers/display.h"
 #include "utility/debug.h"
 
-TEST(test1) { return false; }
-
-TEST(test2) { return true; }
-
 PROC(dance, MID4, 128, p)
 {
   int i = 0;

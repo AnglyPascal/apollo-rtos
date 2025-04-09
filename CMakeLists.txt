@@ -91,7 +91,7 @@ endfunction()
 set(TARGETS
   apollo apollo
   recover tests/recover
-  unit_tests tests/unit_tests
+  tests tests/tests
 )
 list(LENGTH TARGETS num_targets)
 math(EXPR num_targets "${num_targets} / 2 - 1")

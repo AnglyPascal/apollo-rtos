@@ -11,13 +11,15 @@ struct test_t {
   bool *passed;
 };
 
-#define TEST(name)                                                             \
+#define TEST_MACRO(sec, name)                                                  \
   bool __##name##_test_func(void);                                             \
   bool __##name##_passed __recover_section__ = false;                          \
-  const test_t                                                                 \
-      __attribute__((section(".tests"), __used__)) __##name##_test_obj{        \
-          #name, __##name##_test_func, &__##name##_passed};                    \
+  const test_t __attribute__((section(#sec), __used__)) __##name##_test_obj{   \
+      #name, __##name##_test_func, &__##name##_passed};                        \
   bool __##name##_test_func(void)
+
+#define TEST(...) TEST_MACRO(.unit_tests, ##__VA_ARGS__)
+#define SYS_TEST(...) TEST_MACRO(.sys_tests, ##__VA_ARGS__)
 
 #define _TEST(name)                                                            \
   bool __##name##_test_unused(void) __attribute__((unused));                   \
