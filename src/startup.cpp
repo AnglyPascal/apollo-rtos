@@ -9,30 +9,14 @@
 #include "fs/fs.h"
 #include "utility/debug.h"
 
-__extern_C__ byte_t __end[], __stack[], __stack_limit;
 __extern_C__ bool __has_tests;
 
 SECTION_ADDR(data);
 SECTION_ADDR(bss);
-SECTION_ADDR(recover);
 
 SECTION_ADDR(startup);
 SECTION_ADDR(procs);
 SECTION_ADDR(apps);
-
-template <debug_t debug_lev>
-inline void debug_addr()
-{
-  debug<debug_lev>("\tdata_load:  %x\r\n", __data_load);
-  debug<debug_lev>("\tdata_start: %x\r\n", __data_start);
-  debug<debug_lev>("\tdata_end:   %x\r\n", __data_end);
-
-  debug<debug_lev>("\tend:        %x\r\n", __end);
-  debug<debug_lev>("\tstack:      %x\r\n", __stack);
-
-  debug<debug_lev>("\tbss_start:  %x\r\n", __bss_start);
-  debug<debug_lev>("\tbss_end:    %x\r\n", __bss_end);
-}
 
 __extern_C__ void __reset(void)
 {
@@ -46,13 +30,11 @@ __extern_C__ void __reset(void)
   MPU.PROTENSET0 = 0xFFFFFFFF;
 
   SECTION_INIT(data);
-  _memset(__bss_start, 0, __bss_end - __bss_start);
+  SECTION_ZERO(bss);
 
   SECTION_INIT(startup);
   SECTION_INIT(procs);
   SECTION_INIT(apps);
-
-  debug_addr<TRACE>();
 
   led::init();
   serial::init();
@@ -62,10 +44,7 @@ __extern_C__ void __reset(void)
   fs::init();
 
   boot::init();
-
-  // initialize recovery section
-  if (boot::lev() != boot_lev_t::RESET)
-    SECTION_INIT(recover);
+  recover::init();
 
   if (__has_tests)
     tests::run();

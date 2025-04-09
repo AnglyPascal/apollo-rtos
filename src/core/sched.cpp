@@ -160,7 +160,7 @@ void init()
   cpu.curr_proc = procs[IDLE_PID];
 
   setup_startups();
-  recover::init();
+  recover::setup();
 
   timer::init();
   last_checked = timer::now();

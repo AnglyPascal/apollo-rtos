@@ -19,6 +19,10 @@ struct test_t {
           #name, __##name##_test_func, &__##name##_passed};                    \
   bool __##name##_test_func(void)
 
+#define _TEST(name)                                                            \
+  bool __##name##_test_unused(void) __attribute__((unused));                   \
+  bool __##name##_test_unused(void)
+
 namespace tests
 {
 void run();

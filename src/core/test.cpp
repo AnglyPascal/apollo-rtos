@@ -33,7 +33,7 @@ void run()
     auto [name, func, passed] = *test;
 
     if (*passed)
-      kprintf(BLUE "%s: " GREEN "Passed" DEFAULT "\r\n", name);
+      kprintf(BLUE "%s: " DEFAULT GREEN "Passed" DEFAULT "\r\n", name);
     else
       kprintf(BOLD BLUE "%s: " DEFAULT RED "Failed" DEFAULT "\r\n", name);
   }

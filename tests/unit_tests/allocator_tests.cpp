@@ -1,5 +1,4 @@
 #include "core/test.h"
-#include "drivers/display.h"
 #include "utility/allocator.h"
 #include "utility/debug.h"
 
@@ -24,7 +23,7 @@ TEST(allocator_freelist_realloc)
   return a == b && b != c;
 }
 
-TEST(allocator_dealloc_reversed)
+TEST(allocator_dealloc_reversed_order)
 {
   allocator<alloc_heap, 4> pool;
 
@@ -65,27 +64,52 @@ TEST(allocator_freelist_iter)
   return d == c && e != c && e != a && e != b;
 }
 
-TEST(allocator_freelist_iter_rounding)
+TEST(allocator_rounding)
 {
-  allocator<alloc_heap, 8> pool;
-
+  bool t1, t2;
   byte_t *a, *b, *c, *d, *e;
 
-  a = pool.alloc(4);
-  b = pool.alloc(8);
-  c = pool.alloc(16);
+  {
+    allocator<alloc_heap, 8> pool;
 
-  pool.dealloc(b);
-  pool.dealloc(c);
-  pool.dealloc(a);
+    a = pool.alloc(4);
+    b = pool.alloc(8);
+    c = pool.alloc(16);
 
-  d = pool.alloc(8);
-  e = pool.alloc(16);
+    pool.dealloc(b);
+    pool.dealloc(c);
+    pool.dealloc(a);
 
-  pool.dealloc(d);
-  pool.dealloc(e);
+    d = pool.alloc(8);
+    e = pool.alloc(16);
 
-  return d == a && e == c;
+    pool.dealloc(d);
+    pool.dealloc(e);
+
+    t1 = d == a && e == c;
+  }
+
+  {
+    allocator<alloc_heap, 16> pool;
+
+    a = pool.alloc(4);
+    b = pool.alloc(8);
+    c = pool.alloc(16);
+
+    pool.dealloc(c);
+    pool.dealloc(a);
+    pool.dealloc(b);
+
+    d = pool.alloc(8);
+    e = pool.alloc(16);
+
+    pool.dealloc(d);
+    pool.dealloc(e);
+
+    t2 = d == b && e == a;
+  }
+
+  return t1 && t2;
 }
 
 } // namespace

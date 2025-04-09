@@ -19,6 +19,7 @@ enum lev_t : uint8_t {
 namespace recover
 {
 void init();
+void setup();
 
 class guard_proc
 {

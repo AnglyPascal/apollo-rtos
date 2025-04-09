@@ -35,8 +35,6 @@ void debug(const char *fmt, Args... args)
     } else {
       if constexpr (level == WARN)
         printf(YELLOW);
-      else if constexpr (level == INFO)
-        printf(BLUE);
 
       printf(fmt, args...);
       printf(DEFAULT);

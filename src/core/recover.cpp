@@ -37,7 +37,7 @@ struct alignas(uint32_t) entry_hd_t {
   uint8_t data_sz;
   lev_t lev = NONE;
 
-  void reset()
+  void data_reset()
   {
     lev = NONE;
     data_sz = 0;
@@ -76,8 +76,13 @@ struct alignas(uint32_t) entry_t<PROC> : entry_hd_t {
   {
     if (lev < curr_lev)
       return;
-    debug<ERROR>("lev: %d\r\n", lev);
     sched::reg_proc(proc_def, copy_data());
+  }
+
+  void reset()
+  {
+    proc_def = nullptr;
+    data_reset();
   }
 };
 
@@ -96,6 +101,13 @@ struct alignas(uint32_t) entry_t<TASK> : entry_hd_t {
       task(ptr);
     else
       waitlist::reg("recover", interval, task, ptr);
+  }
+
+  void reset()
+  {
+    interval = 0;
+    task = nullptr;
+    data_reset();
   }
 };
 
@@ -212,14 +224,29 @@ guard_task::~guard_task()
   file.store(tbl.offset(&entry), sizeof(entry));
 }
 
+SECTION_ADDR(recover);
+
 void init()
 {
   fram::open(file, rec_fn, sizeof(tbl), O_WRITE | O_CREATE | O_PERM);
   file.mmap(tbl);
 
   auto boot_lev = boot::lev();
+
+  // initialize recovery section
+  if (boot_lev != boot_lev_t::RESET)
+    SECTION_INIT(recover);
+
   if (boot_lev == boot_lev_t::BOOT || boot_lev == boot_lev_t::FLASH) {
     tbl.reset();
+    file.store();
+  }
+}
+
+void setup()
+{
+  auto boot_lev = boot::lev();
+  if (boot_lev == boot_lev_t::BOOT || boot_lev == boot_lev_t::FLASH) {
     sched::setup_procs();
   } else {
     auto reset_lev = boot_lev == boot_lev_t::RESET ? RESET : POWER_OFF;
