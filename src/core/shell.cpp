@@ -64,7 +64,7 @@ bool listener(char c)
   }
 }
 
-STARTUP(shell, HIGH1, 256, param)
+SERVICE(shell, HIGH1, 256, param)
 {
   serial::register_listener(listener);
 
@@ -121,9 +121,8 @@ STARTUP(shell, HIGH1, 256, param)
       param->str[i++] = str[idx++];
     param->str[i++] = '\0';
 
-    sched::reg_proc(cmd_def, param);
-
-    printf("\r\n");
+    auto pid = sched::reg_proc(cmd_def, param);
+    printf("\r\nstarted [" BLUE "%d" DEFAULT "]\r\n", pid);
   }
 }
 

@@ -65,7 +65,7 @@ inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
   }
 }
 
-PROC_MANUAL(sys_tests, HIGHEST, 512, param)
+PROC(sys_tests, HIGHEST, 512, param)
 {
   run_tests((test_t *)SEC_START(sys_tests), i_sys, n_sys_tests);
   report();
@@ -85,7 +85,7 @@ void run()
   }
 
   run_tests((test_t *)SEC_START(unit_tests), i_unit, n_unit_tests);
-  sched::reg_proc(&PROC_DEF(sys_tests), nullptr);
+  REG_PROC(sys_tests, nullptr);
 }
 
 } // namespace tests

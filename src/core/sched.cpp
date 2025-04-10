@@ -133,7 +133,7 @@ namespace
 {
 static pid_t IDLE_PID = 0;
 
-PROC_MANUAL(idle, IDLE, 8, param)
+PROC(idle, IDLE, 8, param)
 {
   intr_enable();
   while (true) {
@@ -142,18 +142,18 @@ PROC_MANUAL(idle, IDLE, 8, param)
 }
 } // namespace
 
-SEC_ADDR(startup);
-SEC_ADDR(procs);
+SEC_ADDR(services);
+SEC_ADDR(startups);
 
-void __weak__ setup_startups(void)
+void __weak__ setup_services(void)
 {
-  for (SEC_ITER(startup, proc_def_t, proc))
+  for (SEC_ITER(services, proc_def_t, proc))
     reg_proc(proc, nullptr);
 }
 
 void __weak__ setup_procs(void)
 {
-  for (SEC_ITER(procs, proc_def_t, proc))
+  for (SEC_ITER(startups, proc_def_t, proc))
     reg_proc(proc, nullptr);
 }
 
@@ -166,10 +166,10 @@ void init()
 {
   intr_disable();
 
-  IDLE_PID = reg_proc(&PROC_DEF(idle), nullptr);
+  IDLE_PID = REG_PROC(idle, nullptr);
   cpu.curr_proc = procs[IDLE_PID];
 
-  setup_startups();
+  setup_services();
   recover::setup();
 
   timer::init();

@@ -67,6 +67,7 @@ void *kmalloc(size_t sz) __attribute__((malloc));
 void kfree(void *);
 
 template <typename T, typename... Args>
+  requires(!std::is_reference_v<T>)
 T *knew(Args &&...args)
 {
   auto ptr = kmalloc(sizeof(T));

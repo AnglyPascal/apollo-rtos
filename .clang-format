@@ -233,6 +233,7 @@ StatementAttributeLikeMacros:
 StatementMacros:
   - Q_UNUSED
   - QT_REQUIRE_VERSION
+  - 'TEST_SUITE'
 TabWidth:        8
 UseTab:          Never
 VerilogBreakBetweenInstancePorts: true

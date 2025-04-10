@@ -108,7 +108,7 @@ APP(accel, HIGH1, 128, param)
 
 int n __recover_section__ = 100;
 
-PROC(accel_bg, HIGH3, 256, param)
+STARTUP_PROC(accel_bg, HIGH3, 256, param)
 {
   recover::guard_proc guard{POWER_OFF};
 

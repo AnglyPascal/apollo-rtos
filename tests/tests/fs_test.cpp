@@ -46,5 +46,40 @@ TEST(fs_open_store_close)
   return res;
 }
 
+TEST(fs_mutli_blk_file)
+{
+  {
+    auto file = fram::open(test_fn, 256, O_WRITE | O_CREATE | O_SHARED);
+    auto t = (uint32_t *)file.mmap(256);
+
+    constexpr uint32_t val = 0xABCD0123;
+
+    for (size_t i = 0; i < 256 / sizeof(*t); i++)
+      *t++ = val;
+
+    file.store();
+    file.close();
+  }
+
+  bool equal = true;
+
+  {
+    auto file = fram::open(test_fn, 256, O_READ | O_SHARED);
+    auto t = (uint32_t *)file.mmap(256);
+
+    constexpr uint32_t val = 0xABCD0123;
+
+    for (size_t i = 0; i < 256 / sizeof(*t); i++)
+      equal &= t[i] == val;
+
+    file.store();
+    file.close();
+  }
+
+  fram::remove(test_fn);
+
+  return equal;
+}
+
 } // namespace
 

@@ -12,8 +12,8 @@
 SEC_ADDR(data);
 SEC_ADDR(bss);
 
-SEC_ADDR(startup);
-SEC_ADDR(procs);
+SEC_ADDR(services);
+SEC_ADDR(startups);
 SEC_ADDR(apps);
 
 __extern_C__ void __reset(void)
@@ -30,8 +30,8 @@ __extern_C__ void __reset(void)
   SEC_INIT(data);
   SEC_ZERO(bss);
 
-  SEC_INIT(startup);
-  SEC_INIT(procs);
+  SEC_INIT(services);
+  SEC_INIT(startups);
   SEC_INIT(apps);
 
   led::init();

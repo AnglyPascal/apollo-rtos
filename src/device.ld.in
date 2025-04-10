@@ -53,9 +53,9 @@ SECTIONS {
     } > RAM
 
     DEFINE_SECTION(recover, data)
-    DEFINE_SECTION(startup, recover)
-    DEFINE_SECTION(procs, startup)
-    DEFINE_SECTION(apps, procs)
+    DEFINE_SECTION(services, recover)
+    DEFINE_SECTION(startups, services)
+    DEFINE_SECTION(apps, startups)
 
     DEFINE_SECTION(unit_tests, apps)
     DEFINE_SECTION(sys_tests, unit_tests)

@@ -64,11 +64,14 @@ void init();
 pid_t reg_proc(const proc_def_t *proc_def, void *param);
 
 template <typename T>
-  requires(!std::is_pointer_v<std::remove_reference_t<std::remove_cv_t<T>>> &&
+using remove_ref_cv_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
+template <typename T>
+  requires(!std::is_pointer_v<remove_ref_cv_t<T>> &&
            !std::same_as<T, nullptr_t>)
 pid_t reg_proc(const proc_def_t *proc_def, T &&t)
 {
-  return reg_proc(proc_def, kmem::knew<T>(std::forward<T>(t)));
+  return reg_proc(proc_def, kmem::knew<remove_ref_cv_t<T>>(std::forward<T>(t)));
 }
 
 void incr_priority(pid_t pid, priority_t priority);
@@ -138,8 +141,9 @@ void trace();
       #name, priority, stk_sz, PROC_FUNC(name)};                               \
   void PROC_FUNC(name)(void *param)
 
-#define STARTUP(...) DEF_MACRO(.startup, ##__VA_ARGS__)
-#define PROC(...) DEF_MACRO(.procs, ##__VA_ARGS__)
+#define SERVICE(...) DEF_MACRO(.services, ##__VA_ARGS__)
+#define STARTUP_PROC(...) DEF_MACRO(.startups, ##__VA_ARGS__)
 #define APP(...) DEF_MACRO(.apps, ##__VA_ARGS__)
-#define PROC_MANUAL(...) DEF_MACRO(.data, ##__VA_ARGS__)
+#define PROC(...) DEF_MACRO(.data, ##__VA_ARGS__)
 
+#define REG_PROC(name, ...) sched::reg_proc(&PROC_DEF(name), ##__VA_ARGS__)

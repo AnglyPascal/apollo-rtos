@@ -58,7 +58,7 @@ void reset() { show(blank); }
 
 namespace
 {
-STARTUP(display, LOW2, 128, param)
+SERVICE(display, LOW2, 128, param)
 {
   GPIO.DIR = LED_MASK;
   display::reset();
