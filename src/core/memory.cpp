@@ -31,9 +31,8 @@ byte_t *alloc_stack(size_t nbytes)
 
   memtop -= nbytes;
 
-  for (auto p = (uint32_t *)memtop; p < (uint32_t *)(memtop + nbytes); p++) {
+  for (auto p = (uint32_t *)memtop; p < (uint32_t *)(memtop + nbytes); p++)
     *p = BLANK_WORD;
-  }
 
   debug<TRACE>("alloc stack: %x\n", memtop);
   return (byte_t *)memtop;
@@ -95,24 +94,30 @@ int _memcmp(const void *pp, const void *qq, int n)
 
 namespace curr_proc
 {
-chunk_t *used_hd();
-}
+chunk_list_t &used_list();
+} // namespace curr_proc
 
 namespace heap
 {
-
-namespace
-{
 allocator<alloc_heap, 4> pool;
+
+inline chunk_t *ptr_to_chunk(void *ptr)
+{
+  return (chunk_t *)((byte_t *)ptr - sizeof(chunk_t));
+}
+
+inline byte_t *chunk_to_ptr(chunk_t *chunk)
+{
+  return (byte_t *)chunk + sizeof(chunk_t);
 }
 
 void *malloc(size_t sz)
 {
   auto ptr = pool.alloc(sz);
-  auto chunk = (chunk_t *)(ptr - sizeof(chunk_t));
+  auto chunk = ptr_to_chunk(ptr);
 
-  auto used_hd = curr_proc::used_hd();
-  used_hd->insert_next(chunk);
+  auto &used_list = curr_proc::used_list();
+  used_list.push_back(chunk);
 
   return ptr;
 }
@@ -122,20 +127,22 @@ void free(void *ptr)
   if (ptr == nullptr)
     return;
 
-  auto chunk = (chunk_t *)((byte_t *)ptr - sizeof(chunk_t));
+  auto chunk = ptr_to_chunk(ptr);
   chunk->detach();
 
   pool.dealloc((byte_t *)ptr);
 }
 
-void cleanup(chunk_t *hd)
+void cleanup()
 {
-  debug<TRACE>("heap cleanup for current proc\r\n");
-  while (hd->next != nullptr) {
-    assert(hd->next != hd, S_RESET);
-    hd->next->detach();
+  auto &used_list = curr_proc::used_list();
 
-    auto ptr = (byte_t *)hd->next + sizeof(chunk_t);
+  debug<TRACE>("heap cleanup for current proc\r\n");
+  while (used_list.begin() != used_list.end()) {
+    auto &chunk = *used_list.begin();
+    chunk.detach();
+
+    auto ptr = chunk_to_ptr(&chunk);
     pool.dealloc(ptr);
   }
 }
@@ -145,7 +152,6 @@ void trace()
   debug<TRACE>("  heap: \r\n");
   pool.trace();
 }
-
 } // namespace heap
 
 void *operator new(size_t sz) { return heap::malloc(sz); }
@@ -154,18 +160,23 @@ void operator delete(void *ptr) { return heap::free(ptr); }
 
 namespace kmem
 {
-namespace
-{
 allocator<alloc_heap, 4> kpool;
-}
-
 void *kmalloc(size_t sz) { return kpool.alloc(sz); }
-
-void kfree(void *ptr)
-{
-  if (ptr == nullptr)
-    return;
-  kpool.dealloc((byte_t *)ptr);
-}
+void kfree(void *ptr) { kpool.dealloc((byte_t *)ptr); }
 } // namespace kmem
+
+namespace sched
+{
+void init_lists();
+}
+
+namespace mem
+{
+void init()
+{
+  heap::pool.init_list();
+  kmem::kpool.init_list();
+  sched::init_lists();
+}
+} // namespace mem
 

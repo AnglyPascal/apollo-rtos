@@ -16,6 +16,11 @@
 #include "procs.h"
 #include "stack_allocator.h"
 
+namespace heap
+{
+void cleanup();
+}
+
 namespace sched
 {
 
@@ -31,6 +36,13 @@ volatile struct {
 } cpu = {};
 } // namespace
 
+// manuall initialize all the linked-lists
+void init_lists()
+{
+  procs.init_lists();
+  return stack_allocator.init_list();
+}
+
 volatile time_t last_checked = 0;
 
 void exit()
@@ -41,7 +53,7 @@ void exit()
     proc->bar->release();
 
   kmem::kfree(proc->param);
-  heap::cleanup(&proc->used_hd);
+  heap::cleanup();
 
   intr_disable();
   decr_priority(0);
@@ -231,10 +243,11 @@ namespace curr_proc
 {
 pid_t pid() { return procs.pid(cpu.curr_proc); }
 string name() { return cpu.curr_proc->name; }
-chunk_t *used_hd() { return &cpu.curr_proc->used_hd; }
 const proc_def_t *def() { return cpu.curr_proc->def; }
 bool term_req() { return cpu.curr_proc->term_req; }
 bool set_up() { return cpu.set_up; }
+
+chunk_list_t &used_list() { return cpu.curr_proc->used_list; }
 } // namespace curr_proc
 
 ///////////////

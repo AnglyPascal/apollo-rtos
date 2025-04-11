@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/memory.h"
 #include "core/signal.h"
 #include "core/types.h"
+#include "utility/allocator.h"
 #include "utility/debug.h"
 
 namespace
@@ -32,7 +32,7 @@ struct proc_t {
 
   const proc_def_t *def = nullptr;
   void *param = nullptr;
-  chunk_t used_hd = {};
+  chunk_list_t used_list = {};
 
   bool term_req = false;
   barrier_t *bar = nullptr;
@@ -78,10 +78,10 @@ struct proc_t {
                 name.str, priority_levels[prio_lev], states[state], perc);
     debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", stack, stk_sz,
                  stk_ptr);
+
     debug<TRACE>("  |    heap usage:\r\n");
-    for (auto ptr = &used_hd; ptr->next != nullptr; ptr = ptr->next) {
-      debug<TRACE>("  |      %x: %d\r\n", ptr->next, ptr->next->sz);
-    }
+    for (auto it = used_list.begin(); it != used_list.end(); ++it)
+      debug<TRACE>("  |      %x: %d\r\n", &*it, it->sz);
   }
 };
 
@@ -142,5 +142,11 @@ public:
   {
     assert(pid < _N_PROCS, S_RESET);
     return &procs[pid];
+  }
+
+  inline void init_lists()
+  {
+    for (auto &proc : procs)
+      proc.used_list.init();
   }
 };

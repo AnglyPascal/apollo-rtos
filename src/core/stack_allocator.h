@@ -75,5 +75,7 @@ public:
     proc->stk_sz = stk_sz;
   }
 
+  void init_list() { return pool.init_list(); }
+
   inline void release(proc_t *proc) { pool.dealloc(proc->stack); }
 };

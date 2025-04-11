@@ -1,37 +1,44 @@
 #pragma once
 
 #include "core/irq.h"
-#include "core/memory.h"
 #include "core/types.h"
 #include "utility/debug.h"
+#include "utility/list.h"
+
+struct __sz {
+  size_t sz;
+  __sz() : sz{0} {}
+};
+
+using chunk_t = node_t<__sz>;
+using chunk_list_t = static_list_t<chunk_t>;
 
 using allocator_t = byte_t *(*)(size_t);
 
 template <allocator_t alloc_func, size_t alignment>
 class allocator
 {
-  chunk_t free_hd; // singly list
-
-  static constexpr size_t header_sz = sizeof(chunk_t);
+  chunk_list_t freelist{}; // singly list
 
 public:
-  constexpr allocator() {}
+  void init_list() { return freelist.init(); }
+
+  constexpr allocator() : freelist{} {}
 
   byte_t *alloc(size_t sz)
   {
     intr_guard guard;
 
     sz = roundup(sz, alignment);
-    auto chnk_sz = header_sz + sz;
+    auto chnk_sz = sizeof(chunk_t) + sz;
 
-    auto ptr = &free_hd;
-    while (ptr->next != nullptr) {
-      if (ptr->next->sz >= sz)
+    chunk_t *chunk = nullptr;
+    for (auto it = freelist.begin(); it != freelist.end(); ++it) {
+      if (it->sz >= sz) {
+        chunk = &*it;
         break;
-      ptr = ptr->next;
+      }
     }
-
-    chunk_t *chunk = ptr->next;
 
     if (chunk == nullptr) {
       chunk = (chunk_t *)alloc_func(chnk_sz);
@@ -40,7 +47,7 @@ public:
       chunk->detach();
     }
 
-    return (byte_t *)chunk + header_sz;
+    return (byte_t *)chunk + sizeof(chunk_t);
   }
 
   void dealloc(byte_t *ptr)
@@ -49,17 +56,16 @@ public:
       return;
 
     intr_guard guard;
-    auto chunk = (chunk_t *)(ptr - header_sz);
-    free_hd.insert_next(chunk);
+    auto chunk = (chunk_t *)(ptr - sizeof(chunk_t));
+    freelist.push_front(chunk);
   }
 
-  __noinline__
-  void trace()
+  __noinline__ void trace()
   {
     debug<TRACE>("  |  free list: \r\n");
-    for (auto ptr = &free_hd; ptr->next != nullptr; ptr = ptr->next) {
-      debug<TRACE>("  |    %x: %u\r\n", (byte_t *)ptr->next + header_sz,
-                   ptr->next->sz);
+    for (auto it = freelist.begin(); it != freelist.end(); ++it) {
+      debug<TRACE>("  |    %x: %u\r\n", (byte_t *)&*it + sizeof(chunk_t),
+                   it->sz);
     }
   }
 };

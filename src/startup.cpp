@@ -34,8 +34,10 @@ __extern_C__ void __reset(void)
   SEC_INIT(startups);
   SEC_INIT(apps);
 
+  mem::init();
   led::init();
   serial::init();
+
   clear_screen();
 
   i2c::init();

@@ -67,6 +67,7 @@ void __assert(bool ex, Args &&...args)
   }
 
   if constexpr (lev == S_RESET)
+    // return trigger_hardfault();
     return trigger_reset();
 
   if constexpr (lev == TERM)

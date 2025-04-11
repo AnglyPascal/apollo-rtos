@@ -91,6 +91,7 @@ endfunction()
 set(TARGETS
   apollo apollo
   recover tests/recover
+  lib_tests tests/lib_tests
   tests tests/tests
 )
 list(LENGTH TARGETS num_targets)

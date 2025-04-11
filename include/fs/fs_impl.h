@@ -232,6 +232,7 @@ public:
 
   static void mount()
   {
+    pool.init_list();
     fs.mount();
     for (auto &fd : open_files) {
       new (&fd) fd_t{};
