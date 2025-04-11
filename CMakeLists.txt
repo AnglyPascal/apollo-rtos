@@ -93,6 +93,7 @@ set(TARGETS
   recover tests/recover
   lib_tests tests/lib_tests
   tests tests/tests
+  single tests/single
 )
 list(LENGTH TARGETS num_targets)
 math(EXPR num_targets "${num_targets} / 2 - 1")

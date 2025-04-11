@@ -46,8 +46,7 @@ using time_t = uint32_t;
 using pid_t = uint8_t;
 inline constexpr pid_t null_pid = MAX<pid_t>;
 
-using priority_t = int32_t;
-enum : priority_t {
+enum priority_lev_t : int8_t {
   EMPTY = 0,
 
   IDLE = 1,
@@ -57,21 +56,21 @@ enum : priority_t {
   LOW3,
   LOW4,
 
-  MID1 = 16,
+  MID1 = 8,
   MID2,
   MID3,
   MID4,
 
-  HIGH1 = 64,
+  HIGH1 = 16,
   HIGH2,
   HIGH3,
   HIGH4,
 
-  URGENT1 = 128,
+  URGENT1 = 32,
   URGENT2,
   URGENT3,
 
-  HIGHEST = MAX<priority_t>,
+  HIGHEST = MAX<int8_t>,
 };
 
 enum {
@@ -155,22 +154,22 @@ constexpr size_t roundup(size_t sz, size_t align)
 #define SEC_END(name) __##name##_end
 #define SEC_LOAD(name) __##name##_load
 
-#define SEC_ADDR(name)                                                     \
+#define SEC_ADDR(name)                                                         \
   __extern_C__ byte_t SEC_LOAD(name)[], SEC_START(name)[], SEC_END(name)[]
 
-#define SEC_INIT(name)                                                     \
+#define SEC_INIT(name)                                                         \
   _memcpy(SEC_START(name), SEC_LOAD(name), SEC_END(name) - SEC_START(name))
 
-#define SEC_ZERO(name)                                                     \
+#define SEC_ZERO(name)                                                         \
   _memset(SEC_START(name), 0, SEC_END(name) - SEC_START(name))
 
-#define SEC_LENGTH(name, type)                                             \
+#define SEC_LENGTH(name, type)                                                 \
   ((size_t)SEC_END(name) - (size_t)SEC_START(name)) / sizeof(type)
 
-#define SEC_IDX(name, type)                                                \
+#define SEC_IDX(name, type)                                                    \
   ((size_t)SEC_END(name) - (size_t)SEC_END(name)) / sizeof(type)
 
-#define SEC_ITER(name, type, var)                                          \
+#define SEC_ITER(name, type, var)                                              \
   type *var = (type *)SEC_START(name);                                         \
   var < (type *)SEC_END(name);                                                 \
   var++

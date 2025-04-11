@@ -41,7 +41,7 @@ struct barrier_t {
 
 struct proc_def_t {
   const string name;
-  const priority_t priority;
+  const priority_lev_t priority;
   const size_t stk_sz;
   const runnable_t func;
 
@@ -74,13 +74,13 @@ pid_t reg_proc(const proc_def_t *proc_def, T &&t)
   return reg_proc(proc_def, kmem::knew<remove_ref_cv_t<T>>(std::forward<T>(t)));
 }
 
-void incr_priority(pid_t pid, priority_t priority);
-inline void incr_priority(priority_t priority)
+void incr_priority(pid_t pid, int32_t priority);
+inline void incr_priority(int32_t priority)
 {
   return incr_priority(curr_proc::pid(), priority);
 }
 
-void decr_priority(priority_t priority);
+void decr_priority(int32_t priority);
 
 inline constexpr time_t invoke_interval = 2048;
 extern volatile time_t last_checked;

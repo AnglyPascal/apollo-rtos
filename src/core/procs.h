@@ -5,6 +5,8 @@
 #include "utility/allocator.h"
 #include "utility/debug.h"
 
+#include <compare>
+
 namespace
 {
 const char *states[] = {
@@ -19,12 +21,46 @@ const char *priority_levels[] = {
 };
 } // namespace
 
+struct priority_t {
+  priority_lev_t lev;
+  uint8_t weight = 0;
+
+  priority_t(priority_lev_t lev) : lev{lev}, weight{0} {}
+  priority_t(int lev) : lev{(priority_lev_t)lev}, weight{0} {}
+
+  priority_t &operator=(int32_t lev)
+  {
+    this->lev = (priority_lev_t)lev;
+    this->weight = 0;
+    return *this;
+  }
+
+  auto operator<=>(const priority_t &other) const
+  {
+    if (lev != other.lev)
+      return lev <=> other.lev;
+    return (other.weight) <=> weight;
+  }
+
+  bool operator==(const priority_t &other) const = default;
+
+  friend auto operator<=>(const priority_t &lhs, int32_t rhs)
+  {
+    return lhs.lev <=> (priority_lev_t)rhs;
+  }
+
+  friend auto operator<=>(int32_t lhs, const priority_t &rhs)
+  {
+    return (priority_lev_t)lhs <=> rhs.lev;
+  }
+};
+
 struct proc_def_t;
 struct barrier_t;
 
 struct proc_t {
   string name = {};
-  priority_t priority = EMPTY;
+  priority_t priority{EMPTY};
 
   byte_t *stk_ptr = nullptr;
   byte_t *stack = nullptr;
@@ -58,7 +94,7 @@ struct proc_t {
     else if (priority < 0)
       state = 2;
 
-    auto prio = abs(priority);
+    auto prio = abs(priority.lev);
     int prio_lev;
     if (prio < LOW1)
       prio_lev = 0;
@@ -108,7 +144,7 @@ public:
   proc_t *max_priority()
   {
     proc_t *max_proc = nullptr;
-    priority_t max_priority = 0;
+    priority_t max_priority{0};
 
     for (pid_t pid = 0; pid < _N_PROCS; pid++) {
       auto &proc = procs[pid];

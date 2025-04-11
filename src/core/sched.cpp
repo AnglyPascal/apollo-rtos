@@ -115,27 +115,28 @@ __extern_C__ void *cxt_switch(void *stk_ptr)
   }
 
   cpu.curr_proc = cpu.hi_proc;
+  cpu.curr_proc->priority.weight++;
   return cpu.hi_proc->stk_ptr;
 }
 
-void incr_priority(pid_t pid, priority_t priority)
+void incr_priority(pid_t pid, int32_t priority)
 {
   auto proc = procs[pid];
   assert(proc->priority < priority, S_RESET);
 
   intr_guard guard;
 
-  proc->priority = priority;
+  proc->priority.lev = (priority_lev_t)priority;
   if (cpu.hi_proc == nullptr || cpu.hi_proc->priority < priority) {
     cpu.hi_proc = proc;
   }
 }
 
-void decr_priority(priority_t priority)
+void decr_priority(int32_t priority)
 {
   assert(cpu.curr_proc->priority > priority, S_RESET);
 
-  cpu.curr_proc->priority = priority;
+  cpu.curr_proc->priority.lev = (priority_lev_t)priority;
   cpu.hi_proc = procs.max_priority();
 
   change_proc();
@@ -203,7 +204,7 @@ void default_alarm(void *ptr)
 {
   auto proc = (proc_t *)ptr;
   assert(proc->priority < 0, S_RESET);
-  incr_priority(procs.pid(proc), -proc->priority);
+  incr_priority(procs.pid(proc), -proc->priority.lev);
 }
 
 void sleep(time_t period)
@@ -214,10 +215,10 @@ void sleep(time_t period)
   if (period > 0)
     waitlist::reg(proc->name, period, default_alarm, (void *)proc);
 
-  decr_priority(-proc->priority);
+  decr_priority(-proc->priority.lev);
 }
 
-void wakeup(pid_t pid) { incr_priority(pid, -procs[pid]->priority); }
+void wakeup(pid_t pid) { incr_priority(pid, -procs[pid]->priority.lev); }
 
 void assert_stack()
 {
