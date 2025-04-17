@@ -73,27 +73,22 @@ void xtoa(uint32_t n, char *p)
 char int_buf[11];
 char float_buf[6];
 
-void rtoa(rational_t r, char *ip, char *fp, int precision = 6)
+void rtoa(rational_t r, char *ip, char *fp)
 {
-  double f = (double)r.num / r.denom;
+  uint32_t mult = rational_t::mult;
 
-  if (f < 0) {
+  int32_t num = (r.num * 100 * mult) / r.denom;
+
+  if (num < 0) {
     *ip++ = '-';
-    f = -f;
+    num = -num;
   }
 
-  int int_val = static_cast<int>(f);
-  double frac_val = f - int_val;
+  int32_t int_val = num / mult;
+  uint32_t frac_val = num % mult;
 
-  // Convert integer part
   utoa(int_val, ip);
-
-  // Convert fractional part
-  for (int i = 0; i < precision; i++) {
-    frac_val *= 10;
-  }
-  int frac_int = static_cast<int>(frac_val + 0.5); // Round properly
-  utoa(frac_int, fp);
+  utoa(frac_val, fp);
 }
 
 void do_printf(void (*putc)(char), const char *fmt, ...)

@@ -127,7 +127,7 @@ struct proc_t {
     else
       prio_lev = 5;
 
-    rational_t perc{(int32_t)def->ticks * 100, total_ticks};
+    rational_t perc{(int32_t)def->ticks, total_ticks};
     debug<INFO>("  |  %d. " BLUE "%s" DEFAULT " : (%s), %s, %f%\r\n", pid,
                 name.str, priority_levels[prio_lev], states[state], perc);
     debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", stack, stk_sz,
