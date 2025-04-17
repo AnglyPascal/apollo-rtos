@@ -77,9 +77,10 @@ enum {
   O_READ = 0,
   O_CREATE = 1 << 0,
   O_WRITE = 1 << 1,
-  O_CHAR_FILE = 1 << 2,
-  O_PERM = 1 << 3,
-  O_SHARED = 1 << 4,
+  O_APPEND = 1 << 2,
+  O_CHAR_FILE = 1 << 3,
+  O_PERM = 1 << 4,
+  O_SHARED = 1 << 5,
 };
 using fn_t = uint8_t;
 inline constexpr fn_t null_fn = MAX<fn_t>;
@@ -118,13 +119,28 @@ struct string {
 };
 
 template <typename T>
-constexpr T max(T t, T s)
+constexpr size_t strlen(const T *str)
+{
+  size_t i = 0;
+  while (str[i] != T{})
+    i++;
+  return i;
+}
+
+template <typename T, typename S>
+  requires requires(T t, S s) {
+    { (t < s) } -> std::same_as<bool>;
+  }
+constexpr T max(T t, S s)
 {
   return t > s ? t : s;
 }
 
-template <typename T>
-constexpr T min(T t, T s)
+template <typename T, typename S>
+  requires requires(T t, S s) {
+    { (t < s) } -> std::same_as<bool>;
+  }
+constexpr T min(T t, S s)
 {
   return t < s ? t : s;
 }
@@ -158,10 +174,10 @@ constexpr size_t roundup(size_t sz, size_t align)
   __extern_C__ byte_t SEC_LOAD(name)[], SEC_START(name)[], SEC_END(name)[]
 
 #define SEC_INIT(name)                                                         \
-  _memcpy(SEC_START(name), SEC_LOAD(name), SEC_END(name) - SEC_START(name))
+  memcpy(SEC_START(name), SEC_LOAD(name), SEC_END(name) - SEC_START(name))
 
 #define SEC_ZERO(name)                                                         \
-  _memset(SEC_START(name), 0, SEC_END(name) - SEC_START(name))
+  memset(SEC_START(name), 0, SEC_END(name) - SEC_START(name))
 
 #define SEC_LENGTH(name, type)                                                 \
   ((size_t)SEC_END(name) - (size_t)SEC_START(name)) / sizeof(type)

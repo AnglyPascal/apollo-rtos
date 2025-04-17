@@ -52,7 +52,7 @@ void image_set(int x, int y)
   image_set(x, y, image);
 }
 
-void show(const image_t img) { _memcpy(image, img, sizeof(image_t)); }
+void show(const image_t img) { memcpy(image, img, sizeof(image_t)); }
 
 void reset() { show(blank); }
 

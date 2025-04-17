@@ -11,16 +11,16 @@ byte_t *alloc_heap(size_t sz);
 byte_t *alloc_stack(size_t sz);
 
 /* copy n bytes from src to dest (non-overlapping) */
-void *_memcpy(void *dest, const void *src, uint32_t n);
+extern "C" void *memcpy(void *dest, const void *src, uint32_t n);
 
 /* copy n bytes from src to dest, allowing overlaps */
-void *_memmove(void *dest, const void *src, uint32_t n);
+extern "C" void *memmove(void *dest, const void *src, uint32_t n);
 
 /* set n bytes of dest to byte x */
-void *_memset(void *dest, uint8_t x, uint32_t n);
+extern "C" void *memset(void *dest, uint8_t x, uint32_t n);
 
 /* compare n bytes */
-int _memcmp(const void *pp, const void *qq, int n);
+extern "C" int memcmp(const void *pp, const void *qq, int n);
 
 namespace mem
 {

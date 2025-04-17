@@ -49,7 +49,7 @@ struct alignas(uint32_t) entry_hd_t {
       return;
 
     assert(sz <= N_REC_DATA, TERM);
-    _memcpy(data, src, sz);
+    memcpy(data, src, sz);
     data_sz = (uint8_t)sz;
   }
 
@@ -59,7 +59,7 @@ struct alignas(uint32_t) entry_hd_t {
       return nullptr;
 
     auto ptr = (uint8_t *)kmem::kmalloc(data_sz);
-    _memcpy(ptr, data, data_sz);
+    memcpy(ptr, data, data_sz);
     return ptr;
   }
 };

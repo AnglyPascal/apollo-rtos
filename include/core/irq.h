@@ -75,33 +75,27 @@ __always_inline__ inline void intr_disable() { asm volatile("cpsid i"); }
 __always_inline__ inline void intr_enable() { asm volatile("cpsie i"); }
 
 template <typename T>
-class intr_guard
+class intr_guard;
+
+template <>
+class intr_guard<void>
 {
   int irq;
 
 public:
-  intr_guard(void) noexcept
-    requires std::same_as<T, void>
-      : irq(get_primask())
-  {
-    intr_disable();
-  }
+  intr_guard(void) noexcept : irq(get_primask()) { intr_disable(); }
+  ~intr_guard() noexcept { set_primask(irq); }
+};
+
+template <>
+class intr_guard<int>
+{
+  int irq;
+
+public:
+  intr_guard(int irq) noexcept : irq{irq} { disable_irq(irq); }
 
   ~intr_guard() noexcept
-    requires std::same_as<T, void>
-  {
-    set_primask(irq);
-  }
-
-  intr_guard(int irq) noexcept
-    requires std::same_as<T, int>
-      : irq{irq}
-  {
-    disable_irq(irq);
-  }
-
-  ~intr_guard() noexcept
-    requires std::same_as<T, int>
   {
     clear_pending(irq);
     enable_irq(irq);

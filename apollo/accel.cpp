@@ -13,11 +13,10 @@
 
 namespace
 {
-struct alignas(uint32_t) accel_t {
-  int x;
-  int y;
-  int z;
-};
+inline constexpr fn_t fn = 5;
+
+constexpr size_t len = 8;
+using buffer = circular_buffer<accel::data_t, len>;
 
 const image_t dirs[3][3] = {
     {
@@ -75,8 +74,8 @@ const image_t dirs[3][3] = {
 
 APP(accel, HIGH1, 128, param)
 {
-  auto file = fram::open<accel::buffer>(accel::fn, O_SHARED);
-  auto val = file.mmap<const accel::buffer>();
+  auto file = fram::open<buffer>(fn, O_SHARED);
+  auto val = file.mmap<const buffer>();
 
   bool run_bg = ((args_t *)param)->run_bg;
   sigterm_listener_t<__COUNTER__> guard{run_bg};
@@ -112,9 +111,8 @@ STARTUP_PROC(accel_bg, HIGH3, 256, param)
 {
   recover::guard_proc guard{POWER_OFF};
 
-  auto file =
-      fram::open<accel::buffer>(accel::fn, O_WRITE | O_CREATE | O_SHARED);
-  auto buf = file.mmap<accel::buffer>();
+  auto file = fram::open<buffer>(fn, O_WRITE | O_CREATE | O_SHARED);
+  auto buf = file.mmap<buffer>();
 
   accel::init();
 
