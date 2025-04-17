@@ -28,5 +28,5 @@ struct fs_desc_t {
   size_t n_inodes;
 
   size_t n_open_files;
-  file_type_t (*ft_func)(uint32_t);
+  bool is_ram;
 };

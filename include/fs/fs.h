@@ -35,7 +35,7 @@ inline constexpr desc_t desc = {
 
     .n_open_files = 8,
 
-    .ft_func = [](uint32_t) { return BIN; },
+    .is_ram = false,
 };
 
 inline bool first_boot()
@@ -91,7 +91,7 @@ inline constexpr desc_t desc = {
 
     .n_open_files = 16,
 
-    .ft_func = [](uint32_t flag) { return flag & O_CHAR_FILE ? CHAR : BIN; },
+    .is_ram = true,
 };
 } // namespace _fram
 

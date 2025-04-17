@@ -37,8 +37,12 @@ TODO
 - write about the difference in my waitlist implementation vs AGC's
 - argue that apollo-rtos is not modular, it's monolithic. So it's not straightforward
     to produce a minimal build with a selected subset of features
+- write about fairness improvement
+- write about linked list in memory
 
 
-## Fairness:
-
-- **The scheduler is not fair to processes at the same priority level**
+- char files
+    - just need to facilitate offset-ed write to a page
+- mmap should construct a structure if file is newly created, or at least not to copy
+    from disk
+- impl vector, hash_map and dyanmic list

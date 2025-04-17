@@ -170,7 +170,11 @@ public:
 
       fs_hd.alloc_blks(inode.blks, nblks);
 
-      inode.flag.set_ft(desc.ft_func(flags));
+      if constexpr (desc.is_ram)
+        inode.flag.set_ft(flags & O_CHAR_FILE ? CHAR : BIN);
+      else
+        inode.flag.set_ft(BIN);
+
       if (flags & O_PERM)
         inode.flag.set_perm();
 
