@@ -1,5 +1,16 @@
 #include "header.h"
 
+namespace
+{
+bool check_waitlist_itnerval(time_t start, time_t end, time_t interval)
+{
+  auto rounded_future = roundup(start + interval, waitlist::update_interval);
+  interval = roundup(rounded_future - start, waitlist::update_interval);
+  auto rt_interval = roundup(end - start, waitlist::update_interval);
+  return interval == rt_interval;
+}
+} // namespace
+
 namespace TEST_SUITE(sched_waitlist)
 {
 volatile time_t start = 0, end = 0;
@@ -27,9 +38,10 @@ SYS_TEST(sched_waitlist)
   bool result = true;
 
   while (interval <= rounded) {
-    auto p0 = REG_PROC(proc0, interval++);
+    auto p0 = REG_PROC(proc0, interval);
     sched::wait(p0);
-    result &= (end - start) == rounded;
+    result &= check_waitlist_itnerval(start, end, interval);
+    interval++;
   }
 
   return result;
@@ -67,12 +79,13 @@ PROC(proc0, HIGH1, 8, param)
 SYS_TEST(sched_waitlist_fs_op)
 {
   uint32_t interval = 1;
-  const uint32_t rounded = roundup(interval, waitlist::update_interval);
+  // const uint32_t rounded = roundup(interval, waitlist::update_interval);
   bool result = true;
 
-  auto p0 = REG_PROC(proc0, interval++);
+  auto p0 = REG_PROC(proc0, interval);
   sched::wait(p0);
-  result &= (end - start) == rounded;
+  result &= check_waitlist_itnerval(start, end, interval);
+  interval++;
 
   auto file = fram::open(test_fn, 16, O_READ);
   auto arr = (uint32_t *)file.mmap(16);

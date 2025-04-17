@@ -2,6 +2,7 @@
 
 #include "core/irq.h"
 #include "core/types.h"
+#include "drivers/timer.h"
 #include "utility/debug.h"
 
 namespace waitlist
@@ -49,10 +50,14 @@ inline void dealloc(waitlist_t *ptr)
 
 void reg(string name, time_t interval, runnable_t func, void *param)
 {
+  intr_guard guard;
+
   auto task = alloc();
   assert(task != nullptr, S_RESET);
 
-  interval = roundup(interval, update_interval);
+  auto now = timer::now();
+  auto rounded_future = roundup(now + interval, update_interval);
+  interval = roundup(rounded_future - now, update_interval);
 
   auto head = &waitlist_hd;
   time_t prev = 0;
@@ -70,6 +75,8 @@ void reg(string name, time_t interval, runnable_t func, void *param)
   *task = {name, remaining, func, param, head->next};
   head->next = task;
 }
+
+time_t last = 0;
 
 void run()
 {

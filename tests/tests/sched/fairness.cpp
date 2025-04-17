@@ -51,7 +51,7 @@ SYS_TEST(sched_sleep)
   sched::wait(p0, p1);
 
   return results[0] == 0 && results[1] == 1 && results[2] == 2 &&
-         (end - start) == roundup(interval, waitlist::update_interval);
+         (end - start) <= roundup(interval, waitlist::update_interval);
 }
 } // namespace TEST_SUITE(sched_sleep)
 
