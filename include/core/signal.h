@@ -69,6 +69,8 @@ public:
     handlers[sig] = new_handler;
     return old_handler;
   }
+
+  void reset() { raised = 0; };
 };
 
 signal_handler_t swap_handler(signal_t sig, signal_handler_t new_handler);

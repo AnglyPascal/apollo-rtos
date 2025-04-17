@@ -10,7 +10,7 @@
 namespace
 {
 const char *states[] = {
-    "[empty]",
+    RED "[empty]" DEFAULT,
     GREEN "[runnable]" DEFAULT,
     BLUE "[asleep]" DEFAULT,
     YELLOW "[running]" DEFAULT,
@@ -35,14 +35,32 @@ struct priority_t {
     return *this;
   }
 
-  auto operator<=>(const priority_t &other) const
+  friend auto operator<=>(const priority_t &lhs, const priority_t &rhs)
   {
-    if (lev != other.lev)
-      return lev <=> other.lev;
-    return (other.weight) <=> weight;
+    if (lhs.lev != rhs.lev)
+      return lhs.lev <=> rhs.lev;
+    return (rhs.weight) <=> lhs.weight;
   }
 
-  bool operator==(const priority_t &other) const = default;
+  friend auto operator==(const priority_t &lhs, int32_t rhs)
+  {
+    return lhs.lev == rhs;
+  }
+
+  friend auto operator!=(const priority_t &lhs, int32_t rhs)
+  {
+    return lhs.lev != rhs;
+  }
+
+  friend auto operator==(int32_t lhs, const priority_t &rhs)
+  {
+    return rhs == lhs;
+  }
+
+  friend auto operator!=(int32_t lhs, const priority_t &rhs)
+  {
+    return rhs != lhs;
+  }
 
   friend auto operator<=>(const priority_t &lhs, int32_t rhs)
   {
@@ -81,7 +99,7 @@ struct proc_t {
     term_req = false;
     bar = nullptr;
 
-    signals = {};
+    signals.reset();
   }
 
   void trace(pid_t pid, uint32_t total_ticks, bool curr)

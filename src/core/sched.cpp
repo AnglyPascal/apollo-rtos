@@ -75,6 +75,7 @@ pid_t reg_proc(const proc_def_t *def, void *param)
   proc->def = def;
 
   proc->term_req = false;
+  new (&proc->signals) signals_t{};
 
   stack_allocator.acquire(proc, stk_sz, func, param, exit);
   incr_priority(pid, priority);
