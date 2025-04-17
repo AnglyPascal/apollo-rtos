@@ -66,8 +66,10 @@ public:
 
     const bool mmap_shared = false;
     const bool w_en = false;
+    const bool a_en = false;
 
     mmap_unit_t &target_mu() { return mmap_shared ? fd->mu : mu; }
+    const mmap_unit_t &target_mu() const { return mmap_shared ? fd->mu : mu; }
 
   public:
     bool new_file = false;
@@ -75,17 +77,15 @@ public:
     file_t() {}
 
     file_t(fn_t fn, size_t _sz, uint32_t flags)
-        : mmap_shared{(bool)(flags & O_SHARED)}, w_en{(bool)(flags & O_WRITE)}
+        : mmap_shared{(bool)(flags & O_SHARED)},
+          w_en{(bool)(flags & (O_WRITE | O_APPEND))},
+          a_en{(bool)(flags & O_APPEND)}
     {
       fd = find_fd(fn);
-      if (fd == nullptr) {
-        debug<ERROR>("cannot find fd in open files table\r\n");
-        return;
-      }
+      assert(fd != nullptr, TERM, "cannot find fd in open files table\r\n");
 
       auto [inode, _new_file] = fs.open(fn, _sz, flags);
-      if (inode == nullptr)
-        return;
+      assert(inode != nullptr, TERM, "could not open inode\r\n");
 
       new_file = _new_file;
       fd->acquire(fn, inode, w_en);
@@ -171,7 +171,7 @@ public:
       fs.load(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
     }
 
-    void store()
+    void store() const
     {
       auto &tmu = target_mu();
       assert(tmu.buf != nullptr, TERM);
@@ -179,7 +179,7 @@ public:
       fs.store(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
     }
 
-    void store(size_t off, size_t sz)
+    void store(size_t off, size_t sz) const
     {
       auto &tmu = target_mu();
       assert(tmu.buf != nullptr && off >= 0 && off + sz <= tmu.sz, TERM);
@@ -189,15 +189,19 @@ public:
 
     void write(const void *buf, size_t sz, size_t off = 0)
     {
-      assert(ft() == CHAR, H_RESET);
       lock_guard guard{fd->mtx};
-      fs._write(fd->inode, buf, sz);
+      fs.write(fd->inode, buf, sz, off);
     }
 
-    auto read(size_t len, size_t off = 0)
+    void append(const void *buf, size_t sz)
     {
-      assert(ft() == CHAR, H_RESET);
-      return fs._read(fd->mtx, fd->inode, len, off);
+      lock_guard guard{fd->mtx};
+      fs.append(fd->inode, buf, sz);
+    }
+
+    auto read(size_t len, size_t off = 0) const
+    {
+      return fs.read(fd->mtx, fd->inode, len, off);
     }
   };
 
@@ -215,6 +219,7 @@ private:
   }
 
 public:
+  // TODO FIXME: open without size
   static file_t open(fn_t fn, size_t sz, uint32_t flags)
   {
     return file_t{fn, sz, flags};

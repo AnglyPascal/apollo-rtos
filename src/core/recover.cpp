@@ -182,6 +182,12 @@ static_assert(sizeof(tbl) <= 1024);
 
 constexpr fn_t rec_fn = 0;
 fram::file_t file;
+
+inline void store_entry(auto &entry)
+{
+  file.write(&entry, sizeof(entry),
+             (size_t)((uint8_t *)&entry - (uint8_t *)&tbl));
+}
 } // namespace
 
 guard_proc::guard_proc(lev_t lev, const uint8_t *data, size_t data_sz)
@@ -193,14 +199,14 @@ guard_proc::guard_proc(lev_t lev, const uint8_t *data, size_t data_sz)
   entry.proc_def = curr_proc::def();
   entry.copy_data(data, data_sz);
 
-  file.store(tbl.offset(&entry), sizeof(entry));
+  store_entry(entry);
 }
 
 guard_proc::~guard_proc()
 {
   auto &entry = tbl.entry<PROC>(rec_id);
   entry.reset();
-  file.store(tbl.offset(&entry), sizeof(entry));
+  store_entry(entry);
 }
 
 guard_task::guard_task(lev_t lev, runnable_t task, time_t interval,
@@ -214,14 +220,14 @@ guard_task::guard_task(lev_t lev, runnable_t task, time_t interval,
   entry.task = task;
   entry.copy_data(data, data_sz);
 
-  file.store(tbl.offset(&entry), sizeof(entry));
+  store_entry(entry);
 }
 
 guard_task::~guard_task()
 {
   auto &entry = tbl.entry<TASK>(rec_id);
   entry.reset();
-  file.store(tbl.offset(&entry), sizeof(entry));
+  store_entry(entry);
 }
 
 SEC_ADDR(recover);

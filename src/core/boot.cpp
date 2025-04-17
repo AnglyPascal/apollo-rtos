@@ -86,8 +86,6 @@ void init()
 
 void stat()
 {
-  // FIXME: if the mapping is not shared, it uses heap::malloc, but no process
-  // is set up, so malloc's attempt to write to process' used_hd fails
   auto file =
       fram::open<boot_stat_t>(boot_fn, O_WRITE | O_CREATE | O_PERM | O_SHARED);
   auto stat = file.mmap<boot_stat_t>();

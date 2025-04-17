@@ -59,7 +59,7 @@ inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
 {
   while (idx < n_tests) {
     auto [name, func, passed] = tests[idx++];
-    debug<ERROR>("running test %s\r\n", name);
+    debug<TRACE>("running test %s\r\n", name);
     *passed = func();
     trigger_reset();
   }

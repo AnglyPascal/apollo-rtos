@@ -47,6 +47,11 @@ function(add_custom_executable target_name target_dir)
   file(GLOB_RECURSE TARGET_SRC "${target_dir}/*.cpp")
   add_executable(${target_name} ${KERNEL_SRC} ${TARGET_SRC})
 
+  add_custom_target(${target_name}_delete ALL
+    COMMAND rm -f ${target_name}.elf
+  )
+  add_dependencies(${target_name} ${target_name}_delete)
+
   set_target_properties(${target_name} PROPERTIES OUTPUT_NAME "${target_name}.elf")
 
   add_custom_command(

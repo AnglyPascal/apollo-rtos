@@ -114,9 +114,14 @@ private:
     return addr;
   }
 
+  inline void load_hd() const
+  {
+    desc.read(paddr(desc.fs_hd_addr), (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+  }
+
   inline void store_hd() const
   {
-    write(desc.fs_hd_addr, (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+    desc.write(paddr(desc.fs_hd_addr), (uint8_t *)&fs_hd, sizeof(fs_hd_t));
   }
 
 public:
@@ -126,7 +131,7 @@ public:
   {
     fs_hd.magic = BLK_MAGIC;
     for (auto &inode : fs_hd.inode_tbl)
-      inode = inode_t{};
+      new (&inode) inode_t{};
     fs_hd.free_set.set_all();
 
     store_hd();
@@ -134,23 +139,13 @@ public:
 
   void mount()
   {
-    read(desc.fs_hd_addr, (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+    load_hd();
     first_boot = !valid();
     if (!valid())
       format();
   }
 
   void umount() const { store_hd(); }
-
-  static inline void write(blk_addr_t blk_addr, uint8_t *buf, size_t buf_sz)
-  {
-    desc.write(paddr(blk_addr), buf, buf_sz);
-  }
-
-  static inline void read(blk_addr_t blk_addr, uint8_t *buf, size_t buf_sz)
-  {
-    desc.read(paddr(blk_addr), buf, buf_sz);
-  }
 
   std::pair<const inode_t *, bool> open(fn_t fn, size_t sz, uint32_t flags)
   {
@@ -203,53 +198,44 @@ public:
   }
 
 private:
-  template <bool to_read>
-  inline void xfer(const inode_t *inode, uint8_t *buf, size_t buf_sz) const
+  template <auto func>
+  static inline void xfer(const inode_t *inode, uint8_t *buf, size_t buf_sz,
+                          size_t offset = 0)
   {
     assert(inode->fsz() >= buf_sz, TERM);
+    const auto nblks = inode->nblks;
 
-    auto func = to_read ? read : write;
-    auto nblks = inode->nblks;
+    nblks_t fst_blk = offset / BLK_SZ;
+    size_t blk_offset = offset % BLK_SZ;
+    size_t fst_blk_sz = min(buf_sz, BLK_SZ - blk_offset);
 
-    for (nblks_t i = 0; i < nblks - 1; i++) {
-      func(inode->blks[i], buf, BLK_SZ);
+    nblks_t i = fst_blk;
 
-      buf += BLK_SZ;
-      buf_sz -= BLK_SZ;
+    func(paddr(inode->blks[i++]) + blk_offset, buf, fst_blk_sz);
+    buf += fst_blk_sz;
+    buf_sz -= fst_blk_sz;
+
+    while (buf_sz > 0 && i < nblks) {
+      auto blk_sz = min(buf_sz, BLK_SZ);
+      func(paddr(inode->blks[i++]), buf, blk_sz);
+
+      buf += blk_sz;
+      buf_sz -= blk_sz;
     }
-    func(inode->blks[nblks - 1], buf, buf_sz);
   }
 
 public:
-  void load(const inode_t *inode, uint8_t *buf, size_t buf_sz) const
+  static void load(const inode_t *inode, uint8_t *buf, size_t buf_sz,
+                   size_t off = 0)
   {
-    xfer<true>(inode, buf, buf_sz);
+    xfer<desc.read>(inode, buf, buf_sz, off);
   }
 
-  void store(const inode_t *inode, uint8_t *buf, size_t buf_sz) const
+  static void store(const inode_t *inode, const uint8_t *buf, size_t buf_sz,
+                    size_t off = 0)
   {
-    xfer<false>(inode, buf, buf_sz);
-  }
-
-  void store(const inode_t *inode, size_t off, uint8_t *buf,
-             size_t buf_sz) const
-  {
-    assert(off >= 0 && off < inode->fsz(), TERM);
-
-    while (buf_sz > 0) {
-      auto blk_id = off / BLK_SZ;
-      auto blk_off = off % BLK_SZ;
-
-      auto blk = inode->blks[blk_id];
-      auto addr = paddr(blk) + blk_off;
-      auto sz = min(buf_sz, BLK_SZ - blk_off);
-
-      desc.write(addr, buf, sz);
-
-      buf_sz -= sz;
-      off += sz;
-      buf += sz;
-    }
+    xfer<desc.write>(inode, (uint8_t *)buf, buf_sz, off);
+    inode->curr = max(inode->curr, off + buf_sz);
   }
 
   void trace(bool (*is_open)(fn_t))
@@ -277,80 +263,88 @@ public:
 private:
   class char_iter_t
   {
-    fd_mtx_t &fd_mtx; // FIXME: test file mutex
+    fd_mtx_t *fd_mtx; // FIXME: test file mutex
 
     static constexpr size_t buf_len = 16;
     static_assert(desc.blk_sz % buf_len == 0);
 
     char buf[buf_len];
-    size_t pos;
+    size_t buf_pos;
 
     using inode_t = _inode_t<desc_t, desc>;
     const inode_t *const inode;
     size_t remaining;
+    size_t idx;
     size_t offset;
 
     inline void fetch()
     {
-      // size_t n_chars = min(remaining, buf_len);
+      size_t n_chars = min(remaining, buf_len);
 
-      // _fs_t::load(inode, (uint8_t *)buf, n_chars, offset);
+      _fs_t::load(inode, (uint8_t *)buf, n_chars, offset);
 
-      // remaining -= n_chars;
-      // offset += n_chars;
-      pos = 0;
+      remaining -= n_chars;
+      offset += n_chars;
+      buf_pos = 0;
     }
 
   public:
     char_iter_t(fd_mtx_t &fd_mtx, const inode_t *inode, size_t sz,
                 size_t offset = 0)
-        : fd_mtx{fd_mtx}, pos{buf_len}, inode{inode}, remaining{sz},
-          offset{offset}
+        : fd_mtx{&fd_mtx}, buf_pos{buf_len}, inode{inode}, remaining{sz},
+          idx{sz}, offset{offset}
     {
-      // fd_mtx.lock();
+      this->fd_mtx->lock();
     }
 
     ~char_iter_t()
     {
-      // fd_mtx.unlock();
+      if (fd_mtx != nullptr)
+        fd_mtx->unlock();
+    }
+
+    void release()
+    {
+      fd_mtx->unlock();
+      fd_mtx = nullptr;
     }
 
     char operator*()
     {
-      if (remaining == 0)
+      if (idx == 0)
         return '\0';
 
-      if (pos == buf_len)
+      if (buf_pos == buf_len)
         fetch();
 
-      return buf[pos];
+      return buf[buf_pos];
     }
 
     char_iter_t &operator++()
     {
-      if (pos == buf_len)
+      if (buf_pos == buf_len)
         fetch();
-      pos++;
+
+      idx--;
+      buf_pos++;
       return *this;
     }
-
-    char_iter_t &operator++(int) { return ++(*this); }
   };
 
 public:
-  void _write(const inode_t *inode, const void *buf, size_t buf_sz,
-              size_t off = 0) const
+  void write(const inode_t *inode, const void *buf, size_t buf_sz,
+             size_t off = 0) const
   {
-    // return store(inode, (const uint8_t *)buf, buf_sz, off);
+    return store(inode, (const uint8_t *)buf, buf_sz, off);
   }
 
   void append(const inode_t *inode, const void *buf, size_t buf_sz) const
   {
-    // return write(inode, buf, buf_sz, inode->curr);
+    return write(inode, buf, buf_sz, inode->curr);
   }
 
-  char_iter_t _read(fd_mtx_t &fd_mtx, const inode_t *inode, size_t sz,
-                    size_t offset = 0) const
+  char_iter_t read(fd_mtx_t &fd_mtx, const inode_t *inode, size_t sz,
+                   size_t offset = 0) const
   {
     return {fd_mtx, inode, sz, offset};
   };
