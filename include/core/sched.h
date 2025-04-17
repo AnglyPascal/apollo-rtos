@@ -7,8 +7,7 @@
 inline constexpr size_t N_PROCS = 16;
 
 template <size_t chan_len>
-struct chan_t : public circular_buffer<pid_t, chan_len> {
-};
+using chan_t = circular_buffer<pid_t, chan_len>;
 
 namespace sched
 {

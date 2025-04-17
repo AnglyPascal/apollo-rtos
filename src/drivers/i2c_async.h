@@ -76,7 +76,7 @@ void init()
   new (&mtx) mutex<8>{"i2c"};
 }
 
-void handler(void)
+__always_inline__ inline void handler(void)
 {
   intr_guard guard{I2C0_IRQ};
 

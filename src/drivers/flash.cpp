@@ -5,8 +5,7 @@
 
 /** If CPU is halted during write/erase operations, why do we need to busy wait?
  */
-__always_inline__
-inline void wait()
+__always_inline__ inline void wait()
 {
   while (!NVMC.READY)
     ;

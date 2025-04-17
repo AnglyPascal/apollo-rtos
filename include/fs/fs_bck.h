@@ -3,6 +3,9 @@
 #include "core/types.h"
 #include "utility/bitset.h"
 #include "utility/debug.h"
+#include "utility/mutex.h"
+
+using fd_mtx_t = mutex<4>;
 
 struct flag_t {
   void reset() { _flag = 0; }
@@ -42,8 +45,7 @@ struct _inode_t {
 
   flag_t flag;
 
-  addr_t start;
-  addr_t curr;
+  mutable addr_t curr;
 
   file_type_t ft() const { return flag.ft(); }
   size_t fsz() const { return nblks * desc_t::blk_sz; }
@@ -56,25 +58,12 @@ struct _fs_hd_t {
 
   using inode_t = _inode_t<desc_t, desc>;
 
-  static constexpr uint32_t BLK_MAGIC = 0xbabebabe;
-  uint32_t magic;
   inode_t inode_tbl[desc.n_inodes];
+  uint32_t magic;
 
   static constexpr size_t N_BLKS = (desc.end - desc.start) / desc_t::blk_sz;
   static_assert(N_BLKS <= (1 << 8));
   bitset<N_BLKS> free_set;
-
-  bool valid() const { return magic == BLK_MAGIC; }
-
-  void format()
-  {
-    magic = BLK_MAGIC;
-    for (auto &inode : inode_tbl)
-      inode = inode_t{};
-    free_set.set_all();
-  }
-
-  inode_t &find(fn_t fn) { return inode_tbl[fn]; }
 
   void alloc_blks(blk_addr_t *buf, size_t nblks)
   {
@@ -109,6 +98,7 @@ public:
   using inode_t = _inode_t<desc_t, desc>;
 
   static constexpr auto BLK_SZ = desc_t::blk_sz;
+  static constexpr uint32_t BLK_MAGIC = 0xbabebabe;
 
   bool first_boot = false;
 
@@ -130,11 +120,15 @@ private:
   }
 
 public:
-  bool valid() const { return fs_hd.valid(); }
+  bool valid() const { return fs_hd.magic == BLK_MAGIC; }
 
   void format()
   {
-    fs_hd.format();
+    fs_hd.magic = BLK_MAGIC;
+    for (auto &inode : fs_hd.inode_tbl)
+      inode = inode_t{};
+    fs_hd.free_set.set_all();
+
     store_hd();
   }
 
@@ -162,7 +156,7 @@ public:
   {
     assert(sz > 0 && fn >= 0 && fn < desc.n_inodes, TERM);
 
-    auto &inode = fs_hd.find(fn);
+    auto &inode = fs_hd.inode_tbl[fn];
     const bool in_use = inode.flag.in_use();
 
     if (!in_use) {
@@ -180,7 +174,6 @@ public:
       if (flags & O_PERM)
         inode.flag.set_perm();
 
-      inode.start = 0;
       inode.curr = 0;
 
       store_hd();
@@ -191,7 +184,7 @@ public:
 
   void remove(fn_t fn)
   {
-    auto &inode = fs_hd.find(fn);
+    auto &inode = fs_hd.inode_tbl[fn];
 
     if (!inode.flag.in_use())
       return debug<WARN>("deleting non-existent file does nothing\r\n");

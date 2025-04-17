@@ -32,7 +32,7 @@ private:
 
   public:
     fn_t fn = null_fn;
-    mutable mutex<8> mtx = {"fd"};
+    fd_mtx_t mtx = {"fd"};
     const inode_t *inode = nullptr;
     mmap_unit_t mu = {};
 

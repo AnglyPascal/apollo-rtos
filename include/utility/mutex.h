@@ -8,18 +8,24 @@ template <size_t chan_len>
 class mutex
 {
 public:
-  const char *name;
+  const char *const name;
 
 private:
-  chan_t<chan_len> lock_chan;
-  bool busy = false;
+  mutable chan_t<chan_len> lock_chan;
+  mutable bool busy = false;
 
 public:
   mutex() : name{""}, lock_chan{}, busy{false} {}
 
   mutex(const char *name) : name{name}, lock_chan{}, busy{false} {}
 
-  void lock()
+  mutex(const mutex &) = delete;
+  mutex &operator=(const mutex &) = delete;
+
+  mutex(mutex &&) = default;
+  mutex &operator=(mutex &&) = default;
+
+  void lock() const
   {
     while (busy) {
       sched::wait(lock_chan);
@@ -27,7 +33,7 @@ public:
     busy = true;
   }
 
-  void unlock()
+  void unlock() const
   {
     assert(busy, S_RESET);
     busy = false;
@@ -48,6 +54,11 @@ private:
 public:
   lock_guard(_mutex &_m) : _m{_m} { _m.lock(); }
   ~lock_guard() { _m.unlock(); }
-};
 
+  lock_guard(const lock_guard &) = delete;
+  lock_guard &operator=(const lock_guard &) = delete;
+
+  lock_guard(lock_guard &&) = delete;
+  lock_guard &operator=(lock_guard &&) = delete;
+};
 

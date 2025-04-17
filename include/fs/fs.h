@@ -96,14 +96,10 @@ inline constexpr desc_t desc = {
 } // namespace _fram
 
 #if FLASH_FS == 1
-class flash : public fs_impl_t<_flash::desc>
-{
-};
+using flash = fs_impl_t<_flash::desc>;
 #endif
 
-class fram : public fs_impl_t<_fram::desc>
-{
-};
+using fram = fs_impl_t<_fram::desc>;
 
 namespace fs
 {
