@@ -273,5 +273,86 @@ public:
       debug<INFO>("%u\r\n", inode.blks[inode.nblks - 1]);
     }
   }
+
+private:
+  class char_iter_t
+  {
+    fd_mtx_t &fd_mtx; // FIXME: test file mutex
+
+    static constexpr size_t buf_len = 16;
+    static_assert(desc.blk_sz % buf_len == 0);
+
+    char buf[buf_len];
+    size_t pos;
+
+    using inode_t = _inode_t<desc_t, desc>;
+    const inode_t *const inode;
+    size_t remaining;
+    size_t offset;
+
+    inline void fetch()
+    {
+      // size_t n_chars = min(remaining, buf_len);
+
+      // _fs_t::load(inode, (uint8_t *)buf, n_chars, offset);
+
+      // remaining -= n_chars;
+      // offset += n_chars;
+      pos = 0;
+    }
+
+  public:
+    char_iter_t(fd_mtx_t &fd_mtx, const inode_t *inode, size_t sz,
+                size_t offset = 0)
+        : fd_mtx{fd_mtx}, pos{buf_len}, inode{inode}, remaining{sz},
+          offset{offset}
+    {
+      // fd_mtx.lock();
+    }
+
+    ~char_iter_t()
+    {
+      // fd_mtx.unlock();
+    }
+
+    char operator*()
+    {
+      if (remaining == 0)
+        return '\0';
+
+      if (pos == buf_len)
+        fetch();
+
+      return buf[pos];
+    }
+
+    char_iter_t &operator++()
+    {
+      if (pos == buf_len)
+        fetch();
+      pos++;
+      return *this;
+    }
+
+    char_iter_t &operator++(int) { return ++(*this); }
+  };
+
+public:
+  void _write(const inode_t *inode, const void *buf, size_t buf_sz,
+              size_t off = 0) const
+  {
+    // return store(inode, (const uint8_t *)buf, buf_sz, off);
+  }
+
+  void append(const inode_t *inode, const void *buf, size_t buf_sz) const
+  {
+    // return write(inode, buf, buf_sz, inode->curr);
+  }
+
+  char_iter_t _read(fd_mtx_t &fd_mtx, const inode_t *inode, size_t sz,
+                    size_t offset = 0) const
+  {
+    return {fd_mtx, inode, sz, offset};
+  };
 };
 

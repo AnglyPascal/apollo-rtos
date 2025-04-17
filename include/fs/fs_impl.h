@@ -186,6 +186,19 @@ public:
       lock_guard guard{fd->mtx};
       fs.store(fd->inode, off, ((uint8_t *)tmu.buf) + off, sz);
     }
+
+    void write(const void *buf, size_t sz, size_t off = 0)
+    {
+      assert(ft() == CHAR, H_RESET);
+      lock_guard guard{fd->mtx};
+      fs._write(fd->inode, buf, sz);
+    }
+
+    auto read(size_t len, size_t off = 0)
+    {
+      assert(ft() == CHAR, H_RESET);
+      return fs._read(fd->mtx, fd->inode, len, off);
+    }
   };
 
 private:
