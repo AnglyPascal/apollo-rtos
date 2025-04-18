@@ -42,10 +42,11 @@ struct _inode_t {
 
   flag_t flag;
 
-  mutable addr_t curr;
+  mutable addr_t end;
 
   file_type_t ft() const { return flag.ft(); }
-  size_t fsz() const { return nblks * desc_t::blk_sz; }
+  size_t fsz() const { return end; }
+  size_t max_sz() const { return nblks * desc_t::blk_sz; }
 };
 
 template <typename desc_t, desc_t desc>
@@ -179,7 +180,7 @@ public:
     if (flags & O_PERM)
       inode.flag.set_perm();
 
-    inode.curr = 0;
+    inode.end = 0;
     store_hd();
 
     return {&inode, true};
@@ -206,7 +207,7 @@ private:
   static inline void xfer(const inode_t *inode, uint8_t *buf, size_t buf_sz,
                           size_t offset = 0)
   {
-    assert(inode->fsz() >= buf_sz, TERM);
+    assert(inode->max_sz() >= buf_sz, TERM);
     const auto nblks = inode->nblks;
 
     nblks_t fst_blk = offset / BLK_SZ;
@@ -239,7 +240,7 @@ public:
                     size_t off = 0)
   {
     xfer<desc.write>(inode, (uint8_t *)buf, buf_sz, off);
-    inode->curr = max(inode->curr, off + buf_sz);
+    inode->end = max(inode->end, off + buf_sz);
   }
 
   void trace(bool (*is_open)(fn_t))

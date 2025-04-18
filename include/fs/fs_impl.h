@@ -114,7 +114,9 @@ public:
 
     fn_t fn() const { return fd->fn; }
     auto ft() const { return fd->inode->flag.ft(); }
+
     auto fsz() const { return fd->inode->fsz(); }
+    auto fend() const { return fd->inode->end; }
 
     void *mmap(size_t sz)
     {
@@ -200,10 +202,7 @@ public:
       return fs.store(fd->inode, (const uint8_t *)buf, sz, off);
     }
 
-    void append(const void *buf, size_t sz)
-    {
-      return write(buf, sz, fd->inode->curr);
-    }
+    void append(const void *buf, size_t sz) { return write(buf, sz, fend()); }
 
     void read(uint8_t *buf, size_t len, size_t off = 0) const
     {
