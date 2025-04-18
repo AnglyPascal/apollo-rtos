@@ -190,3 +190,6 @@ constexpr size_t roundup(size_t sz, size_t align)
   var < (type *)SEC_END(name);                                                 \
   var++
 
+#define __FILENAME__                                                           \
+  (__builtin_strrchr(__FILE__, '/') ? __builtin_strrchr(__FILE__, '/') + 1     \
+                                    : __FILE__)

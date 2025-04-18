@@ -13,16 +13,12 @@ TODO
 
 - trace unification, and dump signal
 - message pass signals
-- character files
+
+- char files
+    - cat, output to file
 
 
 ## Testing
-
-- each test then might spawn some processes, and then it waits for those processes
-    to return
-    - this could be done manually, using some shared variables
-        - for now this is the solution
-    - could be made into a feature
 
 * tests that need to be done
     - scheduler ordering is based on the priority
@@ -41,8 +37,4 @@ TODO
 - write about linked list in memory
 
 
-- char files
-    - just need to facilitate offset-ed write to a page
-- mmap should construct a structure if file is newly created, or at least not to copy
-    from disk
 - impl vector, hash_map and dyanmic list
