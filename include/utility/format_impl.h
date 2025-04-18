@@ -1,9 +1,9 @@
-#include "utility/format.h"
-
 #include "core/hardware.h"
 #include "core/types.h"
 
-int32_t atoi(const char *p)
+#include <cstdarg>
+
+__noinline__ inline int32_t atoi(const char *p)
 {
   auto atou = [](const char *p) {
     int n = 0;
@@ -16,7 +16,7 @@ int32_t atoi(const char *p)
   return *p == '-' ? -atou(++p) : atou(p);
 }
 
-void utoa(uint32_t n, char *p)
+inline void utoa(uint32_t n, char *p)
 {
   auto s = p;
 
@@ -34,7 +34,7 @@ void utoa(uint32_t n, char *p)
   }
 }
 
-void itoa(int32_t n, char *p)
+inline void itoa(int32_t n, char *p)
 {
   if (n < 0) {
     *p++ = '-';
@@ -43,7 +43,7 @@ void itoa(int32_t n, char *p)
   utoa(n, p);
 }
 
-void btoa(uint8_t n, char *p)
+inline void btoa(uint8_t n, char *p)
 {
   p[10] = '\0';
   p[0] = '0';
@@ -54,7 +54,7 @@ void btoa(uint8_t n, char *p)
   }
 }
 
-void xtoa(uint32_t n, char *p)
+inline void xtoa(uint32_t n, char *p)
 {
   const char *hex = "0123456789abcdef";
 
@@ -70,10 +70,10 @@ void xtoa(uint32_t n, char *p)
   }
 }
 
-char int_buf[11];
-char float_buf[6];
+inline char int_buf[11];
+inline char float_buf[6];
 
-void rtoa(rational_t r, char *ip, char *fp)
+inline void rtoa(rational_t r, char *ip, char *fp)
 {
   uint32_t mult = rational_t::mult;
 
@@ -91,7 +91,11 @@ void rtoa(rational_t r, char *ip, char *fp)
   utoa(frac_val, fp);
 }
 
-void do_printf(void (*putc)(char), const char *fmt, ...)
+template <typename _ostream>
+  requires requires(_ostream &os, char c) {
+    { os.putc(c) };
+  }
+__noinline__ void do_printf(_ostream &os, const char *fmt, ...)
 {
   va_list args;
   va_start(args, fmt);
@@ -102,7 +106,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
 
       switch (c) {
       case '\0': {
-        putc('%');
+        os.putc('%');
         break;
       }
 
@@ -113,10 +117,10 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         rtoa(f, ib, fb);
 
         while (*ib != '\0')
-          putc(*ib++);
-        putc('.');
+          os.putc(*ib++);
+        os.putc('.');
         while (*fb != '\0')
-          putc(*fb++);
+          os.putc(*fb++);
 
         break;
       }
@@ -126,7 +130,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         auto p = int_buf;
         itoa(n, p);
         while (*p != '\0')
-          putc(*p++);
+          os.putc(*p++);
         break;
       }
 
@@ -135,7 +139,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         auto p = int_buf;
         btoa(n, p);
         while (*p != '\0')
-          putc(*p++);
+          os.putc(*p++);
         break;
       }
 
@@ -144,7 +148,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         auto p = int_buf;
         utoa(n, p);
         while (*p != '\0')
-          putc(*p++);
+          os.putc(*p++);
         break;
       }
 
@@ -153,7 +157,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         auto p = int_buf;
         xtoa(n, p);
         while (*p != '\0')
-          putc(*p++);
+          os.putc(*p++);
         break;
       }
 
@@ -162,30 +166,30 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
         auto p = int_buf;
         xtoa(n, p);
         while (*p != '\0')
-          putc(*p++);
+          os.putc(*p++);
         break;
       }
 
       case 's': {
         const char *str = va_arg(args, const char *);
         while (*str != '\0')
-          putc(*str++);
+          os.putc(*str++);
         break;
       }
 
       case 'c': {
         char d = va_arg(args, int);
-        putc(d);
+        os.putc(d);
         break;
       }
 
       default: {
-        putc('%');
-        putc(c);
+        os.putc('%');
+        os.putc(c);
       }
       }
     } else {
-      putc(*fmt);
+      os.putc(*fmt);
     }
     fmt++;
   }
@@ -193,7 +197,7 @@ void do_printf(void (*putc)(char), const char *fmt, ...)
   va_end(args);
 }
 
-uint8_t rand()
+__noinline__ inline uint8_t rand()
 {
   RNG.CONFIG = RNG_CONFIG_DERCEN;
 
@@ -208,7 +212,7 @@ uint8_t rand()
 }
 
 // FIXME: very biased for large numbers
-uint32_t random()
+__noinline__ inline uint32_t random()
 {
   RNG.CONFIG = RNG_CONFIG_DERCEN;
 

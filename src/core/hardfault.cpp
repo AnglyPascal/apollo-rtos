@@ -18,7 +18,7 @@ struct __attribute__((packed)) fault_stack_t {
 
 __extern_C__ void hardfault_handler_body(void *fault_stack)
 {
-  serial::putc = serial::busy_putc;
+  serial::os.__putc = serial::busy_putc;
 
   auto stk = (fault_stack_t *)fault_stack;
 
@@ -36,7 +36,7 @@ __extern_C__ void hardfault_handler_body(void *fault_stack)
 
   while (1) {
     char ch = serial::getc();
-    serial::putc(ch);
+    printf("%c", ch);
 
     switch (ch) {
     case CTRL('d'):

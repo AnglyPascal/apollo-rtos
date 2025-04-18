@@ -13,7 +13,7 @@ chan_t<1> chan;
 
 bool listener(char c)
 {
-  serial::putc(c);
+  printf("%c", c);
 
   if (c == CTRL('q')) {
     buf.reset();
@@ -22,8 +22,7 @@ bool listener(char c)
   }
 
   if (c == '\r' || c == '\n') {
-    serial::putc('\r');
-    serial::putc('\n');
+    printf("\r\n");
 
     buf.push('\0');
     sched::notify(chan);

@@ -1,30 +1,32 @@
 #pragma once
 
-#include <cstdarg>
 #include <cstdint>
 
 #include "core/irq.h"
 #include "drivers/serial.h"
 
-void do_printf(void (*putch)(char), const char *fmt, ...);
+template <typename _ostream>
+  requires requires(_ostream &os, char c) {
+    { os.putc(c) };
+  }
+__noinline__ void do_printf(_ostream &os, const char *fmt, ...);
 
 template <typename... Args>
 void printf(Args... args)
 {
-  do_printf(serial::putc, args...);
+  do_printf(serial::os, std::forward<Args>(args)...);
 }
 
 template <typename... Args>
 void kprintf(Args... args)
 {
   intr_guard guard;
-  do_printf(serial::busy_putc, args...);
+  do_printf(serial::kos, std::forward<Args>(args)...);
 }
 
 inline void clear_screen() { kprintf("\033[2J\033[H"); }
 
 int32_t atoi(const char *p);
-uint32_t xtou(char *p);
 
 // FIXME find a better place
 uint8_t rand();
@@ -49,3 +51,6 @@ uint32_t random();
 
 #define DEFAULT "\033[0m"
 #define BOLD "\033[1m"
+
+#include "format_impl.h"
+

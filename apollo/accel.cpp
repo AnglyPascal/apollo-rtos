@@ -83,6 +83,7 @@ APP(accel, HIGH1, 128, param)
   constexpr int threshold = 10;
   auto is_zero = [](int p) { return (-threshold < p) && (p < threshold); };
 
+
   uint8_t n = 0;
   while (!curr_proc::term_req()) {
     if (!val->empty()) {

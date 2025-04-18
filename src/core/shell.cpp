@@ -46,7 +46,7 @@ bool listener(char c)
     return true;
 
   default:
-    serial::putc(c);
+    printf("%c", c);
 
     if (c >= 32 && c < 127) {
       buf.push(c);

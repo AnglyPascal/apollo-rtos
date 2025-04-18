@@ -19,7 +19,15 @@ char getc(void);
 void busy_putc(char ch);
 void intr_putc(char ch);
 
-inline void (*putc)(char) = intr_putc;
+// inline void (*putc)(char) = intr_putc;
+
+struct __ostream {
+  void (*__putc)(char);
+  void putc(char c) { return __putc(c); }
+};
+
+inline __ostream os{intr_putc};
+inline __ostream kos{busy_putc};
 
 using listener_t = bool (*)(char);
 
