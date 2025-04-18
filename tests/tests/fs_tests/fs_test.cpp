@@ -33,7 +33,7 @@ TEST(fs_open_store_close)
   bool res = true;
 
   {
-    auto file = fram::open(test_fn, file_len, O_READ | O_SHARED);
+    auto file = fram::open(test_fn, O_READ | O_SHARED);
     auto t = (char *)file.mmap(file_len);
 
     res &= t0 == t;
@@ -71,7 +71,7 @@ TEST(fs_mutli_blk_file)
   bool equal = true;
 
   {
-    auto file = fram::open(test_fn, file_len, O_READ | O_SHARED);
+    auto file = fram::open(test_fn, O_READ | O_SHARED);
     auto t = (uint32_t *)file.mmap(file_len);
 
     for (size_t i = 0; i < file_len / sizeof(*t); i++)

@@ -1,11 +1,14 @@
 #pragma once
 
-#include "core/memory.h"
 #include "fs/fs.h"
 #include "fs/fs_bck.h"
+
+#include "core/memory.h"
 #include "utility/allocator.h"
 #include "utility/debug.h"
 #include "utility/mutex.h"
+
+using fd_mtx_t = mutex<4>;
 
 template <auto desc>
 class fs_impl_t
@@ -72,9 +75,11 @@ public:
     const mmap_unit_t &target_mu() const { return mmap_shared ? fd->mu : mu; }
 
   public:
-    bool new_file = false;
+    const bool new_file = false;
 
     file_t() {}
+
+    file_t(fn_t fn, uint32_t flags) : file_t{fn, 0, flags} {}
 
     file_t(fn_t fn, size_t _sz, uint32_t flags)
         : mmap_shared{(bool)(flags & O_SHARED)},
@@ -87,7 +92,7 @@ public:
       auto [inode, _new_file] = fs.open(fn, _sz, flags);
       assert(inode != nullptr, TERM, "could not open inode\r\n");
 
-      new_file = _new_file;
+      const_cast<bool &>(new_file) = _new_file;
       fd->acquire(fn, inode, w_en);
     }
 
@@ -103,6 +108,9 @@ public:
       fd->release(w_en);
       fd = nullptr;
     }
+
+    void lock() const { fd->mtx.lock(); }
+    void unlock() const { fd->mtx.unlock(); }
 
     fn_t fn() const { return fd->fn; }
     auto ft() const { return fd->inode->flag.ft(); }
@@ -189,19 +197,17 @@ public:
 
     void write(const void *buf, size_t sz, size_t off = 0)
     {
-      lock_guard guard{fd->mtx};
-      fs.write(fd->inode, buf, sz, off);
+      return fs.store(fd->inode, (const uint8_t *)buf, sz, off);
     }
 
     void append(const void *buf, size_t sz)
     {
-      lock_guard guard{fd->mtx};
-      fs.append(fd->inode, buf, sz);
+      return write(buf, sz, fd->inode->curr);
     }
 
-    auto read(size_t len, size_t off = 0) const
+    void read(uint8_t *buf, size_t len, size_t off = 0) const
     {
-      return fs.read(fd->mtx, fd->inode, len, off);
+      return fs.load(fd->inode, buf, len, off);
     }
   };
 
@@ -219,7 +225,8 @@ private:
   }
 
 public:
-  // TODO FIXME: open without size
+  static file_t open(fn_t fn, uint32_t flags) { return file_t{fn, 0, flags}; }
+
   static file_t open(fn_t fn, size_t sz, uint32_t flags)
   {
     return file_t{fn, sz, flags};
@@ -257,7 +264,6 @@ public:
     }
   }
 
-  // FIXME: forcefully format upon flash
   static void format() { fs.format(); }
 
   static void umount() { fs.umount(); }

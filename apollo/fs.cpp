@@ -26,7 +26,7 @@ APP(cat, MID4, 128, param)
     return debug<ERROR>("a file name is required\r\n");
 
   fn_t fn = atoi(str);
-  auto file = fram::open(fn, 0, O_READ);
+  auto file = fram::open(fn, O_READ);
 
   if (file.ft() != CHAR)
     return debug<ERROR>("only char files allowed\r\n");

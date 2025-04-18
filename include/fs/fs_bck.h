@@ -3,9 +3,6 @@
 #include "core/types.h"
 #include "utility/bitset.h"
 #include "utility/debug.h"
-#include "utility/mutex.h"
-
-using fd_mtx_t = mutex<4>;
 
 struct flag_t {
   void reset() { _flag = 0; }
@@ -149,36 +146,43 @@ public:
 
   std::pair<const inode_t *, bool> open(fn_t fn, size_t sz, uint32_t flags)
   {
-    assert(sz > 0 && fn >= 0 && fn < desc.n_inodes, TERM);
+    assert(fn >= 0 && fn < desc.n_inodes, TERM);
 
     auto &inode = fs_hd.inode_tbl[fn];
     const bool in_use = inode.flag.in_use();
 
-    if (!in_use) {
-      assert(flags & O_CREATE, TERM,
-             "inode doesn't exist, but not creating\r\n");
-      inode.flag.set_use();
-
-      nblks_t nblks = roundup(sz, BLK_SZ) / BLK_SZ;
-      assert(nblks <= desc.max_num_blks, TERM);
-      inode.nblks = nblks;
-
-      fs_hd.alloc_blks(inode.blks, nblks);
-
-      if constexpr (desc.is_ram)
-        inode.flag.set_ft(flags & O_CHAR_FILE ? CHAR : BIN);
-      else
-        inode.flag.set_ft(BIN);
-
-      if (flags & O_PERM)
-        inode.flag.set_perm();
-
-      inode.curr = 0;
-
-      store_hd();
+    if (sz == 0) {
+      assert(in_use, TERM, "file does not exist\r\n");
+      return {&inode, false};
     }
 
-    return {&inode, !in_use};
+    if (in_use) {
+      debug<TRACE>("passing size parameter (%d) to open existing file %d\r\n",
+                   sz, fn);
+      return {&inode, false};
+    }
+
+    assert(flags & O_CREATE, TERM, "not creating non-existent file %d\r\n", fn);
+    inode.flag.set_use();
+
+    nblks_t nblks = roundup(sz, BLK_SZ) / BLK_SZ;
+    assert(nblks <= desc.max_num_blks, TERM);
+    inode.nblks = nblks;
+
+    fs_hd.alloc_blks(inode.blks, nblks);
+
+    if constexpr (desc.is_ram)
+      inode.flag.set_ft(flags & O_CHAR_FILE ? CHAR : BIN);
+    else
+      inode.flag.set_ft(BIN);
+
+    if (flags & O_PERM)
+      inode.flag.set_perm();
+
+    inode.curr = 0;
+    store_hd();
+
+    return {&inode, true};
   }
 
   void remove(fn_t fn)
@@ -259,94 +263,5 @@ public:
       debug<INFO>("%u\r\n", inode.blks[inode.nblks - 1]);
     }
   }
-
-private:
-  class char_iter_t
-  {
-    fd_mtx_t *fd_mtx; // FIXME: test file mutex
-
-    static constexpr size_t buf_len = 16;
-    static_assert(desc.blk_sz % buf_len == 0);
-
-    char buf[buf_len];
-    size_t buf_pos;
-
-    using inode_t = _inode_t<desc_t, desc>;
-    const inode_t *const inode;
-    size_t remaining;
-    size_t idx;
-    size_t offset;
-
-    inline void fetch()
-    {
-      size_t n_chars = min(remaining, buf_len);
-
-      _fs_t::load(inode, (uint8_t *)buf, n_chars, offset);
-
-      remaining -= n_chars;
-      offset += n_chars;
-      buf_pos = 0;
-    }
-
-  public:
-    char_iter_t(fd_mtx_t &fd_mtx, const inode_t *inode, size_t sz,
-                size_t offset = 0)
-        : fd_mtx{&fd_mtx}, buf_pos{buf_len}, inode{inode}, remaining{sz},
-          idx{sz}, offset{offset}
-    {
-      this->fd_mtx->lock();
-    }
-
-    ~char_iter_t()
-    {
-      if (fd_mtx != nullptr)
-        fd_mtx->unlock();
-    }
-
-    void release()
-    {
-      fd_mtx->unlock();
-      fd_mtx = nullptr;
-    }
-
-    char operator*()
-    {
-      if (idx == 0)
-        return '\0';
-
-      if (buf_pos == buf_len)
-        fetch();
-
-      return buf[buf_pos];
-    }
-
-    char_iter_t &operator++()
-    {
-      if (buf_pos == buf_len)
-        fetch();
-
-      idx--;
-      buf_pos++;
-      return *this;
-    }
-  };
-
-public:
-  void write(const inode_t *inode, const void *buf, size_t buf_sz,
-             size_t off = 0) const
-  {
-    return store(inode, (const uint8_t *)buf, buf_sz, off);
-  }
-
-  void append(const inode_t *inode, const void *buf, size_t buf_sz) const
-  {
-    return write(inode, buf, buf_sz, inode->curr);
-  }
-
-  char_iter_t read(fd_mtx_t &fd_mtx, const inode_t *inode, size_t sz,
-                   size_t offset = 0) const
-  {
-    return {fd_mtx, inode, sz, offset};
-  };
 };
 

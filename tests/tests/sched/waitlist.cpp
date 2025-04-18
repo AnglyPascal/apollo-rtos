@@ -52,6 +52,7 @@ namespace TEST_SUITE(sched_waitlist_fs_op)
 {
 volatile time_t start = 0, end = 0;
 volatile bool end_proc = false;
+constexpr size_t file_len = 16;
 
 PROC(proc0, HIGH1, 8, param)
 {
@@ -63,8 +64,8 @@ PROC(proc0, HIGH1, 8, param)
   };
   waitlist::reg("set_end", *(uint32_t *)param, set_end);
 
-  auto file = fram::open(test_fn, 16, O_CREATE | O_WRITE);
-  auto arr = (uint32_t *)file.mmap(16);
+  auto file = fram::open(test_fn, file_len, O_CREATE | O_WRITE);
+  auto arr = (uint32_t *)file.mmap(file_len);
   for (int i = 0; i < 4; i++) {
     *arr++ = i;
   }
@@ -87,8 +88,8 @@ SYS_TEST(sched_waitlist_fs_op)
   result &= check_waitlist_itnerval(start, end, interval);
   interval++;
 
-  auto file = fram::open(test_fn, 16, O_READ);
-  auto arr = (uint32_t *)file.mmap(16);
+  auto file = fram::open(test_fn, O_READ);
+  auto arr = (uint32_t *)file.mmap(file_len);
   for (uint32_t i = 0; i < 4; i++)
     result &= (*arr++ == i);
   file.store();

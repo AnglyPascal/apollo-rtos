@@ -74,7 +74,7 @@ const image_t dirs[3][3] = {
 
 APP(accel, HIGH1, 128, param)
 {
-  auto file = fram::open<buffer>(fn, O_SHARED);
+  auto file = fram::open(fn, O_SHARED);
   auto val = file.mmap<const buffer>();
 
   bool run_bg = ((args_t *)param)->run_bg;

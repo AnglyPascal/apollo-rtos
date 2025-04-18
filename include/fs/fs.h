@@ -3,6 +3,9 @@
 #include "fs/fs_desc.h"
 #include "fs/fs_impl.h"
 
+#include "fs/ifstream.h"
+#include "fs/ofstream.h"
+
 namespace _flash
 {
 using addr_t = uint32_t;
@@ -56,7 +59,6 @@ inline bool first_boot()
 
   return fst;
 }
-
 } // namespace _flash
 
 namespace _fram
@@ -100,6 +102,9 @@ using flash = fs_impl_t<_flash::desc>;
 #endif
 
 using fram = fs_impl_t<_fram::desc>;
+
+using ifstream = _ifstream<_fram::desc>;
+using ofstream = _ofstream<_fram::desc>;
 
 namespace fs
 {

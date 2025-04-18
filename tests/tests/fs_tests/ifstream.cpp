@@ -24,23 +24,20 @@ TEST(char_file_creation)
   }
 
   {
-    auto file = fram::open(test_fn, 256, O_CHAR_FILE | O_APPEND);
+    auto file = fram::open(test_fn, O_CHAR_FILE | O_APPEND);
     file.append(str2, strlen(str2) + 1);
   }
 
   {
-    auto file = fram::open(test_fn, 256, O_CHAR_FILE | O_APPEND);
-    {
-      auto it = file.read(strlen(str1) + strlen(str2));
+    ifstream it{test_fn};
 
-      size_t idx = 0;
-      while (*it != '\0') {
-        tmp[idx++] = *it;
-        ++it;
-      }
-      result &= idx == strlen(str1) + strlen(str2);
-      tmp[idx] = '\0';
+    size_t idx = 0;
+    while (*it != '\0') {
+      tmp[idx++] = *it;
+      ++it;
     }
+    result &= idx == strlen(str1) + strlen(str2);
+    tmp[idx] = '\0';
   }
 
   {
@@ -56,22 +53,19 @@ TEST(char_file_creation)
   }
 
   {
-    auto file = fram::open(test_fn, 256, O_CHAR_FILE | O_APPEND);
+    auto file = fram::open(test_fn, O_CHAR_FILE | O_APPEND);
     file.write(str3, strlen(str3), 0);
   }
 
   {
-    auto file = fram::open(test_fn, 256, O_CHAR_FILE | O_APPEND);
-    {
-      auto it = file.read(strlen(str3));
+    ifstream it{test_fn, strlen(str3)};
 
-      size_t idx = 0;
-      while (*it != '\0') {
-        tmp[idx++] = *it;
-        ++it;
-      }
-      result &= idx == strlen(str3);
+    size_t idx = 0;
+    while (*it != '\0') {
+      tmp[idx++] = *it;
+      ++it;
     }
+    result &= idx == strlen(str3);
   }
 
   {

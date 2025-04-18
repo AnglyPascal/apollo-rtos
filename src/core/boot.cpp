@@ -87,7 +87,7 @@ void init()
 void stat()
 {
   auto file =
-      fram::open<boot_stat_t>(boot_fn, O_WRITE | O_CREATE | O_PERM | O_SHARED);
+      fram::open<boot_stat_t>(boot_fn, O_CREATE | O_WRITE | O_PERM | O_SHARED);
   auto stat = file.mmap<boot_stat_t>();
 
   stat->incr(lev());
