@@ -86,5 +86,5 @@ pendsv_handler:
     .global hardfault_handler 
     .thumb_func
 hardfault_handler:
-    mrs r0, msp 
+    isave
     bl hardfault_handler_body
