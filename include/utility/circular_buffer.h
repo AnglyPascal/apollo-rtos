@@ -8,7 +8,7 @@ template <typename T, size_t N>
 class circular_buffer
 {
 protected:
-  byte_t store[N * sizeof(T)];
+  alignas(alignof(T)) byte_t store[N * sizeof(T)];
   size_t _start = 0, _end = 0, sz = 0;
 
 private:
@@ -59,6 +59,10 @@ public:
   T *enqueue(Args &&...args)
   {
     auto arr = (T *)store;
+
+    if (sz == N)
+      arr[_end].~T();
+
     auto ptr = new (arr + _end) T{std::forward<Args>(args)...};
 
     _end = _end + 1 == N ? 0 : _end + 1;
@@ -75,9 +79,13 @@ public:
   {
     assert(sz > 0, H_RESET);
     auto arr = (T *)store;
+
     auto t = arr[_start];
+    arr[_start].~T();
+
     _start = _start + 1 == N ? 0 : _start + 1;
     sz--;
+
     return t;
   }
 
@@ -109,6 +117,12 @@ public:
 
   iterator begin() { return iterator{(T *)store, _start, sz}; }
   iterator end() { return iterator{(T *)store, _end, 0}; }
+
+  void reset()
+  {
+    _start = 0;
+    _end = 0;
+  }
 };
 
 inline constexpr size_t circular_buffer_header_sz = sizeof(size_t) * 3;

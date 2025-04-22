@@ -83,7 +83,6 @@ APP(accel, HIGH1, 128, param)
   constexpr int threshold = 10;
   auto is_zero = [](int p) { return (-threshold < p) && (p < threshold); };
 
-
   uint8_t n = 0;
   while (!curr_proc::term_req()) {
     if (!val->empty()) {
@@ -114,6 +113,7 @@ STARTUP_PROC(accel_bg, HIGH3, 256, param)
 
   auto file = fram::open<buffer>(fn, O_WRITE | O_CREATE | O_SHARED);
   auto buf = file.mmap<buffer>();
+  buf->reset();
 
   accel::init();
 

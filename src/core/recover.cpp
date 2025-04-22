@@ -234,10 +234,13 @@ SEC_ADDR(recover);
 
 void init()
 {
-  fram::open(file, rec_fn, sizeof(tbl), O_WRITE | O_CREATE | O_PERM);
-  file.mmap(tbl);
-
   auto boot_lev = boot::lev();
+
+  if (boot_lev == boot_lev_t::FLASH)
+    fram::remove(rec_fn);
+
+  fram::open(file, rec_fn, sizeof(tbl), O_WRITE | O_CREATE);
+  file.mmap(tbl);
 
   // initialize recovery section
   if (boot_lev != boot_lev_t::RESET)
