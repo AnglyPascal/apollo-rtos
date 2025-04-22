@@ -7,18 +7,14 @@ namespace
 constexpr fn_t test_fn = 3;
 }
 
-namespace TEST_SUITE(ofstream_test)
-{
-TEST(ofstream_concept)
+BEGIN_SUITE(ofstream)
+
+TEST(basic_write)
 {
   bool result = true;
 
   {
-    fram::open(test_fn, 256, O_WRITE | O_CREATE | O_CHAR_FILE);
-  }
-
-  {
-    ofstream os{test_fn};
+    ofstream os{test_fn, O_CREATE | O_CHAR_FILE};
     os.printf("hello, world, %d!", 2025);
   }
 
@@ -36,4 +32,5 @@ TEST(ofstream_concept)
   fram::remove(test_fn);
   return result;
 }
-} // namespace TEST_SUITE(ofstream_test)
+
+END_SUITE()

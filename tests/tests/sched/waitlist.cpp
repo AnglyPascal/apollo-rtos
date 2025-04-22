@@ -11,10 +11,11 @@ bool check_waitlist_itnerval(time_t start, time_t end, time_t interval)
 }
 } // namespace
 
-namespace TEST_SUITE(sched_waitlist)
-{
+BEGIN_SUITE(waitlist)
+
 volatile time_t start = 0, end = 0;
 volatile bool end_proc = false;
+constexpr size_t file_len = 16;
 
 PROC(proc0, HIGH1, 8, param)
 {
@@ -33,6 +34,10 @@ PROC(proc0, HIGH1, 8, param)
 
 SYS_TEST(sched_waitlist)
 {
+  start = 0;
+  end = 0;
+  end_proc = false;
+
   uint32_t interval = 1;
   const uint32_t rounded = roundup(interval, waitlist::update_interval);
   bool result = true;
@@ -46,15 +51,8 @@ SYS_TEST(sched_waitlist)
 
   return result;
 }
-} // namespace TEST_SUITE(sched_waitlist)
 
-namespace TEST_SUITE(sched_waitlist_fs_op)
-{
-volatile time_t start = 0, end = 0;
-volatile bool end_proc = false;
-constexpr size_t file_len = 16;
-
-PROC(proc0, HIGH1, 8, param)
+PROC(proc1, HIGH1, 8, param)
 {
   start = timer::now();
 
@@ -79,11 +77,15 @@ PROC(proc0, HIGH1, 8, param)
 
 SYS_TEST(sched_waitlist_fs_op)
 {
+  start = 0;
+  end = 0;
+  end_proc = false;
+
   uint32_t interval = 1;
   // const uint32_t rounded = roundup(interval, waitlist::update_interval);
   bool result = true;
 
-  auto p0 = REG_PROC(proc0, interval);
+  auto p0 = REG_PROC(proc1, interval);
   sched::wait(p0);
   result &= check_waitlist_itnerval(start, end, interval);
   interval++;
@@ -99,4 +101,5 @@ SYS_TEST(sched_waitlist_fs_op)
 
   return result;
 }
-} // namespace TEST_SUITE(sched_waitlist_fs_op)
+
+END_SUITE()

@@ -1,7 +1,7 @@
 #include "header.h"
 
-namespace TEST_SUITE(sched_basic)
-{
+BEGIN_SUITE(sched_basic)
+
 uint32_t results[3];
 size_t idx = 0;
 
@@ -9,7 +9,7 @@ PROC(proc0, LOW2, 8, param) { results[idx++] = *(uint32_t *)param; }
 PROC(proc1, MID2, 8, param) { results[idx++] = *(uint32_t *)param; }
 PROC(proc2, HIGH2, 8, param) { results[idx++] = *(uint32_t *)param; }
 
-SYS_TEST(sched_basic_priority)
+SYS_TEST(basic_priority)
 {
   auto p0 = REG_PROC(proc0, 2);
   auto p1 = REG_PROC(proc1, 1);
@@ -19,10 +19,11 @@ SYS_TEST(sched_basic_priority)
 
   return results[0] == 0 && results[1] == 1 && results[2] == 2;
 }
-} // namespace TEST_SUITE(sched_basic)
 
-namespace TEST_SUITE(sched_sleep)
-{
+END_SUITE()
+
+BEGIN_SUITE(sched_sleep)
+
 volatile time_t start = 0, end = 0;
 constexpr size_t interval = 4;
 
@@ -43,7 +44,7 @@ PROC(proc0, HIGH2, 8, param)
 
 PROC(proc1, MID2, 8, param) { results[idx++] = *(uint32_t *)param; }
 
-SYS_TEST(sched_sleep)
+SYS_TEST(sleep)
 {
   auto p0 = REG_PROC(proc0, pair<uint32_t, uint32_t>{0, 2});
   auto p1 = REG_PROC(proc1, 1);
@@ -53,10 +54,11 @@ SYS_TEST(sched_sleep)
   return results[0] == 0 && results[1] == 1 && results[2] == 2 &&
          (end - start) <= roundup(interval, waitlist::update_interval);
 }
-} // namespace TEST_SUITE(sched_sleep)
 
-namespace TEST_SUITE(sched_fairness)
-{
+END_SUITE()
+
+BEGIN_SUITE(sched_fairness)
+
 volatile uint32_t result[6];
 size_t idx = 0;
 
@@ -70,7 +72,7 @@ PROC(proc0, MID1, 8, param)
   result[idx++] = p;
 }
 
-SYS_TEST(sched_fairness)
+SYS_TEST(fairness)
 {
   auto p1 = REG_PROC(proc0, 1);
   auto p2 = REG_PROC(proc0, 2);
@@ -85,4 +87,5 @@ SYS_TEST(sched_fairness)
 
   return res;
 }
-} // namespace TEST_SUITE(sched_fairness)
+
+END_SUITE()

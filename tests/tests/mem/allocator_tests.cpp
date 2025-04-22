@@ -3,10 +3,9 @@
 #include "utility/allocator.h"
 #include "utility/debug.h"
 
-namespace TEST_SUITE(allocator)
-{
+BEGIN_SUITE(allocator)
 
-TEST(allocator_freelist_realloc)
+TEST(freelist_realloc)
 {
   allocator<alloc_heap, 4> pool;
 
@@ -24,7 +23,7 @@ TEST(allocator_freelist_realloc)
   return a == b && b != c;
 }
 
-TEST(allocator_dealloc_reversed_order)
+TEST(dealloc_reversed_order)
 {
   allocator<alloc_heap, 4> pool;
 
@@ -42,7 +41,7 @@ TEST(allocator_dealloc_reversed_order)
   return a != c && b == c;
 }
 
-TEST(allocator_freelist_iter)
+TEST(freelist_iter)
 {
   allocator<alloc_heap, 4> pool;
 
@@ -65,7 +64,7 @@ TEST(allocator_freelist_iter)
   return d == c && e != c && e != a && e != b;
 }
 
-TEST(allocator_rounding)
+TEST(rounding)
 {
   bool t1, t2;
   byte_t *a, *b, *c, *d, *e;
@@ -113,5 +112,5 @@ TEST(allocator_rounding)
   return t1 && t2;
 }
 
-} // namespace TEST_SUITE(allocator)
+END_SUITE()
 

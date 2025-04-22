@@ -7,11 +7,11 @@ namespace
 constexpr fn_t test_fn = 3;
 }
 
-namespace TEST_SUITE(fs_pre_sched)
-{
+BEGIN_SUITE(fs_pre_sched)
+
 const char *const file_content = "this is a file";
 
-TEST(fs_open_store_close)
+TEST(open_store_close)
 {
   const char *t0;
   constexpr size_t file_len = 16;
@@ -52,7 +52,7 @@ TEST(fs_open_store_close)
   return res;
 }
 
-TEST(fs_mutli_blk_file)
+TEST(mutli_blk_file)
 {
   constexpr uint32_t val = 0xABCD0123;
   constexpr size_t file_len = 256;
@@ -84,5 +84,5 @@ TEST(fs_mutli_blk_file)
 
   return equal;
 }
-} // namespace TEST_SUITE(fs_pre_sched)
 
+END_SUITE()

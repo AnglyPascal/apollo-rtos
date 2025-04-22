@@ -31,9 +31,10 @@ inline void report()
 
   auto result = [&](auto test) {
     (*test->passed)
-        ? kprintf(BLUE "%s: " DEFAULT GREEN "Passed" DEFAULT "\r\n", test->name)
-        : kprintf(BOLD BLUE "%s: " DEFAULT RED "Failed" DEFAULT "\r\n",
-                  test->name);
+        ? kprintf(BLUE "%s.%s: " DEFAULT GREEN "Passed" DEFAULT "\r\n",
+                  test->suite, test->name)
+        : kprintf(BOLD BLUE "%s.%s: " DEFAULT RED "Failed" DEFAULT "\r\n",
+                  test->suite, test->name);
 
     passed_tests += *test->passed;
     total_tests++;
@@ -58,9 +59,10 @@ inline void report()
 inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
 {
   while (idx < n_tests) {
-    auto [name, func, passed] = tests[idx++];
-    debug<TRACE>("running test %s\r\n", name);
+    auto [suite, name, func, passed] = tests[idx++];
     *passed = func();
+    debug<ERROR>(DEFAULT "running %s.%s: %s\r\n", suite, name,
+                 *passed ? GREEN "passed" DEFAULT : RED "FAILED" DEFAULT);
     trigger_reset();
   }
 }

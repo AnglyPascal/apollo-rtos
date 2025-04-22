@@ -7,14 +7,14 @@ namespace
 constexpr fn_t test_fn = 3;
 }
 
-namespace TEST_SUITE(char_file)
-{
+BEGIN_SUITE(ifstream)
+
 constexpr auto str1 = "this is a string that needs to be stored in the file; ";
 constexpr auto str2 = "this is the second string that goes in the file.";
 constexpr auto str3 = "THIS IS A STRING";
 char tmp[strlen(str1) + strlen(str2) + 1] = {0};
 
-TEST(char_file_creation)
+TEST(basic_read_write)
 {
   bool result = true;
 
@@ -88,4 +88,4 @@ TEST(char_file_creation)
   return result;
 }
 
-} // namespace TEST_SUITE(char_file)
+END_SUITE()

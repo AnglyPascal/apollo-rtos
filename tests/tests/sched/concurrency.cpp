@@ -1,7 +1,7 @@
 #include "header.h"
 
-namespace TEST_SUITE(sched_sleep_notify)
-{
+BEGIN_SUITE(sched_concurrency)
+
 uint32_t results[6];
 size_t idx = 0;
 
@@ -36,7 +36,7 @@ PROC(client, MID2, 8, param)
   }
 }
 
-SYS_TEST(sched_sleep_notify)
+SYS_TEST(sleep_notify)
 {
   auto p0 = REG_PROC(server, client_val);
   auto p1 = REG_PROC(client, nullptr);
@@ -49,4 +49,5 @@ SYS_TEST(sched_sleep_notify)
     res &= (results[i++] == server_val && results[i++] == client_val);
   return res;
 }
-} // namespace TEST_SUITE(sched_sleep_notify)
+
+END_SUITE()

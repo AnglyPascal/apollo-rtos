@@ -8,8 +8,8 @@ constexpr fn_t test_fn = 3;
 constexpr size_t file_len = 16;
 } // namespace
 
-namespace TEST_SUITE(fs_sched)
-{
+BEGIN_SUITE(fs_sched)
+
 PROC(proc0, HIGH1, 8, param)
 {
   auto file = fram::open(test_fn, file_len, O_CREATE | O_WRITE);
@@ -22,7 +22,7 @@ PROC(proc0, HIGH1, 8, param)
   file.close();
 }
 
-SYS_TEST(fs_unshared_mapping)
+SYS_TEST(unshared_mapping)
 {
   bool result = true;
 
@@ -40,4 +40,5 @@ SYS_TEST(fs_unshared_mapping)
 
   return result;
 }
-} // namespace TEST_SUITE(fs_sched)
+
+END_SUITE()

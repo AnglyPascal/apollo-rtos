@@ -2,14 +2,14 @@
 #include "utility/debug.h"
 #include "utility/list.h"
 
-namespace TEST_SUITE(list)
-{
+BEGIN_SUITE(static_list)
+
 struct _a {
   int x;
 };
 using chunk_t = node_t<_a>;
 
-TEST(list_test_basic)
+TEST(basic)
 {
   static_list_t<chunk_t> lst;
   chunk_t arr[4] = {{1}, {2}, {3}, {4}};
@@ -30,7 +30,7 @@ TEST(list_test_basic)
   return result;
 }
 
-TEST(list_test_iter)
+TEST(iterator)
 {
   static_list_t<chunk_t> lst;
   chunk_t arr[4] = {{1}, {2}, {3}, {4}};
@@ -54,4 +54,4 @@ TEST(list_test_iter)
   return result;
 }
 
-} // namespace TEST_SUITE(list)
+END_SUITE()

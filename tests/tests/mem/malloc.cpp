@@ -3,9 +3,9 @@
 #include "core/test.h"
 #include "utility/debug.h"
 
-namespace TEST_SUITE(malloc)
-{
-SYS_TEST(malloc_freelist_realloc)
+BEGIN_SUITE(malloc)
+
+SYS_TEST(freelist_realloc)
 {
   void *a, *b, *c;
 
@@ -21,7 +21,7 @@ SYS_TEST(malloc_freelist_realloc)
   return a == b && b != c;
 }
 
-SYS_TEST(malloc_dealloc_reversed_order)
+SYS_TEST(dealloc_reversed_order)
 {
   void *a, *b, *c;
 
@@ -37,7 +37,7 @@ SYS_TEST(malloc_dealloc_reversed_order)
   return a != c && b == c;
 }
 
-SYS_TEST(malloc_freelist_iter)
+SYS_TEST(freelist_iter)
 {
   void *a, *b, *c, *d, *e;
 
@@ -57,10 +57,7 @@ SYS_TEST(malloc_freelist_iter)
 
   return d == c && e != c && e != a && e != b;
 }
-} // namespace TEST_SUITE(malloc)
 
-namespace TEST_SUITE(malloc_cleanup)
-{
 void *a, *b, *c;
 
 PROC(proc0, MID1, 8, param)
@@ -70,7 +67,7 @@ PROC(proc0, MID1, 8, param)
   c = heap::malloc(16);
 }
 
-SYS_TEST(malloc_cleanup)
+SYS_TEST(cleanup)
 {
   auto p0 = REG_PROC(proc0, nullptr);
   sched::wait(p0);
@@ -81,4 +78,5 @@ SYS_TEST(malloc_cleanup)
 
   return a0 == a && b0 == b && c0 == c;
 }
-} // namespace TEST_SUITE(malloc_cleanup)
+
+END_SUITE()
