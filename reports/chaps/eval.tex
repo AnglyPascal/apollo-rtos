@@ -1,9 +1,124 @@
 \section{Evaluation and Testing}
+\label{sec:testing}
 
-% \begin{enumerate}
-%     \item Testing methodology on micro:bit
-%     \item Performance metrics
-%     \item Reliability considerations
-%     \item Comparison with original AGC capabilities
-%     \item Limitations and trade-offs 
-% \end{enumerate}
+Our goal was to write an automated testing framework that'll allow one to write unit,
+subsystem and bevioural tests that are run in isolation of each other. Several factors
+made this endeavor quite involved:
+\begin{itemize}
+    \item The monolithic design of the operating system makes it difficult to verify
+        and test each module in isolation. As a result, mistakes in one module can (and
+        it did) manifest in seemingly irrelevant places, making it very difficult to
+        track down the bugs.
+    \item The tests need to be run on the actual microcontroller instead of an
+        emulator. The problem with that is that copying a binary to the device is a
+        rather slow process. So to write an automated testing system, all the tests
+        need to be shipped together and copied to the device in a singular binary. So
+        it is upto the testing framework to run the tests in isolation.
+    \item Unit tests that verify core functionality like \lstinline[style=myagc]|malloc| or
+        \lstinline[style=myagc]|file|s need to be run independently of the scheduler.
+        So these tests must be run before the scheduler is initialized.
+
+        Tests for the scheduler and other behavioral tests that verify collaboration
+        between different modules need to be run with the scheduler initialized.
+
+        Furthermore, each individual test must be run in full isolation, so that
+        misbehavior in one module might not effect the behaviour of another.
+\end{itemize}
+
+With these constraints in mind, we designed a testing framework. The design is slightly
+inpired by the Boost.Test library \citep{boost_test}, with macros that automatically
+register tests. We first give a brief overview of the testing framework before
+discussing the tests currently available for the OS.
+
+\subsection{Testing Framework}
+
+Each ``test'' is described by a test descriptor of the format:
+\begin{lstlisting}[style=myagc]
+struct test_t {
+  const char *name;     // name of the test
+  bool (*func)(void);   // test function to be run
+  bool *passed;         // storage for the result of the test
+};
+\end{lstlisting}
+
+There are two sections in the binary file to store test descriptors:
+\lstinline[style=myagc]|.unit_tests| and \lstinline[style=myagc]|.sys_tests|. Unit
+tests meant to be run before the scheduler is initialized are placed in the former
+section, and tests to be run with the scheduler are placed in the latter.
+
+There are two macros available in the \lstinline[style=myagc]|include/core/test.h|
+header file:
+\begin{lstlisting}[style=myagc]
+#define TEST(name) ... 
+#define SYS_TEST(name) ...
+\end{lstlisting}
+which are used as follows:
+\begin{lstlisting}[style=myagc]
+namespace TEST_SUITE(test_suite) {
+TEST(test_name) {
+  ...
+  return true;
+}
+}
+\end{lstlisting}
+The macro \lstinline[style=myagc]|TEST| defines a test descriptor for the test, places
+it in the \lstinline[style=myagc]|.unit_tests| section. Similarly for
+\lstinline[style=myagc]|SYS_TEST| macro.
+
+
+During startup, before the scheduler is initialized, the tests are run. The algorithm
+is as follows:
+\begin{itemize}
+    \item During startup and before scheduler initialization,
+        \lstinline[style=myagc]|test::run()| method is called.
+    \item If the boot stage is not \lstinline[style=myagc]|RESET| (defined in
+    \autoref{sec:boot_stages}), \lstinline[style=myagc]|test::run()| initializes the
+    two sections \lstinline[style=myagc]|.unit_tests, .sys_tests|.
+    \item It then starts running the tests in the \lstinline[style=myagc]|.unit_tests|
+    section. For each test in this section, 
+        \begin{itemize}
+            \item It calls the test function, storing the result in address stored in
+                \lstinline[style=myagc]|passed|. 
+            \item The memory pointed to by \lstinline[style=myagc]|passed| is in the
+                \lstinline[style=myagc]|.recovery| section which is not erased during
+                soft resets.
+            \item \lstinline[style=myagc]|test::run()| then triggers a soft-reset,
+                causing the whole system to restart. The system then follows this same
+                path here, and carries on to the next test.
+        \end{itemize}
+    \item After running all the \lstinline[style=myagc]|.unit_tests|,
+        \lstinline[style=myagc]|test::run()| then schedules a process that runs the
+        tests in \lstinline[style=myagc]|.sys_tests| similarly to above. 
+    \item It then hands control back to the startup method, which initializes the
+        scheduler, and conitnues to running the system tests.
+    \item To run one system tests, the whole system is restarted, a process is
+        scheduled, then when that process is run, it runs the system test, stores the
+        result, and triggers a software reset, moving to the next system test.
+\end{itemize}
+
+This reset mechanism before running each test ensures that an error state left by an
+earlier test does not effect subsequent tests, and also that each test is run in
+isolation. One caveat is that true isolation is not fully achieved, because if there's
+an issue with the recovery mechanism that leaves erroneous states uncleared, it will
+effect further testing. 
+
+\subsection{Evaluation of Apollo-RTOS}
+
+With the time constraints in mind, only the most cruicial aspects of the system have
+been tested. Below is a brief summary of unit and subsystem tests:
+
+\begin{description}[left=0pt]
+    \item[Memory allocator] 
+        \begin{itemize}
+            \item The allocator
+        \end{itemize}
+    \item[Scheduler] 
+        \begin{itemize}
+            \item hello 1
+                \item hello 2
+        \end{itemize}
+\end{description}
+
+
+
+

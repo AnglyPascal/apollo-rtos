@@ -56,7 +56,6 @@
 \AtBeginDocument{\addtocontents{toc}{\protect\thispagestyle{empty}}} 
 
 \newif\ifdouble\doublefalse
-% \doubletrue
 
 \newcommand{\preamble}{ %
     \maketitle %
@@ -83,15 +82,15 @@
 }
 
 \renewcommand{\@memb@bchap}{%
-    \section*{Reference}%
+    \section*{References}%
+    \addcontentsline{toc}{section}{References}
     \bibmark
     \prebibhook
 }
 
 \newcommand{\references} {
-    % \renewcommand\bibname{Reference}
     \fancyhf{}
-    \fancyhf[loh,reh]{Reference}
+    \fancyhf[loh,reh]{References}
     \fancyhf[leh,roh]{}
 
     \bibliography{references}
@@ -129,7 +128,8 @@
         __run, setup_services,
         get_msp, set_msp, 
         push, pop, enqueue, dequeue, send,
-        lock, unlock,
+        lock, unlock, 
+        run_tests
     },
     emphstyle={[1]\stdlibstyle},
     emph={[2]
@@ -159,6 +159,11 @@
         args_buffer_t, 
     },
     emphstyle={[4]\typestyle},
+    emph={[5]
+        TEST, TEST_SUITE, SYS_TEST, PROC, APP, STARTUP_PROC, SERVICE,
+        SEC_INIT, REG_PROC,
+    },
+    emphstyle={[5]\stdlibstyle},
     literate=,
     morecomment=[l]{|},
     morecomment=[l]{+---},

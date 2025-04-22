@@ -1,4 +1,5 @@
 \section{Error Handling and Recovery}
+\label{sec:rec}
 
 For a critical mission like the Apollo program, where astronauts' lives depended on
 flawless execution, thorough testing of the entire codebase was essential. However, no
@@ -48,6 +49,7 @@ spacecraft, we take a more lenient approach: when power is restored, the system
 attempts to resume major tasks that were running before the outage.
 
 \subsubsection{How to Detect Boot Stages}
+\label{sec:boot_stages}
 
 To distinguish between these boot stages, we use the retention properties of different
 memory regions:
@@ -59,11 +61,11 @@ memory regions:
         number at a particular RAM address. If it’s still there after a reboot, we’ve
         had a soft reset.
     \item \texttt{POWER} – At first power-on, the
-    \lstinline[style=myagc]|POWER.RESETREAS| register is set to . This register tracks
-    reset causes, so technically, we could use it to detect soft resets as well—but we
-    prefer the magic number solution.
+        \lstinline[style=myagc]|POWER.RESETREAS| register is set to . This register
+        tracks reset causes, so technically, we could use it to detect soft resets as
+        well—but we prefer the magic number solution.
     \item \texttt{BOOT} – If none of the above conditions apply, we assume we’re in a
-    normal boot state.
+        normal boot state.
 \end{itemize}
 
 All of this logic is encapsulated in the \lstinline[style=myagc]|boot| namespace, providing a simple way to determine the system’s current state and react accordingly.

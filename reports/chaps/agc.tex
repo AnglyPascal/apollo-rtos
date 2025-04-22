@@ -201,6 +201,31 @@ These mechanisms ensured that the AGC could gracefully recover from many types o
 failures—an essential requirement for spacecraft operations, where computer failures
 could have catastrophic consequences.
 
+\subsubsection{The 1201 and 1202 Alarms During Apollo 11's Lunar Descent}
+
+During Apollo 11's final descent to the lunar surface, the Lunar Module's guidance
+computer triggered several unexpected alarms—specifically, program alarms 1201 and
+1202. These alarms indicated ``executive overflows," meaning the computer's task
+scheduling system was overloaded and unable to complete all its tasks in real-time.
+
+The root cause was traced to the rendezvous radar being left on during descent. This
+radar, intended for docking procedures, inadvertently fed spurious data to the computer
+due to a hardware design quirk \citep*{witt_2019_apollo}. This resulted in excessive
+``cycle stealing," where the radar's data processing consumed significant CPU time,
+leaving insufficient resources for other tasks. Compounding the issue, an additional
+command to display altitude data further taxed the system, leading to the alarms.
+
+Despite these alarms, the guidance computer's design allowed it to prioritize critical
+tasks. Upon encountering an overload, the system would perform a soft restart, shedding
+lower-priority tasks while maintaining essential functions like engine control and
+navigation. This resilience was a testament to the foresight of the software engineers,
+particularly Hal Laning, whose design ensured that even in the face of unexpected
+issues, the mission could proceed safely.
+
+Mission Control, relying on their understanding of the system's behavior, assessed the
+situation and determined it was safe to continue. Their decision, combined with the
+computer's robust design, allowed Apollo 11 to successfully land on the Moon, turning a
+potential mission abort into a historic achievement.
 
 \subsection{Interpreter}
 
@@ -257,7 +282,7 @@ This system provided a consistent interface for a range of operations, from
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=.45\linewidth]{dsky}
+    \includegraphics[width=.4\linewidth]{dsky}
     \caption{DSKY interface diagram by Oona Räisänen}
 \end{figure}
 

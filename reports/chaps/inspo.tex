@@ -29,15 +29,17 @@ the following design choices:
         pre-installed peripheral devices, which serve as useful test cases for OS
         functionality.
 
+    \item \textbf{Monolithic Kernel Design:} Inspired by Linux, Apollo-RTOS follows a
+        monolithic kernel architecture due to its simpler implementation and better
+        execution efficiency in a constrained environment. However, there's a
+        significant trade-off: with a monolithic kernel, verifying and testing the OS
+        is more difficult.
+
     \item \textbf{No Kernel/User Space Isolation:} In microcontroller programming, the
         entire application is compiled into a single binary, meaning the kernel and
         user space are inherently combined. Since the entire codebase has full access
         to the kernel internals, enforcing strict isolation would add unnecessary
         complexity.
-
-    \item \textbf{Monolithic Kernel Design:} Inspired by Linux, Apollo-RTOS follows a
-        monolithic kernel architecture due to its simpler implementation and better
-        execution efficiency in a constrained environment.
 
     \item \textbf{Library Calls Instead of System Calls:} Traditional system calls are
         beneficial only when user and kernel space are strictly separated. Since
@@ -51,7 +53,7 @@ the following design choices:
 
     \item \textbf{Liberty to Use Memory Liberally}: While the \texttt{micro:bit} has
         limited memory, it still offers significantly more than the AGC. As Donald
-        Knuth famously said, "premature optimization is the root of all evil," our
+        Knuth famously said, ``premature optimization is the root of all evil," our
         priority is a functional and maintainable implementation rather than
         aggressively minimizing memory usage.
 \end{itemize}
