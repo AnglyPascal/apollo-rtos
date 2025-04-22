@@ -90,6 +90,11 @@ enum file_type_t {
   BIN = 1 << 1,
 };
 
+enum file_pos_t : uint32_t {
+  BOF = 0,
+  EOF = (uint32_t)-1,
+};
+
 using std::pair;
 
 struct string {

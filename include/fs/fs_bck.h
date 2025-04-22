@@ -152,21 +152,19 @@ public:
     auto &inode = fs_hd.inode_tbl[fn];
     const bool in_use = inode.flag.in_use();
 
-    if (sz == 0) {
+    const bool to_create = flags & O_CREATE;
+
+    if (in_use || !to_create) {
       assert(in_use, TERM, "file does not exist\r\n");
+      if (sz != 0)
+        debug<TRACE>("passing size (%d) to open existing file %d\r\n", sz, fn);
       return {&inode, false};
     }
 
-    if (in_use) {
-      debug<TRACE>("passing size parameter (%d) to open existing file %d\r\n",
-                   sz, fn);
-      return {&inode, false};
-    }
-
-    assert(flags & O_CREATE, TERM, "not creating non-existent file %d\r\n", fn);
+    assert(to_create, TERM, "not creating non-existent file %d\r\n", fn);
     inode.flag.set_use();
 
-    nblks_t nblks = roundup(sz, BLK_SZ) / BLK_SZ;
+    nblks_t nblks = roundup(max(sz, BLK_SZ), BLK_SZ) / BLK_SZ;
     assert(nblks <= desc.max_num_blks, TERM);
     inode.nblks = nblks;
 

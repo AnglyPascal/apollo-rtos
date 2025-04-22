@@ -30,10 +30,8 @@ class _ofstream
   }
 
 public:
-  _ofstream(fn_t fn, size_t off = 0) : file{fn, O_WRITE}, offset{off}
+  _ofstream(fn_t fn, uint32_t flags = 0) : file{fn, flags | O_WRITE}, offset{0}
   {
-    if (offset == (size_t)(-1))
-      offset = file.fend();
     file.lock();
   }
 
@@ -44,6 +42,8 @@ public:
     flush();
     file.unlock();
   }
+
+  void seek(size_t off) { offset = off == EOF ? file.fend() : off; }
 
   void putc(char c)
   {
