@@ -28,7 +28,7 @@ PROC(nested_func, MID4, 128, p)
   recover::guard_proc guard{POWER_OFF, i};
   kprintf("n%d\r\n", i);
 
-  REG_PROC(func, p);
+  REG_PROC(func, (void *)p);
 
   kprintf("nf%d\r\n", i);
   while (1)
