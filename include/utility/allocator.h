@@ -27,6 +27,9 @@ public:
 
   byte_t *alloc(size_t sz)
   {
+    if (sz == 0)
+      return nullptr;
+
     intr_guard guard;
 
     sz = roundup(sz, alignment);
@@ -34,10 +37,8 @@ public:
 
     chunk_t *chunk = nullptr;
     for (auto it = freelist.begin(); it != freelist.end(); ++it) {
-      if (it->sz >= sz) {
+      if (it->sz >= sz && it->sz < chunk->sz)
         chunk = &*it;
-        break;
-      }
     }
 
     if (chunk == nullptr) {
@@ -57,7 +58,7 @@ public:
 
     intr_guard guard;
     auto chunk = (chunk_t *)(ptr - sizeof(chunk_t));
-    freelist.push_front(chunk);
+    freelist.push_back(chunk);
   }
 
   __noinline__ void trace()
