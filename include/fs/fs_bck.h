@@ -35,11 +35,10 @@ template <typename desc_t, desc_t desc>
 struct _inode_t {
   using blk_addr_t = typename desc_t::blk_addr_t;
   using addr_t = typename desc_t::addr_t;
-  using nblks_t = typename desc_t::nblks_t;
 
-  nblks_t nblks;
   blk_addr_t blks[desc.max_num_blks];
 
+  uint8_t nblks;
   flag_t flag;
 
   mutable addr_t end;
@@ -63,17 +62,22 @@ struct _fs_hd_t {
   static_assert(N_BLKS <= (1 << 8));
   bitset<N_BLKS> free_set;
 
-  void alloc_blks(blk_addr_t *buf, size_t nblks)
+  bool alloc_blks(blk_addr_t *buf, uint8_t nblks)
   {
-    blk_addr_t addr = free_set.next();
+    blk_addr_t addr = 0;
     while (nblks-- > 0) {
+      addr = free_set.next(addr);
+      if (addr == MAX<size_t>)
+        return false;
+
       *buf++ = addr;
       free_set.erase(addr);
-      addr = free_set.next(addr + 1);
+      addr++;
     }
+    return true;
   }
 
-  void dealloc_blks(blk_addr_t *buf, size_t nblks)
+  void dealloc_blks(blk_addr_t *buf, uint8_t nblks)
   {
     while (nblks-- > 0)
       free_set.insert(*buf++);
@@ -91,12 +95,11 @@ public:
   using blk_addr_t = typename desc_t::blk_addr_t;
   using addr_t = typename desc_t::addr_t;
   using fn_t = typename desc_t::fn_t;
-  using nblks_t = typename desc_t::nblks_t;
 
   using inode_t = _inode_t<desc_t, desc>;
 
   static constexpr auto BLK_SZ = desc_t::blk_sz;
-  static constexpr uint32_t BLK_MAGIC = 0xbabebabe;
+  static constexpr uint32_t BLK_MAGIC = 0xbebebabe;
 
   bool first_boot = false;
 
@@ -164,11 +167,12 @@ public:
     assert(to_create, TERM, "not creating non-existent file %d\r\n", fn);
     inode.flag.set_use();
 
-    nblks_t nblks = roundup(max(sz, BLK_SZ), BLK_SZ) / BLK_SZ;
+    uint8_t nblks = roundup(max(sz, BLK_SZ), BLK_SZ) / BLK_SZ;
     assert(nblks <= desc.max_num_blks, TERM);
     inode.nblks = nblks;
 
-    fs_hd.alloc_blks(inode.blks, nblks);
+    auto success = fs_hd.alloc_blks(inode.blks, nblks);
+    assert(success, TERM, "block allocation failed for file %d\r\n", fn);
 
     if constexpr (desc.is_ram)
       inode.flag.set_ft(flags & O_CHAR_FILE ? CHAR : BIN);
@@ -189,10 +193,10 @@ public:
     auto &inode = fs_hd.inode_tbl[fn];
 
     if (!inode.flag.in_use())
-      return debug<WARN>("deleting non-existent file does nothing\r\n");
+      return debug<WARN>("deleting non-existent file does nothing %d\r\n", fn);
 
     if (inode.flag.is_perm())
-      return debug<ERROR>("cannot delete permanent file\r\n");
+      return debug<ERROR>("cannot delete permanent file %d\r\n", fn);
 
     fs_hd.dealloc_blks(inode.blks, inode.nblks);
     inode.flag.reset();
@@ -208,11 +212,11 @@ private:
     assert(inode->max_sz() >= buf_sz, TERM);
     const auto nblks = inode->nblks;
 
-    nblks_t fst_blk = offset / BLK_SZ;
+    uint8_t fst_blk = offset / BLK_SZ;
     size_t blk_offset = offset % BLK_SZ;
     size_t fst_blk_sz = min(buf_sz, BLK_SZ - blk_offset);
 
-    nblks_t i = fst_blk;
+    uint8_t i = fst_blk;
 
     func(paddr(inode->blks[i++]) + blk_offset, buf, fst_blk_sz);
     buf += fst_blk_sz;

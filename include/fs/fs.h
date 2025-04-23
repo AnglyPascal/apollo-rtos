@@ -11,7 +11,6 @@ namespace _flash
 using addr_t = uint32_t;
 using fn_t = uint8_t;
 using blk_addr_t = uint8_t;
-using nblks_t = uint8_t;
 
 void write(addr_t addr, uint8_t *buf, size_t buf_sz);
 void read(addr_t addr, uint8_t *buf, size_t buf_sz);
@@ -20,7 +19,7 @@ static constexpr size_t BLK_SZ = 1 << 10;
 static constexpr addr_t FLASH_END = 256 * BLK_SZ;
 static constexpr size_t N_BLKS = 128;
 
-using desc_t = fs_desc_t<fn_t, blk_addr_t, addr_t, nblks_t, BLK_SZ>;
+using desc_t = fs_desc_t<fn_t, blk_addr_t, addr_t, BLK_SZ>;
 
 static constexpr size_t N_FS_BLKS = 1;
 inline constexpr desc_t desc = {
@@ -66,7 +65,6 @@ namespace _fram
 using addr_t = uint16_t;
 using fn_t = uint8_t;
 using blk_addr_t = uint8_t;
-using nblks_t = uint8_t;
 
 void write(addr_t addr, uint8_t *buf, size_t buf_sz);
 void read(addr_t addr, uint8_t *buf, size_t buf_sz);
@@ -75,7 +73,7 @@ static constexpr addr_t FRAM_END = 1 << 15;
 static constexpr size_t BLK_SZ = 1 << 7;
 static constexpr size_t N_BLKS = FRAM_END / BLK_SZ;
 
-using desc_t = fs_desc_t<fn_t, blk_addr_t, addr_t, nblks_t, BLK_SZ>;
+using desc_t = fs_desc_t<fn_t, blk_addr_t, addr_t, BLK_SZ>;
 
 static constexpr size_t N_FS_BLKS = 8;
 inline constexpr desc_t desc = {

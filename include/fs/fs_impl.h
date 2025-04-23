@@ -199,6 +199,7 @@ public:
 
     void write(const void *buf, size_t sz, size_t off = 0)
     {
+      assert(ft() == CHAR, TERM);
       return fs.store(fd->inode, (const uint8_t *)buf, sz, off);
     }
 
@@ -206,6 +207,7 @@ public:
 
     void read(uint8_t *buf, size_t len, size_t off = 0) const
     {
+      assert(ft() == CHAR, TERM);
       return fs.load(fd->inode, buf, len, off);
     }
   };
