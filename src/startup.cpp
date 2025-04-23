@@ -38,12 +38,12 @@ __extern_C__ void __reset(void)
   led::init();
   serial::init();
 
-  clear_screen();
-
   i2c::init();
   fs::init();
 
   boot::init();
+  if (boot::is_boot())
+    clear_screen();
 
   recover::init();
   tests::run();

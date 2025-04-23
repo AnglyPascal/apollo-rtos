@@ -239,14 +239,15 @@ void init()
   if (boot_lev == boot_lev_t::FLASH)
     fram::remove(rec_fn);
 
-  fram::open(file, rec_fn, sizeof(tbl), O_WRITE | O_CREATE);
+  // needs to be a char file to allow random writes
+  fram::open(file, rec_fn, sizeof(tbl), O_WRITE | O_CREATE | O_CHAR_FILE);
   file.mmap(tbl);
 
   // initialize recovery section
   if (boot_lev != boot_lev_t::RESET)
     SEC_INIT(recover);
 
-  if (boot_lev == boot_lev_t::BOOT || boot_lev == boot_lev_t::FLASH) {
+  if (boot::is_boot()) {
     tbl.reset();
     file.store();
   }
@@ -254,11 +255,10 @@ void init()
 
 void setup()
 {
-  auto boot_lev = boot::lev();
-  if (boot_lev == boot_lev_t::BOOT || boot_lev == boot_lev_t::FLASH) {
+  if (boot::is_boot()) {
     sched::setup_procs();
   } else {
-    auto reset_lev = boot_lev == boot_lev_t::RESET ? RESET : POWER_OFF;
+    auto reset_lev = boot::lev() == boot_lev_t::RESET ? RESET : POWER_OFF;
     tbl.recover(reset_lev);
   }
 

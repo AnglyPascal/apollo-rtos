@@ -54,6 +54,11 @@ struct boot_stat_t {
 
 boot_lev_t lev() { return boot_lev; }
 
+bool is_boot()
+{
+  return lev() == boot_lev_t::FLASH || lev() == boot_lev_t::BOOT;
+}
+
 const char *lev_str()
 {
   static const char *levs[] = {

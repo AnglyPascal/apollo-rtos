@@ -91,6 +91,9 @@ public:
 
   size_t next(size_t idx = 0) const
   {
+    if (sz == 0)
+      return MAX<size_t>;
+
     while (idx < len && !contains(idx))
       idx++;
     return idx;
