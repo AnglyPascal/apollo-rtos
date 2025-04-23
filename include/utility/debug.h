@@ -44,7 +44,7 @@ void debug(const char *fmt, Args... args)
   }
 }
 
-void trigger_term(void);
+void trigger_term(const char* file, uint32_t line);
 
 template <debug_t lev, typename... Args>
   requires(lev <= WARN)
@@ -72,7 +72,7 @@ void __assert(bool ex, const char *file, uint32_t line, Args &&...args)
     return trigger_reset();
 
   if constexpr (lev == TERM)
-    return trigger_term();
+    return trigger_term(file, line);
 }
 
 #define assert(EX, LEV, ...) __assert<LEV>((EX), __FILENAME__, __LINE__)

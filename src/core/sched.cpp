@@ -284,10 +284,14 @@ void send_signal(pid_t pid, signal_t sig)
   procs[pid]->signals.send(sig);
 }
 
-void trigger_term(void)
+void trigger_term(const char *file, uint32_t line)
 {
-  if (curr_proc::set_up())
+  if (curr_proc::set_up()) {
+    debug<ERROR>("terminating " YELLOW "%s" RED " from " YELLOW
+                 "%s:%d\r\n" DEFAULT,
+                 curr_proc::name().str, file, line);
     return send_signal(curr_proc::pid(), SIGKILL);
+  }
   return trigger_reset();
 }
 

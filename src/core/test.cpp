@@ -60,9 +60,9 @@ inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
 {
   while (idx < n_tests) {
     auto [suite, name, func, passed] = tests[idx++];
+    debug<TRACE>(DEFAULT "running %s.%s: ", suite, name);
     *passed = func();
-    debug<ERROR>(DEFAULT "running %s.%s: %s\r\n", suite, name,
-                 *passed ? GREEN "passed" DEFAULT : RED "FAILED" DEFAULT);
+    debug<TRACE>("%s\r\n" DEFAULT, *passed ? GREEN "passed" : RED "FAILED");
     trigger_reset();
   }
 }
