@@ -114,8 +114,10 @@ inline byte_t *chunk_to_ptr(chunk_t *chunk)
 void *malloc(size_t sz)
 {
   auto ptr = pool.alloc(sz);
-  auto chunk = ptr_to_chunk(ptr);
+  if (ptr == nullptr)
+    return ptr;
 
+  auto chunk = ptr_to_chunk(ptr);
   auto &used_list = curr_proc::used_list();
   used_list.push_back(chunk);
 

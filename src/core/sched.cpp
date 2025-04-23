@@ -59,7 +59,7 @@ void exit()
   decr_priority(0);
 }
 
-pid_t reg_proc(const proc_def_t *def, void *param)
+pid_t _reg_proc_impl(const proc_def_t *def, void *param)
 {
   auto [name, priority, stk_sz, func, ticks] = *def;
   assert(priority > 0, H_RESET);

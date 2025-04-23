@@ -60,17 +60,16 @@ namespace sched
 {
 void init();
 
-pid_t reg_proc(const proc_def_t *proc_def, void *param);
+pid_t _reg_proc_impl(const proc_def_t *proc_def, void *param);
 
 template <typename T>
-using remove_ref_cv_t = std::remove_cv_t<std::remove_reference_t<T>>;
-
-template <typename T>
-  requires(!std::is_pointer_v<remove_ref_cv_t<T>> &&
-           !std::same_as<T, nullptr_t>)
 pid_t reg_proc(const proc_def_t *proc_def, T &&t)
 {
-  return reg_proc(proc_def, kmem::knew<remove_ref_cv_t<T>>(std::forward<T>(t)));
+  using U = remove_ref_cv_t<T>;
+  if constexpr (is_any_of<U, decltype(nullptr), void *>)
+    return _reg_proc_impl(proc_def, (void *)t);
+  else
+    return _reg_proc_impl(proc_def, (void *)kmem::knew<U>(std::forward<T>(t)));
 }
 
 void incr_priority(pid_t pid, int32_t priority);
@@ -99,16 +98,15 @@ void wait(chan_t<chan_len> &chan)
 void notify_exit(pid_t pid, barrier_t *bar);
 
 template <typename... Args>
-  requires(std::same_as<Args, pid_t> && ...)
-void wait(Args... args)
+  requires(std::same_as<remove_ref_cv_t<Args>, pid_t> && ...)
+void wait(const Args &...args)
 {
   barrier_t bar{sizeof...(args)};
-  (
-      [&]() {
-        notify_exit(args, &bar);
-        bar.acquire();
-      }(),
-      ...);
+  auto lam = [&](auto arg) {
+    notify_exit(arg, &bar);
+    bar.acquire();
+  };
+  (lam(args), ...);
 }
 
 template <size_t chan_len>

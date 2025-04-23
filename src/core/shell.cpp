@@ -121,7 +121,7 @@ SERVICE(shell, HIGH1, 256, param)
       param->str[i++] = str[idx++];
     param->str[i++] = '\0';
 
-    auto pid = sched::reg_proc(cmd_def, param);
+    auto pid = sched::reg_proc(cmd_def, (void *)param);
     printf("\r\nstarted [" BLUE "%d" DEFAULT "]\r\n", pid);
   }
 }

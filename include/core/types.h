@@ -150,6 +150,12 @@ constexpr T min(T t, S s)
   return t < s ? t : s;
 }
 
+template <typename T>
+using remove_ref_cv_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
+template <typename T, typename... U>
+concept is_any_of = (std::same_as<T, U> || ...);
+
 constexpr auto abs(auto t) { return t > 0 ? t : -t; }
 
 inline void *operator new(size_t, void *where) { return where; }
