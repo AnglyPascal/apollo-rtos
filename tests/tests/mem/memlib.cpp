@@ -14,15 +14,23 @@ struct A {
   }
 };
 
+constexpr size_t N = 11;
+int arr[N];
+int brr[N];
+
+constexpr size_t N2 = 5;
+const A s2[N2] = {
+    {41, true, 'A'}, {42, true, 'B'},  {43, false, 'B'},
+    {44, true, 'C'}, {45, false, 'D'},
+};
+A s1[N2];
+
 TEST(memcpy_test)
 {
   bool result = true;
 
-  constexpr size_t N = 11;
-  int arr[N];
   for (size_t i = 0; i < N; i++)
     arr[i] = i;
-  int brr[N];
   memcpy(brr, arr, sizeof(arr));
   result &= memcmp(arr, brr, sizeof(arr)) == 0;
 
@@ -32,12 +40,6 @@ TEST(memcpy_test)
   result &= memcmp(src, dst, 5) == 0;
   result &= dst[5] != src[5];
 
-  constexpr size_t N2 = 5;
-  A s1[N2] = {
-      {41, true, 'A'}, {42, true, 'B'},  {43, false, 'B'},
-      {44, true, 'C'}, {45, false, 'D'},
-  };
-  A s2[N2];
   memcpy(&s1, &s2, sizeof(s1));
   for (size_t i = 0; i < N2; i++)
     result &= s1[i] == s2[i];

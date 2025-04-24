@@ -63,15 +63,8 @@ struct priority_t {
     return rhs != lhs;
   }
 
-  friend auto operator<=>(const priority_t &lhs, int32_t rhs)
-  {
-    return lhs.lev <=> (priority_lev_t)rhs;
-  }
-
-  friend auto operator<=>(int32_t lhs, const priority_t &rhs)
-  {
-    return (priority_lev_t)lhs <=> rhs.lev;
-  }
+  bool asleep() const { return lev < 0; }
+  bool awake() const { return lev > 0; }
 };
 
 struct proc_def_t;

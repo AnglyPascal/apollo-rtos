@@ -113,7 +113,8 @@ __extern_C__ void *cxt_switch(void *stk_ptr)
   PROFILE_THIS(2);
 
   assert(cpu.hi_proc->priority > 0, H_RESET);
-  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET);
+  assert_dump(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET,
+              "proc: %s\r\n", cpu.hi_proc->name.str);
 
   intr_guard guard;
 
@@ -219,20 +220,33 @@ void trace(bool stk_info)
 
 void default_alarm(void *ptr)
 {
-  auto proc = (proc_t *)ptr;
-  assert(proc->priority < 0, S_RESET);
+  auto &[proc, ret] = *(pair<proc_t *, bool> *)ptr;
+  if (proc->priority.awake())
+    return;
   incr_priority(procs.pid(proc), -proc->priority.lev);
+  ret = true;
 }
 
-void sleep(time_t period)
+bool sleep(time_t period)
 {
   auto proc = cpu.curr_proc;
   assert(proc->priority > 0, S_RESET);
 
-  if (period > 0)
-    waitlist::reg(proc->name, period, default_alarm, (void *)proc);
+  bool ret = false;
 
-  decr_priority(-proc->priority.lev);
+  if (period > 0) {
+    auto p = new pair<proc_t *, bool>{proc, false};
+    waitlist::reg(proc->name, period, default_alarm, (void *)p);
+
+    decr_priority(-proc->priority.lev);
+
+    ret = p->second;
+    heap::free(p);
+  } else {
+    decr_priority(-proc->priority.lev);
+  }
+
+  return ret;
 }
 
 void wakeup(pid_t pid) { incr_priority(pid, -procs[pid]->priority.lev); }
@@ -343,7 +357,10 @@ APP(pkill, HIGHEST, 128, param)
     return debug<FATAL>("Cannot kill idle_proc\r\n");
 
   send_signal(pid, kill ? SIGKILL : SIGTERM);
-  sched::wait(pid);
+
+  constexpr time_t timeout = 1000;
+  bool dead = sched::wait(timeout, pid);
+  assert(dead, S_RESET, "process did not die within %dms\r\n", timeout);
 
   debug<INFO>("killed [" BLUE "%d" DEFAULT "]\r\n", pid);
 }

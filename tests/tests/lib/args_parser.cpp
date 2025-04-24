@@ -36,28 +36,28 @@ struct expected_t {
   }
 };
 
+static expected_t exps[] = {
+    {" cmd args > 100 &  ", "cmd", "args", 100, true},
+    {"cmd", "cmd", nullptr, null_fn, false},
+    {"cmd args here", "cmd", "args here", null_fn, false},
+    {"cmd >123", "cmd", nullptr, 123, false},
+    {"cmd &", "cmd", nullptr, null_fn, true},
+    {"cmd some_args >42", "cmd", "some_args", 42, false},
+    {"cmd some_args&", "cmd", "some_args", null_fn, true},
+    {"cmd >7 &", "cmd", nullptr, 7, true},
+    {" cmd args >100 &  ", "cmd", "args", 100, true},
+    {"   cmd   args   >   250   &   ", "cmd", "args", 250, true},
+    {"cmd >abc &", "cmd", nullptr, null_fn, false},
+    {"cmd >256 &", "cmd", nullptr, null_fn, false},
+    {"cmd arg>ment >123 &", "cmd", "arg", null_fn, false},
+    {"cmd arg&ment &", "cmd", "arg", null_fn, true},
+    {"", nullptr, nullptr, null_fn, false},
+    {"   ", nullptr, nullptr, null_fn, false},
+    {">&", nullptr, nullptr, null_fn, false},
+};
+
 TEST(all_cases)
 {
-  expected_t exps[] = {
-      {" cmd args > 100 &  ", "cmd", "args", 100, true},
-      {"cmd", "cmd", nullptr, null_fn, false},
-      {"cmd args here", "cmd", "args here", null_fn, false},
-      {"cmd >123", "cmd", nullptr, 123, false},
-      {"cmd &", "cmd", nullptr, null_fn, true},
-      {"cmd some_args >42", "cmd", "some_args", 42, false},
-      {"cmd some_args&", "cmd", "some_args", null_fn, true},
-      {"cmd >7 &", "cmd", nullptr, 7, true},
-      {" cmd args >100 &  ", "cmd", "args", 100, true},
-      {"   cmd   args   >   250   &   ", "cmd", "args", 250, true},
-      {"cmd >abc &", "cmd", nullptr, null_fn, false},
-      {"cmd >256 &", "cmd", nullptr, null_fn, false},
-      {"cmd arg>ment >123 &", "cmd", "arg", null_fn, false},
-      {"cmd arg&ment &", "cmd", "arg", null_fn, true},
-      {"", nullptr, nullptr, null_fn, false},
-      {"   ", nullptr, nullptr, null_fn, false},
-      {">&", nullptr, nullptr, null_fn, false},
-  };
-
   bool result = true;
   constexpr auto N = sizeof(exps) / sizeof(exps[0]);
   for (size_t i = 0; i < N; i++) {

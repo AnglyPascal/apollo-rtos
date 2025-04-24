@@ -39,7 +39,7 @@ TEST(basic_write)
   return result;
 }
 
-PROC(proc0, MID3, 0, param)
+PROC(proc0, MID3, 128, param)
 {
   auto [str, substr] = *static_cast<pair<const char *, const char *> *>(param);
   printf(str, substr);

@@ -92,7 +92,7 @@ inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
   }
 }
 
-PROC(sys_tests, HIGHEST, 512, param)
+PROC(sys_tests, HIGHEST, 1024, param)
 {
   run_tests((test_t *)SEC_START(sys_tests), i_sys, n_sys_tests);
   report();

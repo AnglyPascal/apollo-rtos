@@ -2,41 +2,10 @@
 
 #include "core/memory.h"
 #include "core/types.h"
-#include "utility/circular_buffer.h"
+
+#include "sched_sync.h"
 
 inline constexpr size_t N_PROCS = 16;
-
-template <size_t chan_len>
-using chan_t = circular_buffer<pid_t, chan_len>;
-
-namespace sched
-{
-template <size_t chan_len>
-void wait(chan_t<chan_len> &chan);
-
-template <size_t chan_len>
-void notify(chan_t<chan_len> &chan);
-} // namespace sched
-
-struct barrier_t {
-  const size_t num;
-  size_t arrived = 0;
-  chan_t<1> chan;
-
-  barrier_t(size_t num) : num{num} {}
-
-  void acquire()
-  {
-    if (++arrived == num)
-      sched::wait(chan);
-  }
-
-  void release()
-  {
-    if (--arrived == 0)
-      sched::notify(chan);
-  }
-};
 
 struct proc_def_t {
   const string name;
@@ -84,50 +53,8 @@ void yield();
 
 inline constexpr time_t invoke_interval = 2048;
 extern volatile time_t last_checked;
+
 bool needs_swap();
-
-void sleep(time_t period = 0);
-void wakeup(pid_t pid);
-
-template <size_t chan_len>
-void wait(chan_t<chan_len> &chan, time_t timeout = 0)
-{
-  intr_guard guard;
-  chan.enqueue(curr_proc::pid());
-  sleep();
-}
-
-void notify_exit(pid_t pid, barrier_t *bar);
-
-// FIXME: timeout?
-template <typename... Args>
-  requires(std::same_as<remove_ref_cv_t<Args>, pid_t> && ...)
-void wait(const Args &...args)
-{
-  barrier_t bar{sizeof...(args)};
-  auto lam = [&](auto arg) {
-    notify_exit(arg, &bar);
-    bar.acquire();
-  };
-  (lam(args), ...);
-}
-
-template <size_t chan_len>
-void notify(chan_t<chan_len> &chan)
-{
-  intr_guard guard;
-  if (chan.empty())
-    return;
-  wakeup(chan.dequeue());
-}
-
-template <size_t chan_len>
-void notify_all(chan_t<chan_len> &chan)
-{
-  intr_guard guard;
-  while (!chan.empty())
-    wakeup(chan.dequeue());
-}
 } // namespace sched
 
 #define PROC_DEF(name) __##name##_def

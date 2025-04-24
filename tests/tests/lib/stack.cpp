@@ -135,12 +135,13 @@ TEST(order_preservation)
 TEST(template_specialization)
 {
   bool result = true;
+  constexpr size_t N = 10;
 
   { // Large stack with different type
-    stack<double, 100> s;
-    for (int i = 0; i < 100; i++)
+    stack<double, 10> s;
+    for (int i = 0; i < 10; i++)
       s.push(i * 0.1);
-    for (int i = 99; i >= 0; i--)
+    for (int i = N - 1; i >= 0; i--)
       result &= (s.pop() == i * 0.1);
   }
 
