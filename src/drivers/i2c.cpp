@@ -16,7 +16,7 @@ namespace i2c
 int read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
                size_t n)
 {
-  PROFILE_THIS();
+  PROFILE_THIS(0);
   if (curr_proc::set_up())
     return async::xfer<true>(addr, cmd, cmd_sz, buf, n);
   else
@@ -33,6 +33,7 @@ uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz)
 int write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
                 size_t n)
 {
+  PROFILE_THIS(1);
   if (curr_proc::set_up())
     return async::xfer<false>(addr, cmd, cmd_sz, buf, n);
   else

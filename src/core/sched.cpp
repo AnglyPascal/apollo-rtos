@@ -12,6 +12,7 @@
 #include "utility/args.h"
 #include "utility/debug.h"
 #include "utility/format.h"
+#include "utility/profile.h"
 
 #include "procs.h"
 #include "stack_allocator.h"
@@ -109,6 +110,8 @@ __noinline__ void change_proc()
 
 __extern_C__ void *cxt_switch(void *stk_ptr)
 {
+  PROFILE_THIS(2);
+
   assert(cpu.hi_proc->priority > 0, H_RESET);
   assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET);
 
@@ -207,11 +210,11 @@ void init()
   __run(PROC_FUNC(idle), &cpu.curr_proc->stk_ptr);
 }
 
-void trace()
+void trace(bool stk_info)
 {
   debug<INFO>(BOLD "curr_proc: " YELLOW "%s" DEFAULT "\r\n",
               cpu.curr_proc->name.str);
-  procs.trace(curr_proc::pid(), timer::total_ticks());
+  procs.trace(curr_proc::pid(), stk_info);
 }
 
 void default_alarm(void *ptr)

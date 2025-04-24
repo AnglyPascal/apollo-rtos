@@ -31,7 +31,7 @@ struct context_t {
 
 namespace sched
 {
-void trace();
+void trace(bool stk_info = false);
 }
 
 namespace waitlist
@@ -47,14 +47,14 @@ __extern_C__ void hardfault_handler_body(void *fault_stack)
   auto stk = (context_t *)fault_stack;
 
   if (stk->r2 == HARDFAULT_MAGIC) {
-    debug<FATAL>(BOLD RED "assertion failure at " //
+    debug<FATAL>("\r\nassertion failure at " //
                  BOLD YELLOW "%s:%d" DEFAULT "\r\n",
                  (const char *)stk->r0, stk->r1);
   } else {
-    debug<FATAL>("\r\n" BOLD RED "hardfault" DEFAULT "\r\n" //
-                 "pc: " BOLD YELLOW "%x" DEFAULT "\t"       //
-                 "lr: " BOLD YELLOW "%x" DEFAULT "\r\n"     //
-                 ,                                          //
+    debug<FATAL>("\r\nhardfault\r\n"                    //
+                 "pc: " BOLD YELLOW "%x" DEFAULT "\t"   //
+                 "lr: " BOLD YELLOW "%x" DEFAULT "\r\n" //
+                 ,                                      //
                  stk->pc, stk->lr);
 
     debug<FATAL>(DEFAULT //
@@ -72,7 +72,7 @@ __extern_C__ void hardfault_handler_body(void *fault_stack)
 
   while (1) {
     char ch = serial::getc();
-    kprintf("%c", ch);
+    kputc(ch);
 
     switch (ch) {
     case CTRL('d'):
@@ -80,7 +80,8 @@ __extern_C__ void hardfault_handler_body(void *fault_stack)
       break;
 
     case '?':
-      kprintf("\r\n");
+      kputc('\r');
+      kputc('\n');
       sched::trace();
       waitlist::trace();
       fs::trace();

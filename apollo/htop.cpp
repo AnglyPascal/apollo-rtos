@@ -10,7 +10,7 @@
 
 namespace sched
 {
-void trace();
+void trace(bool stk_info);
 }
 
 namespace waitlist
@@ -20,12 +20,11 @@ void trace();
 
 namespace
 {
-__always_inline__ inline void do_trace()
+__always_inline__ inline void do_trace(bool stk_info = false)
 {
   kprintf("boot level: " BOLD YELLOW "%s" DEFAULT "\r\n", boot::lev_str());
-  sched::trace();
+  sched::trace(stk_info);
   waitlist::trace();
-  // profile::trace();
   fs::trace();
   heap::trace();
   kprintf("\r\n");

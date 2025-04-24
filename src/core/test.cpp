@@ -29,6 +29,7 @@ inline bool suite_enabled(const char *suite)
 
 inline void report()
 {
+  clear_line();
   boot::stat();
 
   int passed_tests = 0;
@@ -43,10 +44,10 @@ inline void report()
 
   auto result = [&](auto test) {
     (*test->passed)
-        ? kprintf(BLUE "%s.%s: " DEFAULT GREEN "Passed" DEFAULT "\r\n",
-                  test->suite, test->name)
-        : kprintf(BOLD BLUE "%s.%s: " DEFAULT RED "Failed" DEFAULT "\r\n",
-                  test->suite, test->name);
+        ? debug<TRACE>(BLUE "%s.%s: " DEFAULT GREEN "Passed" DEFAULT "\r\n",
+                       test->suite, test->name)
+        : debug<ERROR>(BOLD BLUE "%s.%s: " DEFAULT RED "Failed" DEFAULT "\r\n",
+                       test->suite, test->name);
 
     passed_tests += *test->passed;
     total_tests++;
@@ -83,9 +84,10 @@ inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
     if (!suite_enabled(suite))
       continue;
 
+    clear_line();
     debug<ERROR>(DEFAULT "running %s.%s: ", suite, name);
     *passed = func();
-    debug<ERROR>("%s\r\n" DEFAULT, *passed ? GREEN "passed" : RED "FAILED");
+    debug<ERROR>("%s\r" DEFAULT, *passed ? GREEN "passed" : RED "FAILED");
     trigger_reset();
   }
 }
@@ -107,6 +109,16 @@ void run()
   if (boot::lev() != boot_lev_t::RESET) {
     SEC_INIT(unit_tests);
     SEC_INIT(sys_tests);
+
+    if (test_suites[0] == nullptr)
+      debug<INFO>("running " BLUE "all" DEFAULT " suites\r\n");
+    else {
+      debug<INFO>("running suites: ");
+      int i = 0;
+      for (; test_suites[i + 1] != nullptr; i++)
+        debug<INFO>(YELLOW "%s" DEFAULT ", ", test_suites[i]);
+      debug<INFO>(YELLOW "%s" DEFAULT "\r\n\r\n", test_suites[i]);
+    }
   }
 
   run_tests((test_t *)SEC_START(unit_tests), i_unit, n_unit_tests);

@@ -32,6 +32,7 @@ APP(cat, MID4, 128, param)
   fn_t fn = (*str == '\0') ? 10 : atoi(str);
   ifstream it{fn};
 
+  // FIXME: buffer it
   while (*it != '\0') {
     printf("%c", *it);
     ++it;

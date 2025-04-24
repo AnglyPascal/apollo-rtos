@@ -16,6 +16,19 @@ SEC_ADDR(services);
 SEC_ADDR(startups);
 SEC_ADDR(apps);
 
+namespace
+{
+static const char *welcome_mssg =                              //
+    BOLD YELLOW                                                //
+    "  _____         _ _        _____ _____ _____ _____  \r\n" //
+    " |  _  |___ ___| | |___   | __  |_   _|     |   __| \r\n" //
+    " |     | . | . | | | . |  |    -| | | |  |  |__   | \r\n" //
+    " |__|__|  _|___|_|_|___|  |__|__| |_| |_____|_____| \r\n" //
+    "       |_|                                          \r\n" //
+    DEFAULT "\r\n"                                             //
+    YELLOW " Welcome to Apollo RTOS!\r\n\r\n" DEFAULT;
+}
+
 __extern_C__ void __reset(void)
 {
   // Activate the crystal clock
@@ -42,8 +55,10 @@ __extern_C__ void __reset(void)
   fs::init();
 
   boot::init();
-  if (boot::is_boot())
+  if (boot::is_boot()) {
     clear_screen();
+    debug<INFO>(welcome_mssg);
+  }
 
   recover::init();
   tests::run();

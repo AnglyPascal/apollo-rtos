@@ -1,6 +1,9 @@
 #pragma once
 
 #include "core/types.h"
+#include "drivers/timer.h"
+#include "utility/bitset.h"
+#include "utility/debug.h"
 
 namespace profile
 {
@@ -12,17 +15,28 @@ struct entry_t {
 
 inline constexpr size_t N_PROFILES = 8;
 
-class profile_guard
-{
-  size_t entry_id;
+inline entry_t tbl[N_PROFILES] = {};
+inline bitset<N_PROFILES> set;
 
-public:
-  profile_guard(size_t entry_id, const char *name);
-  ~profile_guard();
+template <size_t ID>
+struct __profile_guard {
+  __profile_guard(const char *name)
+  {
+    tbl[ID].func_name = name;
+    set.insert(ID);
+  }
+
+  ~__profile_guard() { set.erase(ID); }
 };
 
-void trace();
+inline void tick()
+{
+  for (auto id : set) {
+    tbl[id].ticks++;
+  }
+}
 
-#define PROFILE_THIS() profile::profile_guard ___guard{__COUNTER__, __func__};
+#define PROFILE_THIS(ID)                                                       \
+  profile::__profile_guard<ID> __##__func__##_guard{__func__};
 
 } // namespace profile

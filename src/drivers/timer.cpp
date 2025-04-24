@@ -13,11 +13,6 @@ void assert_stack();
 void tick();
 } // namespace sched
 
-namespace profile
-{
-void tick();
-}
-
 namespace timer
 {
 

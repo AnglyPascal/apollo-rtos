@@ -105,7 +105,7 @@ struct proc_t {
     signals.reset();
   }
 
-  void trace(pid_t pid, uint32_t total_ticks, bool curr)
+  void trace(pid_t pid, bool curr, bool stk_info) const
   {
     int state = 0;
     if (curr)
@@ -130,16 +130,17 @@ struct proc_t {
     else
       prio_lev = 5;
 
-    rational_t perc{(int32_t)def->ticks, total_ticks};
     debug<INFO>("  |  "                       //
                 BOLD YELLOW "%d" DEFAULT ". " //
-                BOLD CYAN "%s" DEFAULT " : (%s), %s, %f%",
-                pid, name.str, priority_levels[prio_lev], states[state], perc);
-    debug<INFO>("\t"                           //
-                "stk: " BLUE "%p" DEFAULT ", " //
-                "sz: " BLUE "%d" DEFAULT ", "  //
-                "stk_ptr: " BLUE "%p" DEFAULT "\r\n",
-                stack, stk_sz, stk_ptr);
+                BOLD CYAN "%s" DEFAULT " : (%s), %s",
+                pid, name.str, priority_levels[prio_lev], states[state]);
+
+    (stk_info) ? debug<INFO>("\t"                           //
+                             "stk: " BLUE "%p" DEFAULT ", " //
+                             "sz: " BLUE "%d" DEFAULT ", "  //
+                             "stk_ptr: " BLUE "%p" DEFAULT "\r\n",
+                             stack, stk_sz, stk_ptr)
+               : debug<INFO>("\r\n");
 
     debug<TRACE>("  |    heap usage:\r\n");
     for (auto it = used_list.begin(); it != used_list.end(); ++it)
@@ -185,12 +186,12 @@ public:
     return max_proc;
   }
 
-  void trace(pid_t curr, uint32_t total_ticks)
+  void trace(pid_t curr, bool stk_info) const
   {
     for (auto pid = 0; pid < _N_PROCS; pid++) {
       auto &proc = procs[pid];
       if (proc.priority != EMPTY)
-        proc.trace(pid, total_ticks, pid == curr);
+        proc.trace(pid, pid == curr, stk_info);
     }
   }
 

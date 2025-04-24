@@ -99,14 +99,12 @@ public:
 
 private:
   struct iterator_base {
-  protected:
-    _node_t *node;
-
   public:
     using value_type = _node_t;
     using pointer = value_type *;
     using reference = value_type &;
 
+  public:
     reference operator*() const { return *node; }
     pointer operator->() const { return node; }
 
@@ -121,6 +119,9 @@ private:
     }
 
     iterator_base(_node_t *node) : node{node} {}
+
+  protected:
+    pointer node;
   };
 
   struct iterator : public iterator_base {
@@ -165,4 +166,76 @@ public:
 
   rev_iterator rbegin() { return rev_iterator{tail.prev}; }
   rev_iterator rend() { return rev_iterator{&head}; }
+
+private:
+  struct const_iterator_base {
+  public:
+    using value_type = _node_t;
+    using const_pointer = const value_type *;
+    using const_reference = const value_type &;
+
+  protected:
+    const_pointer node;
+
+  public:
+    const_reference operator*() const { return *node; }
+    const_pointer operator->() const { return node; }
+
+    friend bool operator==(const const_iterator_base &lhs,
+                           const const_iterator_base &rhs)
+    {
+      return lhs.node == rhs.node;
+    }
+
+    friend bool operator!=(const const_iterator_base &lhs,
+                           const const_iterator_base &rhs)
+    {
+      return !(lhs == rhs);
+    }
+
+    const_iterator_base(const_pointer node) : node{node} {}
+  };
+
+  struct const_iterator : public const_iterator_base {
+  public:
+    const_iterator &operator++()
+    {
+      this->node = this->node->next;
+      return *this;
+    }
+
+    const_iterator operator++(int)
+    {
+      auto tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    using const_iterator_base::const_iterator_base;
+  };
+
+  struct const_rev_iterator : public const_iterator_base {
+  public:
+    const_rev_iterator &operator++()
+    {
+      this->node = this->node->prev;
+      return *this;
+    }
+
+    const_rev_iterator operator++(int)
+    {
+      auto tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    using const_iterator_base::const_iterator_base;
+  };
+
+public:
+  const_iterator begin() const { return const_iterator{head.next}; }
+  const_iterator end() const { return const_iterator{&tail}; }
+
+  const_rev_iterator rbegin() const { return const_rev_iterator{head.next}; }
+  const_rev_iterator rend() const { return const_rev_iterator{&tail}; }
 };

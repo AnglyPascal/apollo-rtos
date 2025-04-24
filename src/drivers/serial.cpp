@@ -45,6 +45,7 @@ void init(void)
 
 namespace
 {
+// FIXME use a stack 
 class
 {
   listener_t stack[16] = {nullptr};

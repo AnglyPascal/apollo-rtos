@@ -11,6 +11,13 @@ template <typename _ostream>
   }
 __noinline__ void do_printf(_ostream &os, const char *fmt, ...);
 
+inline void kputc(char c)
+{
+  serial::flush();
+  intr_guard guard{UART_IRQ};
+  return serial::kos.putc(c);
+}
+
 template <typename... Args>
 void kprintf(Args... args)
 {
@@ -20,6 +27,7 @@ void kprintf(Args... args)
 }
 
 inline void clear_screen() { kprintf("\033[2J\033[H"); }
+inline void clear_line() { kprintf("\r\033[K"); }
 
 int32_t atoi(const char *p, const char **end = nullptr);
 uint32_t atou(const char *p, const char **end = nullptr);

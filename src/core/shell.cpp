@@ -28,6 +28,8 @@ chan_t<1> chan;
 args_buffer_t buf;
 static_assert(sizeof(buf) == 0x44);
 
+static const char *header = BOLD CYAN ">> " DEFAULT;
+
 bool listener(char c)
 {
   switch (c) {
@@ -49,10 +51,14 @@ bool listener(char c)
   case CTRL('c'):
     buf.reset();
     kprintf("^C\r\n");
+    kprintf(header);
     return true;
 
   default:
-    kprintf("%c", c);
+    if (c < 32 && c != '\r' && c != '\n')
+      return true;
+
+    kputc(c);
 
     if (c >= 32 && c < 127) {
       buf.push(c);
@@ -64,8 +70,8 @@ bool listener(char c)
       return true;
     }
 
-    kprintf("\'%d\'\r\n", c);
     buf.reset();
+    kprintf(header);
     return true;
   }
 }
@@ -76,7 +82,7 @@ SERVICE(shell, HIGH1, 256, param)
   kprintf("\r\n");
 
   while ((volatile bool)true) {
-    kprintf(BOLD CYAN ">> " DEFAULT);
+    kprintf(header);
     buf.reset();
     sched::wait(chan);
 
