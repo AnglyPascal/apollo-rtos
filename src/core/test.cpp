@@ -60,6 +60,8 @@ inline void report()
   }
   total_result();
 
+  sched::yield();
+
   passed_tests = 0;
   total_tests = 0;
 

@@ -18,6 +18,16 @@ namespace
 boot_lev_t boot_lev = boot_lev_t::FLASH;
 uint32_t ram_magic __recover_section__ = RAM_MAGIC;
 
+static const char *welcome_mssg =                              //
+    BOLD YELLOW                                                //
+    "  _____         _ _        _____ _____ _____ _____  \r\n" //
+    " |  _  |___ ___| | |___   | __  |_   _|     |   __| \r\n" //
+    " |     | . | . | | | . |  |    -| | | |  |  |__   | \r\n" //
+    " |__|__|  _|___|_|_|___|  |__|__| |_| |_____|_____| \r\n" //
+    "       |_|                                          \r\n" //
+    DEFAULT "\r\n"                                             //
+    YELLOW " Welcome to Apollo RTOS!\r\n\r\n" DEFAULT;
+
 struct boot_stat_t {
   uint32_t n_reset = 0;
   uint32_t n_boot = 0;
@@ -43,11 +53,16 @@ struct boot_stat_t {
 
   void trace() const
   {
-    kprintf("boot level: " BOLD YELLOW "%s\r\n" DEFAULT, boot::lev_str());
-    kprintf("boot stat: " BLUE "n_flash" DEFAULT " = %d, " BLUE "n_boot" DEFAULT
-            " = %d, " BLUE "n_power" DEFAULT " = %d, " BLUE "n_reset" DEFAULT
-            " = %d\r\n",
-            n_flash, n_boot, n_power, n_reset);
+    if (is_boot())
+      debug<INFO>(welcome_mssg);
+
+    debug<INFO>("boot level: " BOLD YELLOW "%s\r\n" DEFAULT, boot::lev_str());
+    debug<INFO>("stats: "                                     //
+                BLUE "n_flash = " YELLOW "%d" DEFAULT ", "    //
+                BLUE "n_boot = " YELLOW "%d" DEFAULT ", "     //
+                BLUE "n_power = " YELLOW "%d" DEFAULT ", "    //
+                BLUE "n_reset = " YELLOW "%d" DEFAULT "\r\n", //
+                n_flash, n_boot, n_power, n_reset);
   }
 };
 } // namespace

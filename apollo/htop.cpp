@@ -8,20 +8,30 @@
 #include "utility/args.h"
 #include "utility/profile.h"
 
+namespace sched
+{
+void trace();
+}
+
+namespace waitlist
+{
+void trace();
+}
+
 namespace
 {
 __always_inline__ inline void do_trace()
 {
-  kprintf("\r\nboot level: %s\r\n", boot::lev_str());
+  kprintf("boot level: " BOLD YELLOW "%s" DEFAULT "\r\n", boot::lev_str());
   sched::trace();
   waitlist::trace();
-  profile::trace();
+  // profile::trace();
   fs::trace();
   heap::trace();
   kprintf("\r\n");
 }
 
-APP(trace, MID4, 128, param)
+APP(htop, MID4, 128, param)
 {
   auto &buf = *(args_t *)param;
   auto args = buf.str;

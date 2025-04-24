@@ -134,10 +134,10 @@ inline void flush()
 inline void trace()
 {
 #if FLASH_FS == 1
-  debug<INFO>("flash fs: \r\n");
+  debug<INFO>(BOLD "flash fs: \r\n" DEFAULT);
   flash::trace();
 #endif
-  debug<INFO>("fram fs: \r\n");
+  debug<INFO>(BOLD "fram fs: \r\n" DEFAULT);
   fram::trace();
 }
 } // namespace fs

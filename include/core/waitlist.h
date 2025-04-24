@@ -12,6 +12,4 @@ void reg(string name, time_t interval, void (*func)(void *),
 
 void run();
 
-void trace();
-
 }; // namespace waitlist

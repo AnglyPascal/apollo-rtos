@@ -29,6 +29,16 @@ struct context_t {
   uint32_t psr; // 16
 };
 
+namespace sched
+{
+void trace();
+}
+
+namespace waitlist
+{
+void trace();
+}
+
 __extern_C__ void hardfault_handler_body(void *fault_stack)
 {
   serial::os.__putc = serial::busy_putc;

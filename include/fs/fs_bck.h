@@ -250,21 +250,35 @@ public:
     auto free_blks = fs_hd.free_set.size();
     auto free_sz = (size_t)free_blks * BLK_SZ;
     auto used_sz = fs_hd_t::N_BLKS * BLK_SZ - free_sz;
-    debug<INFO>("  |  free_blks: %d, free: %d, in use: %d\r\n", free_blks,
-                free_sz, used_sz);
+    debug<INFO>("  |  free_blks: " BLUE "%d" DEFAULT ", free: " BLUE
+                "%d" DEFAULT ", in use: " BLUE "%d" DEFAULT "\r\n",
+                free_blks, free_sz, used_sz);
 
-    for (fn_t fn = 0; fn < desc.n_inodes; fn++) {
-      auto &inode = fs_hd.inode_tbl[fn];
-      if (!inode.flag.in_use())
-        continue;
-      debug<INFO>(
-          "  |  [%c] %d: size = %d, type = %s, blks: ", is_open(fn) ? 'O' : 'C',
-          fn, inode.fsz(), inode.ft() == CHAR ? "char" : "bin");
+    auto dump = [&](bool open) {
+      for (fn_t fn = 0; fn < desc.n_inodes; fn++) {
+        auto &inode = fs_hd.inode_tbl[fn];
+        if (!inode.flag.in_use())
+          continue;
+        if (is_open(fn) != open)
+          continue;
 
-      for (auto i = 0; i < inode.nblks - 1; i++)
-        debug<INFO>("%u, ", inode.blks[i]);
-      debug<INFO>("%u\r\n", inode.blks[inode.nblks - 1]);
-    }
+        debug<INFO>("  |  "                           //
+                    BOLD YELLOW "%d" DEFAULT ": "     //
+                    "size = " BLUE "%d" DEFAULT ", "  //
+                    "type = " YELLOW "%s" DEFAULT " " //
+                    "blks: ",
+                    fn, inode.fsz(), inode.ft() == CHAR ? "char," : "bin, ");
+
+        for (auto i = 0; i < inode.nblks - 1; i++)
+          debug<INFO>("%u, ", inode.blks[i]);
+        debug<INFO>("%u\r\n", inode.blks[inode.nblks - 1]);
+      }
+    };
+
+    debug<INFO>(GREEN "  open files:" DEFAULT "\r\n");
+    dump(true);
+    debug<INFO>(CYAN "  closed files:" DEFAULT "\r\n");
+    dump(false);
   }
 };
 

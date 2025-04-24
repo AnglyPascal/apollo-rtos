@@ -98,14 +98,15 @@ void run()
 
 void trace()
 {
+  debug<INFO>(BOLD "waitlist: ");
   if (waitlist_hd.next == nullptr)
-    debug<INFO>("waitlist: NONE\r\n");
-  else
-    debug<INFO>("waitlist:\r\n");
+    return debug<INFO>(YELLOW "NONE" DEFAULT "\r\n");
 
+  debug<INFO>(DEFAULT "\r\n");
   for (auto head = &waitlist_hd; head->next != nullptr; head = head->next) {
-    debug<INFO>("  |  %s\r\n  |    interval: %u\r\n", head->next->name.str,
-                head->next->remaining);
+    debug<INFO>("  |  " BOLD CYAN "%s" DEFAULT //
+                " : (" BLUE "%u" DEFAULT ")\r\n",
+                head->next->name.str, head->next->remaining);
   }
 }
 

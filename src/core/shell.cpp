@@ -76,7 +76,7 @@ SERVICE(shell, HIGH1, 256, param)
   kprintf("\r\n");
 
   while ((volatile bool)true) {
-    kprintf(">> ");
+    kprintf(BOLD CYAN ">> " DEFAULT);
     buf.reset();
     sched::wait(chan);
 
@@ -116,6 +116,19 @@ SERVICE(shell, HIGH1, 256, param)
       sched::wait(pid);
     }
   }
+}
+
+APP(help, MID4, 128, param)
+{
+  int n = 6;
+  for (SEC_ITER(apps, proc_def_t, proc)) {
+    kprintf("%s\t", proc->name.str);
+    if (--n == 0) {
+      kprintf("\r\n");
+      n = 6;
+    }
+  }
+  kprintf("\r\n");
 }
 
 } // namespace

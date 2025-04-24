@@ -17,7 +17,8 @@ const char *states[] = {
 };
 
 const char *priority_levels[] = {
-    "idle", "low", "medium", "high", "urgent", "highest",
+    LIGHT_BLACK "idle" DEFAULT, GREEN "low" DEFAULT,  YELLOW "medium" DEFAULT,
+    YELLOW "high" DEFAULT,      RED "urgent" DEFAULT, RED "highest" DEFAULT,
 };
 } // namespace
 
@@ -130,10 +131,15 @@ struct proc_t {
       prio_lev = 5;
 
     rational_t perc{(int32_t)def->ticks, total_ticks};
-    debug<INFO>("  |  %d. " BLUE "%s" DEFAULT " : (%s), %s, %f%\r\n", pid,
-                name.str, priority_levels[prio_lev], states[state], perc);
-    debug<TRACE>("  |    stack: %p, sz: %d, stk_ptr: %p\r\n", stack, stk_sz,
-                 stk_ptr);
+    debug<INFO>("  |  "                       //
+                BOLD YELLOW "%d" DEFAULT ". " //
+                BOLD CYAN "%s" DEFAULT " : (%s), %s, %f%",
+                pid, name.str, priority_levels[prio_lev], states[state], perc);
+    debug<INFO>("\t"                           //
+                "stk: " BLUE "%p" DEFAULT ", " //
+                "sz: " BLUE "%d" DEFAULT ", "  //
+                "stk_ptr: " BLUE "%p" DEFAULT "\r\n",
+                stack, stk_sz, stk_ptr);
 
     debug<TRACE>("  |    heap usage:\r\n");
     for (auto it = used_list.begin(); it != used_list.end(); ++it)

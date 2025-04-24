@@ -150,6 +150,12 @@ void decr_priority(int32_t priority)
   change_proc();
 }
 
+void yield()
+{
+  cpu.hi_proc = procs.max_priority();
+  change_proc();
+}
+
 namespace
 {
 static pid_t IDLE_PID = 0;
@@ -203,7 +209,7 @@ void init()
 
 void trace()
 {
-  debug<INFO>("curr_proc: " YELLOW "%s" DEFAULT "\r\n",
+  debug<INFO>(BOLD "curr_proc: " YELLOW "%s" DEFAULT "\r\n",
               cpu.curr_proc->name.str);
   procs.trace(curr_proc::pid(), timer::total_ticks());
 }

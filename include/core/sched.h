@@ -80,6 +80,8 @@ inline void incr_priority(int32_t priority)
 
 void decr_priority(int32_t priority);
 
+void yield();
+
 inline constexpr time_t invoke_interval = 2048;
 extern volatile time_t last_checked;
 bool needs_swap();
@@ -125,8 +127,6 @@ void notify_all(chan_t<chan_len> &chan)
   while (!chan.empty())
     wakeup(chan.dequeue());
 }
-
-void trace();
 } // namespace sched
 
 #define PROC_DEF(name) __##name##_def
