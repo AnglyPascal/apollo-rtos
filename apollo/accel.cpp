@@ -100,7 +100,9 @@ APP(accel, HIGH1, 128, param)
     sched::sleep(50);
   }
 
-  printf("\r\n");
+  if (!run_bg)
+    printf("\r\n");
+
   display::reset();
 }
 

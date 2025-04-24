@@ -90,7 +90,7 @@ void sleep(time_t period = 0);
 void wakeup(pid_t pid);
 
 template <size_t chan_len>
-void wait(chan_t<chan_len> &chan)
+void wait(chan_t<chan_len> &chan, time_t timeout = 0)
 {
   intr_guard guard;
   chan.enqueue(curr_proc::pid());
@@ -99,6 +99,7 @@ void wait(chan_t<chan_len> &chan)
 
 void notify_exit(pid_t pid, barrier_t *bar);
 
+// FIXME: timeout?
 template <typename... Args>
   requires(std::same_as<remove_ref_cv_t<Args>, pid_t> && ...)
 void wait(const Args &...args)

@@ -336,13 +336,15 @@ APP(pkill, HIGHEST, 128, param)
     }
   }
 
-  if (pid >= N_PROCS)
+  if (pid >= N_PROCS || procs[pid]->priority == EMPTY)
     return debug<ERROR>("Process not found\r\n");
 
   if (pid == IDLE_PID)
     return debug<FATAL>("Cannot kill idle_proc\r\n");
 
-  kprintf("killing [" BLUE "%d" DEFAULT "]\r\n", pid);
   send_signal(pid, kill ? SIGKILL : SIGTERM);
+  sched::wait(pid);
+
+  debug<INFO>("killed [" BLUE "%d" DEFAULT "]\r\n", pid);
 }
 } // namespace
