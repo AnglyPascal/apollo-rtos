@@ -1,5 +1,5 @@
-#include "core/test.h"
 #include "utility/bitset.h"
+#include "core/test.h"
 #include "utility/debug.h"
 
 BEGIN_SUITE(bitset)

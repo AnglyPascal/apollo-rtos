@@ -4,6 +4,12 @@
 #include "drivers/serial.h"
 #include "utility/args.h"
 #include "utility/debug.h"
+#include "utility/iostream.h"
+
+namespace sched
+{
+void set_out_fn(pid_t pid, fn_t fn);
+}
 
 namespace
 {
@@ -27,7 +33,7 @@ bool listener(char c)
   switch (c) {
   case DEL:
   case BS:
-    printf("\b \b");
+    kprintf("\b \b");
     buf.pop();
     return true;
 
@@ -42,11 +48,11 @@ bool listener(char c)
 
   case CTRL('c'):
     buf.reset();
-    printf("^C\r\n");
+    kprintf("^C\r\n");
     return true;
 
   default:
-    printf("%c", c);
+    kprintf("%c", c);
 
     if (c >= 32 && c < 127) {
       buf.push(c);
@@ -58,7 +64,7 @@ bool listener(char c)
       return true;
     }
 
-    printf("\'%d\'\r\n", c);
+    kprintf("\'%d\'\r\n", c);
     buf.reset();
     return true;
   }
@@ -67,62 +73,48 @@ bool listener(char c)
 SERVICE(shell, HIGH1, 256, param)
 {
   serial::register_listener(listener);
+  kprintf("\r\n");
 
   while ((volatile bool)true) {
+    kprintf(">> ");
     buf.reset();
     sched::wait(chan);
 
-    auto str = buf.str;
-    auto sz = buf.sz;
-
-    if (sz == 0)
+    if (buf.sz == 0)
       continue;
 
-    bool run_bg = false;
+    kprintf("\r\n");
 
-    // trim trailing spaces
-    while (sz >= 0 && str[sz - 1] == ' ')
-      sz--;
+    buf.str[buf.sz] = '\0';
+    parser_t parser{buf.str};
 
-    // run in background?
-    if (str[sz - 1] == '&') {
-      run_bg = true;
-      sz--;
-    }
-    str[sz] = '\0';
-
-    // trim leading spaces
-    size_t idx = 0;
-    while (idx < sz && str[idx] == ' ')
-      idx++;
-
-    // find end of command
-    auto cmd = &str[idx];
-    while (idx < sz && str[idx] != ' ')
-      idx++;
-    str[idx] = '\0';
-
-    auto cmd_def = match_cmd(cmd);
+    auto cmd_def = match_cmd(parser.cmd);
     if (cmd_def == nullptr) {
-      debug<ERROR>("\r\nwrong command: \"%s\"\r\n", cmd);
+      kprintf("wrong command: " RED "%s" DEFAULT "\r\n", parser.cmd);
       continue;
     }
 
     auto param = kmem::knew<args_t>();
-    param->run_bg = run_bg;
+    param->run_bg = parser.run_bg;
 
-    // trim leading spaces from args
-    idx++;
-    while (idx < sz && str[idx] == ' ')
-      idx++;
-
-    size_t i = 0;
-    while (idx < sz)
-      param->str[i++] = str[idx++];
-    param->str[i++] = '\0';
+    auto p = parser.args;
+    auto q = param->str;
+    while (*p != '\0')
+      *q++ = *p++;
+    *q = '\0';
 
     auto pid = sched::reg_proc(cmd_def, (void *)param);
-    printf("\r\nstarted [" BLUE "%d" DEFAULT "]\r\n", pid);
+
+    if (parser.fn != null_fn)
+      sched::set_out_fn(pid, parser.fn);
+
+    if (parser.run_bg) {
+      kprintf("started [" BLUE "%d" DEFAULT "] output to ", pid);
+      parser.fn != null_fn ? kprintf(BLUE "%d\r\n" DEFAULT, parser.fn)
+                           : kprintf(MAGENTA "stdout\r\n" DEFAULT);
+    } else {
+      sched::wait(pid);
+    }
   }
 }
 
