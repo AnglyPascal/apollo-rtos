@@ -40,6 +40,23 @@ file(GLOB_RECURSE ASM_SRC "src/*.s")
 
 include_directories(include)
 set(KERNEL_SRC ${CXX_SRC} ${CXX_SUB_SRC} ${C_SRC} ${ASM_SRC})
+
+
+set(TEST_NAMES "" CACHE STRING "List of tests to include in the build")
+
+# Replace spaces with comma or semicolon if needed
+separate_arguments(TEST_NAMES)
+
+# Generate a header file with the test names
+set(GENERATED_TEST_HEADER "src/core/enabled_test_suites.h")
+
+file(WRITE ${GENERATED_TEST_HEADER} "#pragma once\n\n")
+file(APPEND ${GENERATED_TEST_HEADER} "inline const char* test_suites[] = {\n")
+foreach(test ${TEST_NAMES})
+    file(APPEND ${GENERATED_TEST_HEADER} "    \"${test}\",\n")
+endforeach()
+file(APPEND ${GENERATED_TEST_HEADER} "    nullptr\n};\n")
+
  
 option(COPY_HEX "Copy" OFF)
 
@@ -98,7 +115,6 @@ set(TARGETS
   recover tests/recover
   lib_tests tests/lib_tests
   tests tests/tests
-  single tests/single
 )
 list(LENGTH TARGETS num_targets)
 math(EXPR num_targets "${num_targets} / 2 - 1")

@@ -5,6 +5,8 @@
 #include "core/sched.h"
 #include "utility/debug.h"
 
+#include "enabled_test_suites.h"
+
 namespace tests
 {
 SEC_ADDR(unit_tests);
@@ -14,6 +16,16 @@ size_t i_unit __recover_section__ = 0;
 size_t i_sys __recover_section__ = 0;
 size_t n_unit_tests __recover_section__ = 0;
 size_t n_sys_tests __recover_section__ = 0;
+
+inline bool suite_enabled(const char *suite)
+{
+  int i = 0;
+  for (; test_suites[i] != nullptr; ++i) {
+    if (strcmp(suite, test_suites[i]) == 0)
+      return true;
+  }
+  return i == 0; // enable all tests by default
+}
 
 inline void report()
 {
@@ -41,16 +53,22 @@ inline void report()
   };
 
   kprintf("\r\n" BOLD "Unit test results:" DEFAULT "\r\n");
-  for (SEC_ITER(unit_tests, const test_t, test))
+  for (SEC_ITER(unit_tests, const test_t, test)) {
+    if (!suite_enabled(test->suite))
+      continue;
     result(test);
+  }
   total_result();
 
   passed_tests = 0;
   total_tests = 0;
 
   kprintf("\r\n" BOLD "System test results:" DEFAULT "\r\n");
-  for (SEC_ITER(sys_tests, const test_t, test))
+  for (SEC_ITER(sys_tests, const test_t, test)) {
+    if (!suite_enabled(test->suite))
+      continue;
     result(test);
+  }
   total_result();
 
   kprintf("\r\n");
@@ -60,6 +78,9 @@ inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
 {
   while (idx < n_tests) {
     auto [suite, name, func, passed] = tests[idx++];
+    if (!suite_enabled(suite))
+      continue;
+
     debug<ERROR>(DEFAULT "running %s.%s: ", suite, name);
     *passed = func();
     debug<ERROR>("%s\r\n" DEFAULT, *passed ? GREEN "passed" : RED "FAILED");

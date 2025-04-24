@@ -420,3 +420,4 @@ TSWLatexianTemp*
 # End of https://www.toptal.com/developers/gitignore/api/latex
 
 src/device.ld
+src/core/enabled_test_suites.h
