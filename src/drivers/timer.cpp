@@ -64,7 +64,8 @@ __extern_C__ void pendsv_handler(void);
 __always_inline__ inline void sched_invoke()
 {
   if (MILLIS - sched::last_checked > sched::invoke_interval) {
-    debug<FATAL>("scheduler invoked. proc: %s\r\n", curr_proc::name().str);
+    debug<FATAL>(DEFAULT "scheduler invoked. proc: " BOLD RED "%s\r\n" DEFAULT,
+                 curr_proc::name().str);
     sched::last_checked = MILLIS;
     if (sched::needs_swap())
       pendsv_handler();

@@ -1,16 +1,5 @@
 #include "header.h"
 
-namespace
-{
-bool check_waitlist_itnerval(time_t start, time_t end, time_t interval)
-{
-  auto rounded_future = roundup(start + interval, waitlist::update_interval);
-  interval = roundup(rounded_future - start, waitlist::update_interval);
-  auto rt_interval = roundup(end - start, waitlist::update_interval);
-  return interval == rt_interval;
-}
-} // namespace
-
 BEGIN_SUITE(waitlist)
 
 volatile time_t start = 0, end = 0;

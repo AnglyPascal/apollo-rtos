@@ -51,8 +51,9 @@ SYS_TEST(sleep)
 
   sched::wait(p0, p1);
 
-  return results[0] == 0 && results[1] == 1 && results[2] == 2 &&
-         (end - start) <= roundup(interval, waitlist::update_interval);
+  auto [x, y, z] = results;
+  return x == 0 && y == 1 && z == 2 &&
+         check_waitlist_itnerval(start, end, interval);
 }
 
 END_SUITE()
