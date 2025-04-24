@@ -56,23 +56,6 @@ extern "C" void *memcpy(void *dest, const void *src, uint32_t n)
   return dest;
 }
 
-extern "C" void *memmove(void *dest, const void *src, uint32_t n)
-{
-  auto *p = (uint8_t *)dest;
-  auto *q = (const uint8_t *)src;
-
-  if (dest <= src) {
-    while (n-- > 0)
-      *p++ = *q++;
-  } else {
-    p += n;
-    q += n;
-    while (n-- > 0)
-      *--p = *--q;
-  }
-  return dest;
-}
-
 extern "C" void *memset(void *dest, uint8_t x, uint32_t n)
 {
   auto *p = static_cast<uint8_t *>(dest);
@@ -89,6 +72,26 @@ extern "C" int memcmp(const void *pp, const void *qq, int n)
     if (*p++ != *q++)
       return (p[-1] < q[-1] ? -1 : 1);
   }
+  return 0;
+}
+
+extern "C" void strcpy(char *dest, const char *src)
+{
+  while (*src != '\0')
+    *dest++ = *src++;
+  *dest = '\0';
+}
+
+extern "C" int strcmp(const char *lhs, const char *rhs)
+{
+  while (*rhs != '\0' && *lhs != '\0' && *lhs == *rhs) {
+    lhs++;
+    rhs++;
+  }
+  if (*lhs < *rhs)
+    return -1;
+  if (*lhs > *rhs)
+    return 1;
   return 0;
 }
 

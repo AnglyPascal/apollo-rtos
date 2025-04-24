@@ -21,7 +21,8 @@ void kprintf(Args... args)
 
 inline void clear_screen() { kprintf("\033[2J\033[H"); }
 
-int32_t atoi(const char *p);
+int32_t atoi(const char *p, const char **end = nullptr);
+uint32_t atou(const char *p, const char **end = nullptr);
 
 // FIXME find a better place
 uint8_t rand();

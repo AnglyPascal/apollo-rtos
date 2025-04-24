@@ -3,17 +3,19 @@
 
 #include <cstdarg>
 
-__noinline__ inline int32_t atoi(const char *p)
+__noinline__ inline uint32_t atou(const char *p, const char **end)
 {
-  auto atou = [](const char *p) {
-    int n = 0;
-    while (*p >= '0' && *p <= '9') {
-      n = n * 10 + *p++ - '0';
-    }
-    return n;
-  };
-
-  return *p == '-' ? -atou(++p) : atou(p);
+  int n = 0;
+  while (*p >= '0' && *p <= '9') {
+    n = n * 10 + *p++ - '0';
+  }
+  if (end != nullptr)
+    *end = p;
+  return n;
+}
+__noinline__ inline int32_t atoi(const char *p, const char **end)
+{
+  return *p == '-' ? -atou(++p, end) : atou(p, end);
 }
 
 inline void utoa(uint32_t n, char *p)
