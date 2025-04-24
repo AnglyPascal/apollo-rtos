@@ -88,6 +88,7 @@ struct proc_t {
   void *param = nullptr;
   chunk_list_t used_list = {};
 
+  fn_t out_fn = stdout;
   bool term_req = false;
   barrier_t *bar = nullptr;
   signals_t signals = {};
@@ -96,6 +97,7 @@ struct proc_t {
   {
     priority = EMPTY;
 
+    out_fn = stdout;
     term_req = false;
     bar = nullptr;
 

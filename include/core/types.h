@@ -15,7 +15,7 @@
 #define __naked__ __attribute__((naked))
 
 template <typename T>
-constexpr T MAX = std::numeric_limits<T>::max();
+inline constexpr T MAX = std::numeric_limits<T>::max();
 
 using size_t = std::size_t;
 using runnable_t = void (*)(void *);
@@ -83,7 +83,6 @@ enum {
   O_SHARED = 1 << 5,
 };
 using fn_t = uint8_t;
-inline constexpr fn_t null_fn = MAX<fn_t>;
 
 enum file_type_t {
   CHAR = 1 << 0,
@@ -93,6 +92,12 @@ enum file_type_t {
 enum file_pos_t : uint32_t {
   BOF = 0,
   EOF = (uint32_t)-1,
+};
+
+enum : fn_t {
+  null_fn = MAX<fn_t>,
+  stdout = MAX<fn_t> - 1,
+  stdin = MAX<fn_t> - 2,
 };
 
 using std::pair;

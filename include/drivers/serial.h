@@ -18,8 +18,7 @@ char getc(void);
 
 void busy_putc(char ch);
 void intr_putc(char ch);
-
-// inline void (*putc)(char) = intr_putc;
+void flush();
 
 struct __ostream {
   void (*__putc)(char);

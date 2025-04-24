@@ -74,6 +74,7 @@ pid_t _reg_proc_impl(const proc_def_t *def, void *param)
   proc->param = param;
   proc->def = def;
 
+  proc->out_fn = stdout;
   proc->term_req = false;
   new (&proc->signals) signals_t{};
 
@@ -81,6 +82,12 @@ pid_t _reg_proc_impl(const proc_def_t *def, void *param)
   incr_priority(pid, priority);
 
   return pid;
+}
+
+void set_out_fn(pid_t pid, fn_t out_fn)
+{
+  auto proc = procs[pid];
+  proc->out_fn = out_fn;
 }
 
 void notify_exit(pid_t pid, barrier_t *bar)
@@ -250,6 +257,7 @@ bool term_req() { return cpu.curr_proc->term_req; }
 bool set_up() { return cpu.set_up; }
 
 chunk_list_t &used_list() { return cpu.curr_proc->used_list; }
+fn_t out_fn() { return !set_up() ? stdout : cpu.curr_proc->out_fn; }
 } // namespace curr_proc
 
 ///////////////
@@ -325,6 +333,7 @@ APP(pkill, HIGHEST, 128, param)
   if (pid == IDLE_PID)
     return debug<FATAL>("Cannot kill idle_proc\r\n");
 
+  kprintf("killing [" BLUE "%d" DEFAULT "]\r\n", pid);
   send_signal(pid, kill ? SIGKILL : SIGTERM);
 }
 } // namespace

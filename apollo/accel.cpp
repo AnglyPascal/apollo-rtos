@@ -8,6 +8,7 @@
 #include "fs/fs.h"
 #include "utility/args.h"
 #include "utility/circular_buffer.h"
+#include "utility/iostream.h"
 
 #include <utility>
 
@@ -92,16 +93,14 @@ APP(accel, HIGH1, 128, param)
       auto dy = is_zero(y) ? 1 : (y < 0 ? 2 : 0);
       display::show(dirs[dy][dx]);
 
-      if (n++ % 16 == 0 && !run_bg) {
-        clear_screen();
-        printf("x: %d, y: %d, z: %d\r\n", x, y, z);
-      }
+      if (n++ % 16 == 0 && !run_bg)
+        printf("x: %d, y: %d, z: %d\r", x, y, z);
     }
 
     sched::sleep(50);
   }
 
-  clear_screen();
+  printf("\r\n");
   display::reset();
 }
 

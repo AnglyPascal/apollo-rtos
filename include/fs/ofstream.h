@@ -30,7 +30,8 @@ class _ofstream
   }
 
 public:
-  _ofstream(fn_t fn, uint32_t flags = 0) : file{fn, flags | O_WRITE}, offset{0}
+  _ofstream(fn_t fn, uint32_t flags = 0)
+      : file{fn, flags | O_WRITE | O_CHAR_FILE}, offset{0}
   {
     file.lock();
   }

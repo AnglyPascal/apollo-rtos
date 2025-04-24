@@ -10,8 +10,7 @@
 
 namespace
 {
-__always_inline__
-inline void do_trace()
+__always_inline__ inline void do_trace()
 {
   kprintf("\r\nboot level: %s\r\n", boot::lev_str());
   sched::trace();
@@ -19,6 +18,7 @@ inline void do_trace()
   profile::trace();
   fs::trace();
   heap::trace();
+  kprintf("\r\n");
 }
 
 APP(trace, MID4, 128, param)

@@ -30,21 +30,19 @@ template <debug_t level, typename... Args>
 void debug(const char *fmt, Args... args)
 {
   if constexpr (level <= DEBUG_LEV) {
-    if constexpr (level <= ERROR) {
+    if constexpr (level <= ERROR)
       kprintf(BOLD RED);
-      kprintf(fmt, args...);
+    else if constexpr (level == WARN)
+      kprintf(YELLOW);
+    else
       kprintf(DEFAULT);
-    } else {
-      if constexpr (level == WARN)
-        printf(YELLOW);
 
-      printf(fmt, args...);
-      printf(DEFAULT);
-    }
+    kprintf(fmt, args...);
+    kprintf(DEFAULT);
   }
 }
 
-void trigger_term(const char* file, uint32_t line);
+void trigger_term(const char *file, uint32_t line);
 
 template <debug_t lev, typename... Args>
   requires(lev <= WARN)

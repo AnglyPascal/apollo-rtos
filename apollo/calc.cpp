@@ -3,6 +3,7 @@
 #include "core/types.h"
 #include "drivers/serial.h"
 #include "utility/args.h"
+#include "utility/iostream.h"
 
 namespace
 {

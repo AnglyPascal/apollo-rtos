@@ -12,15 +12,10 @@ template <typename _ostream>
 __noinline__ void do_printf(_ostream &os, const char *fmt, ...);
 
 template <typename... Args>
-void printf(Args... args)
-{
-  do_printf(serial::os, std::forward<Args>(args)...);
-}
-
-template <typename... Args>
 void kprintf(Args... args)
 {
-  intr_guard guard;
+  serial::flush();
+  intr_guard guard{UART_IRQ};
   do_printf(serial::kos, std::forward<Args>(args)...);
 }
 

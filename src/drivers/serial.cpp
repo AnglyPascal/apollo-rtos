@@ -94,7 +94,6 @@ __extern_C__ void uart_handler(void)
   enable_irq(UART_IRQ);
 }
 
-/* putc -- send output character */
 void intr_putc(char ch)
 {
   while (buf.size() == NBUF)
@@ -106,6 +105,11 @@ void intr_putc(char ch)
   } else {
     buf.enqueue(ch);
   }
+}
+
+void flush() {
+  while (buf.size() != 0)
+    pause();
 }
 
 void busy_putc(char ch)

@@ -62,7 +62,7 @@ __extern_C__ void hardfault_handler_body(void *fault_stack)
 
   while (1) {
     char ch = serial::getc();
-    printf("%c", ch);
+    kprintf("%c", ch);
 
     switch (ch) {
     case CTRL('d'):
@@ -70,7 +70,7 @@ __extern_C__ void hardfault_handler_body(void *fault_stack)
       break;
 
     case '?':
-      printf("\r\n");
+      kprintf("\r\n");
       sched::trace();
       waitlist::trace();
       fs::trace();
