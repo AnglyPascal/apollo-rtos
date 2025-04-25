@@ -26,12 +26,14 @@ __always_inline__ inline proc_def_t *match_cmd(string cmd_str)
 
 chan_t<1> chan;
 args_buffer_t buf;
-static_assert(sizeof(buf) == 0x44);
 
 static const char *header = BOLD CYAN ">> " DEFAULT;
 
 bool listener(char c)
 {
+  if (!buf.ready)
+    return false;
+
   switch (c) {
   case DEL:
   case BS:
@@ -66,6 +68,7 @@ bool listener(char c)
     }
 
     if (c == '\r' || c == '\n') {
+      buf.ready = false;
       sched::notify(chan);
       return true;
     }

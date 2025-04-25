@@ -61,7 +61,7 @@ public:
     freelist.push_back(chunk);
   }
 
-  __noinline__ void trace()
+  __noinline__ void trace() const
   {
     debug<TRACE>("  |  free list: \r\n");
     for (auto it = freelist.begin(); it != freelist.end(); ++it) {

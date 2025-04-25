@@ -79,13 +79,12 @@ APP(accel, HIGH1, 128, param)
   auto val = file.mmap<const buffer>();
 
   bool run_bg = ((args_t *)param)->run_bg;
-  sigterm_listener_t<__COUNTER__> guard{run_bg};
 
   constexpr int threshold = 10;
   auto is_zero = [](int p) { return (-threshold < p) && (p < threshold); };
 
   uint8_t n = 0;
-  while (!curr_proc::term_req()) {
+  while (run_bg || !curr_proc::term_req()) {
     if (!val->empty()) {
       auto [x, y, z] = val->back();
 
@@ -93,7 +92,7 @@ APP(accel, HIGH1, 128, param)
       auto dy = is_zero(y) ? 1 : (y < 0 ? 2 : 0);
       display::show(dirs[dy][dx]);
 
-      if (n++ % 16 == 0 && !run_bg)
+      if (!run_bg && n++ % 16 == 0)
         printf("x: %d, y: %d, z: %d\r", x, y, z);
     }
 

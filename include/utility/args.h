@@ -8,6 +8,7 @@ constexpr size_t args_len = 64;
 struct args_buffer_t {
   size_t sz = 0;
   char str[args_len] = {'\0'};
+  bool ready = false;
 
   char &operator[](size_t i) { return str[i]; }
 
@@ -23,7 +24,11 @@ struct args_buffer_t {
       sz--;
   }
 
-  void reset() { sz = 0; }
+  void reset()
+  {
+    sz = 0;
+    ready = true;
+  }
 };
 
 struct args_t {

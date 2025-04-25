@@ -68,7 +68,7 @@ struct priority_t {
 };
 
 struct proc_def_t;
-struct barrier_t;
+class barrier_t;
 
 struct proc_t {
   string name = {};

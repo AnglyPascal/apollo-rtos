@@ -110,11 +110,8 @@ __noinline__ void change_proc()
 
 __extern_C__ void *cxt_switch(void *stk_ptr)
 {
-  PROFILE_THIS(2);
-
   assert(cpu.hi_proc->priority > 0, H_RESET);
-  assert_dump(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET,
-              "proc: %s\r\n", cpu.hi_proc->name.str);
+  assert(cpu.hi_proc->stack <= cpu.hi_proc->stk_ptr, H_RESET);
 
   intr_guard guard;
 
