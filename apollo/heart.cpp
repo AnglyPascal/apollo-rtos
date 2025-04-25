@@ -20,10 +20,8 @@ const image_t small_heart = IMAGE(0, 0, 0, 0, 0,  //
 
 APP(heart, LOW3, 128, param)
 {
-  auto buf = (args_t *)param;
-  auto str = buf->str;
-
-  auto n = (*str == '\0') ? 10 : atoi(str);
+  auto args = (args_t *)param;
+  auto n = args->get_uint();
 
   while (!curr_proc::term_req() && n-- > 0) {
     display::show(big_heart);

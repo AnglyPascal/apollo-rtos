@@ -26,7 +26,7 @@ struct test_t {
   bool __##name##_test_unused(void) __attribute__((unused));                   \
   bool __##name##_test_unused(void)
 
-#define _SYS_TEST(name)                                                            \
+#define _SYS_TEST(name)                                                        \
   bool __##name##_test_unused(void) __attribute__((unused));                   \
   bool __##name##_test_unused(void)
 

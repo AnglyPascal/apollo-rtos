@@ -1,4 +1,5 @@
 #include "fs/fs.h"
+#include "core/sched.h"
 #include "core/types.h"
 #include "drivers/serial.h"
 #include "utility/args.h"
@@ -8,20 +9,42 @@ namespace
 {
 APP(rm, MID4, 128, param)
 {
-  auto buf = (args_t *)param;
-  auto str = buf->str;
+  auto args = (args_t *)param;
 
-  if (*str == '\0')
-    return debug<ERROR>("a file name is required\r\n");
+  auto forced = args->get_option() == 'f';
+  if (*args->s == '\0')
+    return debug<ERROR>("requires a file name\r\n");
 
-  fn_t fn = atoi(str);
-  fram::remove(fn);
+  auto fn = args->get_uint<fn_t>();
+  if (fn == MAX<fn_t>)
+    return debug<ERROR>("invalid file name\r\n");
+
+  fram::remove(fn, forced);
+}
+
+APP(touch, MID4, 128, param)
+{
+  auto args = (args_t *)param;
+
+  auto perm = args->get_option() == 'p';
+
+  if (*args->s == '\0')
+    return debug<ERROR>("requires a file name\r\n");
+
+  auto fn = args->get_uint<fn_t>();
+  if (fn == MAX<fn_t>)
+    return debug<ERROR>(DEFAULT "invalid file name: %d\r\n", fn);
+
+  auto file = fram::open(fn, O_CREATE | O_CHAR_FILE | (perm ? O_PERM : 0));
+  if (!file.new_file)
+    return debug<WARN>(DEFAULT "file alrady exists\r\n");
 }
 
 APP(ls, MID4, 128, param)
 {
-  fs::trace();
-  printf("\r\n");
+  auto args = (args_t *)param;
+  auto fn = args->get_uint<fn_t>();
+  fs::trace(fn == MAX<fn_t> ? null_fn : fn);
 }
 
 APP(cat, MID4, 128, param)

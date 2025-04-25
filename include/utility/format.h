@@ -56,5 +56,7 @@ uint32_t random();
 #define DEFAULT "\033[0m"
 #define BOLD "\033[1m"
 
+#define TAB "  |  "
+
 #include "format_impl.h"
 

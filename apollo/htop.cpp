@@ -32,12 +32,8 @@ __always_inline__ inline void do_trace(bool stk_info = false)
 
 APP(htop, MID4, 128, param)
 {
-  auto &buf = *(args_t *)param;
-  auto args = buf.str;
-
-  bool run_once = false;
-  if (*args++ == '-' && *args++ == 'r')
-    run_once = true;
+  auto args = (args_t *)param;
+  bool run_once = args->get_option() == 'r';
 
   sigterm_listener_t<__COUNTER__> sig_guard{!run_once};
 

@@ -31,9 +31,86 @@ struct args_buffer_t {
   }
 };
 
+constexpr bool isspace(char c) { return c == ' '; }
+constexpr bool isdigit(char c) { return ('0' <= c && c <= '9'); }
+constexpr bool isalph(char c)
+{
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
+}
+
 struct args_t {
   char str[args_len];
+  mutable char *s;
   bool run_bg;
+
+  args_t(bool run_bg) : s{str}, run_bg{run_bg} {};
+
+  char get_option() const
+  {
+    if (s >= str + args_len - 2)
+      return '\0';
+
+    if (*s != '-')
+      return '\0';
+
+    char c = *++s;
+    while (*++s == ' ')
+      ;
+    return c;
+  }
+
+  int32_t get_int() const
+  {
+    int mult = 1;
+    if (*s == '-') {
+      mult = -1;
+      s++;
+    }
+
+    if (!isdigit(*s))
+      return MAX<int32_t>;
+
+    const char *end = nullptr;
+    auto n = atou(s, &end);
+
+    while (*end == ' ')
+      end++;
+    s = (char *)end;
+
+    return n * mult;
+  }
+
+  template <typename T = uint32_t>
+    requires std::is_unsigned_v<T>
+  T get_uint() const
+  {
+    if (!isdigit(*s))
+      return MAX<T>;
+
+    const char *end = nullptr;
+    auto n = atou(s, &end);
+
+    if (n > (uint32_t)MAX<T>)
+      return MAX<T>;
+
+    while (*end == ' ')
+      end++;
+    s = (char *)end;
+
+    return (T)n;
+  }
+
+  const char *get_str() const
+  {
+    auto t = s;
+    while (*s != ' ' || *s != '\0')
+      s++;
+
+    *s = '\0';
+    s++;
+
+    return t;
+  }
 };
 
 struct parser_t {
@@ -55,12 +132,6 @@ struct parser_t {
   {
     if (!str)
       return;
-
-    auto isspace = [](char c) { return c == ' '; };
-    auto isdigit = [](char c) { return ('0' <= c && c <= '9'); };
-    auto isalph = [](char c) {
-      return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
-    };
 
     state_t st = CMD_START;
 
