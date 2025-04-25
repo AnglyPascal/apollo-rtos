@@ -24,7 +24,6 @@ class _ifstream
   inline void fetch()
   {
     size_t n_chars = min(remaining, buf_len);
-
     file.read((uint8_t *)buf, n_chars, offset);
 
     remaining -= n_chars;
@@ -36,18 +35,16 @@ public:
   _ifstream(fn_t fn)
       : file{fn, O_READ}, remaining{file.fsz()}, idx{remaining}, offset{0}
   {
-    file.lock();
   }
 
   _ifstream(fn_t fn, size_t sz, size_t off = 0)
       : file{fn, O_READ}, remaining{sz}, idx{sz}, offset{off}
   {
-    file.lock();
   }
 
-  _ifstream(const file_t &file) : _ifstream{file.fn()} { file.lock(); }
+  _ifstream(const file_t &file) : _ifstream{file.fn()} {}
 
-  ~_ifstream() { file.unlock(); }
+  ~_ifstream() {}
 
   char operator*()
   {

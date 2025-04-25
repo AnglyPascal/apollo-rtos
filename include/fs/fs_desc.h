@@ -20,8 +20,8 @@ struct fs_desc_t {
   addr_t start;
   addr_t end;
 
-  blk_addr_t fs_hd_addr;
-  size_t fs_hd_sz;
+  blk_addr_t hd_addr;
+  size_t hd_sz;
 
   uint8_t max_num_blks;
   size_t n_inodes;

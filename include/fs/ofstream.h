@@ -33,16 +33,11 @@ public:
   _ofstream(fn_t fn, uint32_t flags = 0)
       : file{fn, flags | O_WRITE | O_CHAR_FILE}, offset{0}
   {
-    file.lock();
   }
 
-  _ofstream(const file_t &file) : _ofstream{file.fn()} { file.lock(); }
+  _ofstream(const file_t &file) : _ofstream{file.fn()} {}
 
-  ~_ofstream()
-  {
-    flush();
-    file.unlock();
-  }
+  ~_ofstream() { flush(); }
 
   void seek(size_t off) { offset = off == EOF ? file.fend() : off; }
 

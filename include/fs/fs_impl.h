@@ -8,211 +8,42 @@
 #include "utility/debug.h"
 #include "utility/mutex.h"
 
-using fd_mtx_t = mutex<4>;
+using fd_mtx_t = mutex<8>;
 
 template <auto desc>
 class fs_impl_t
 {
+private:
   using desc_t = std::remove_cv_t<decltype(desc)>;
 
-private:
   using inode_t = _inode_t<desc_t, desc>;
   using fs_t = _fs_t<desc_t, desc>;
   using fn_t = typename desc_t::fn_t;
   using blk_addr_t = typename desc_t::blk_addr_t;
 
   struct mmap_unit_t {
-    bool pooled = false;
     void *buf = nullptr;
     size_t sz = 0;
   };
-  static_assert(sizeof(mmap_unit_t) == 3 * sizeof(uint32_t));
 
-  class fd_t
-  {
-    uint8_t w_cnt = 0;
-    uint8_t r_cnt = 0;
+  struct fd_t {
+    const fd_mtx_t mtx = {"fd"};
 
-  public:
     fn_t fn = null_fn;
-    fd_mtx_t mtx = {"fd"};
     const inode_t *inode = nullptr;
+
     mmap_unit_t mu = {};
+    bool mu_pooled = false;
 
-  public:
-    uint8_t ref_cnt() const { return r_cnt; }
-
-    void acquire(fn_t _fn, const inode_t *_inode, bool w_en)
-    {
-      assert(fn == null_fn || fn == _fn, TERM);
-      r_cnt++;
-      w_cnt += w_en;
-      fn = _fn;
-      inode = _inode;
-    }
-
-    void release(bool w_en)
-    {
-      r_cnt--;
-      w_cnt -= w_en;
-      if (r_cnt == 0)
-        new (this) fd_t{};
-    }
-  };
-
-public:
-  class file_t
-  {
-    fd_t *fd = nullptr;
-
-    mmap_unit_t mu;
-
-    const bool mmap_shared = false;
-    const bool w_en = false;
-    const bool a_en = false;
-
-    mmap_unit_t &target_mu() { return mmap_shared ? fd->mu : mu; }
-    const mmap_unit_t &target_mu() const { return mmap_shared ? fd->mu : mu; }
-
-  public:
-    const bool new_file = false;
-
-    file_t() {}
-
-    file_t(fn_t fn, uint32_t flags) : file_t{fn, 0, flags} {}
-
-    file_t(fn_t fn, size_t _sz, uint32_t flags)
-        : mmap_shared{(bool)(flags & O_SHARED)},
-          w_en{(bool)(flags & (O_WRITE | O_APPEND))},
-          a_en{(bool)(flags & O_APPEND)}
-    {
-      fd = find_fd(fn);
-      assert(fd != nullptr, TERM, "cannot find fd in open files table\r\n");
-
-      auto [inode, _new_file] = fs.open(fn, _sz, flags);
-      assert(inode != nullptr, TERM, "could not open inode\r\n");
-
-      const_cast<bool &>(new_file) = _new_file;
-      fd->acquire(fn, inode, w_en);
-    }
-
-    ~file_t()
-    {
-      if (fd != nullptr)
-        close();
-    }
-
-    void close()
-    {
-      unmap();
-      fd->release(w_en);
-      fd = nullptr;
-    }
-
-    void lock() const { fd->mtx.lock(); }
-    void unlock() const { fd->mtx.unlock(); }
-
-    fn_t fn() const { return fd->fn; }
-    auto ft() const { return fd->inode->flag.ft(); }
-
-    auto fsz() const { return fd->inode->fsz(); }
-    auto fend() const { return fd->inode->end; }
-
-    void *mmap(size_t sz)
-    {
-      auto &tmu = target_mu();
-      if (tmu.buf != nullptr)
-        return tmu.buf;
-
-      tmu.buf = mmap_shared ? pool.alloc(sz) : heap::malloc(sz);
-      tmu.sz = sz;
-      tmu.pooled = true;
-
-      load();
-      return tmu.buf;
-    }
-
-    void mmap(uint8_t *buf, size_t sz)
-    {
-      unmap();
-
-      auto &tmu = target_mu();
-      tmu.buf = buf;
-      tmu.sz = sz;
-      tmu.pooled = false;
-
-      load();
-    }
-
-    template <typename T>
-    T *mmap()
-    {
-      return (T *)mmap(sizeof(T));
-    }
-
-    template <typename T>
-    void mmap(T &obj)
-    {
-      mmap((uint8_t *)&obj, sizeof(T));
-    }
-
-    void unmap()
-    {
-      if (!mmap_shared) {
-        if (mu.pooled)
-          heap::free(mu.buf);
-        new (&mu) mmap_unit_t{};
-        return;
-      }
-
-      // last reference to fd
-      if (fd->ref_cnt() == 1) {
-        if (fd->mu.pooled)
-          pool.dealloc((byte_t *)fd->mu.buf);
-        new (&fd->mu) mmap_unit_t{};
-      }
-    }
-
-    void load()
-    {
-      auto &tmu = target_mu();
-      assert(tmu.buf != nullptr, TERM, "%d\r\n", fd->fn);
-      lock_guard guard{fd->mtx};
-      fs.load(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
-    }
-
-    void store() const
-    {
-      auto &tmu = target_mu();
-      assert(tmu.buf != nullptr, TERM);
-      lock_guard guard{fd->mtx};
-      fs.store(fd->inode, (uint8_t *)tmu.buf, tmu.sz);
-    }
-
-    void store(size_t off, size_t sz) const
-    {
-      auto &tmu = target_mu();
-      assert(tmu.buf != nullptr && off >= 0 && off + sz <= tmu.sz, TERM);
-      lock_guard guard{fd->mtx};
-      fs.store(fd->inode, off, ((uint8_t *)tmu.buf) + off, sz);
-    }
-
-    void write(const void *buf, size_t sz, size_t off = 0)
-    {
-      assert(ft() == CHAR, TERM);
-      return fs.store(fd->inode, (const uint8_t *)buf, sz, off);
-    }
-
-    void append(const void *buf, size_t sz) { return write(buf, sz, fend()); }
-
-    void read(uint8_t *buf, size_t len, size_t off = 0) const
-    {
-      assert(ft() == CHAR, TERM);
-      return fs.load(fd->inode, buf, len, off);
-    }
+    uint8_t r_cnt = 0;
+    uint8_t w_cnt = 0;
   };
 
 private:
+  inline static fs_t fs;
+  inline static allocator<alloc_heap, 4> pool;
+  inline static fd_t open_files[desc.n_open_files] = {};
+
   static fd_t *find_fd(fn_t fn)
   {
     fd_t *empty_fd = nullptr;
@@ -226,6 +57,208 @@ private:
   }
 
 public:
+  class file_t
+  {
+    fd_t *fd = nullptr;
+
+    mmap_unit_t mu = {};
+    bool mu_pooled = false;
+
+    const bool mmap_shared = false;
+
+    const bool w_en = false;
+    const bool a_en = false;
+
+    mmap_unit_t &target_mu() { return mmap_shared ? fd->mu : mu; }
+    const mmap_unit_t &target_mu() const { return mmap_shared ? fd->mu : mu; }
+    bool &target_mu_pooled() { return mmap_shared ? fd->mu_pooled : mu_pooled; }
+
+  public:
+    const bool new_file = false;
+
+    file_t() {}
+
+    file_t(fn_t fn, uint32_t flags) : file_t{fn, 0, flags} {}
+
+    file_t(fn_t fn, size_t sz, uint32_t flags)
+        : mmap_shared{(bool)(flags & O_SHARED)},
+          w_en{(bool)(flags & (O_WRITE | O_APPEND))},
+          a_en{(bool)(flags & O_APPEND)}, new_file{false}
+    {
+      fd = find_fd(fn);
+      assert(fd != nullptr, TERM, "cannot find fd in open files table\r\n");
+
+      auto [inode, _new_file] = fs.open(fn, sz, flags);
+      assert(inode != nullptr, TERM, "could not open inode\r\n");
+
+      if (fd->fn == fn) {
+        assert(!_new_file && fd->inode == inode, H_RESET);
+
+        fd->r_cnt++;
+        fd->w_cnt += w_en;
+        return;
+      }
+
+      const_cast<bool &>(new_file) = _new_file;
+
+      // newly acquired fd
+      fd->fn = fn;
+      fd->inode = inode;
+
+      fd->mu = mmap_unit_t{};
+      fd->r_cnt = 1;
+      fd->w_cnt = w_en;
+    }
+
+    ~file_t()
+    {
+      if (fd != nullptr)
+        close();
+    }
+
+    void close()
+    {
+      unmap();
+
+      fd->r_cnt--;
+      fd->w_cnt -= w_en;
+
+      fs.close(fd->inode);
+
+      // last reference
+      if (fd->r_cnt == 0) {
+        fd->fn = null_fn;
+        fd->inode = nullptr;
+        fd->mu = mmap_unit_t{};
+      }
+
+      fd = nullptr;
+    }
+
+    void *mmap(size_t sz)
+    {
+      assert_dump(sz <= mfsz(), H_RESET);
+
+      auto &tmu = target_mu();
+      auto &tmu_pooled = target_mu_pooled();
+
+      if (tmu.buf != nullptr)
+        return tmu.buf;
+
+      if (fd->inode->is_valid())
+        sz = min(sz, fsz());
+
+      tmu.buf = mmap_shared ? pool.alloc(sz) : heap::malloc(sz);
+      tmu.sz = sz;
+      tmu_pooled = true;
+
+      if (fd->inode->is_valid())
+        load();
+
+      return tmu.buf;
+    }
+
+    template <typename T, typename... Args>
+      requires std::constructible_from<T, Args...>
+    T *mmap(Args &&...args)
+    {
+      auto t = mmap(sizeof(T));
+      if (!fd->inode->is_valid())
+        return new (t) T{std::forward<Args>(args)...};
+      return (T *)t;
+    }
+
+    template <typename T>
+    void mmap(T &obj)
+    {
+      auto sz = sizeof(T);
+      assert(sz <= mfsz(), H_RESET, "obj size exceeds max file size %d\r\n",
+             fn);
+
+      unmap();
+
+      auto &tmu = target_mu();
+      auto &tmu_pooled = target_mu_pooled();
+
+      tmu.buf = (uint8_t *)&obj;
+      tmu.sz = sz;
+      tmu_pooled = false;
+
+      if (fd->inode->is_valid())
+        load();
+    }
+
+    void unmap()
+    {
+      if (!mmap_shared) {
+        if (mu_pooled)
+          heap::free(mu.buf);
+        new (&mu) mmap_unit_t{};
+        return;
+      }
+
+      // last reference to fd
+      if (fd->r_cnt == 1) {
+        if (fd->mu_pooled)
+          pool.dealloc((byte_t *)fd->mu.buf);
+        new (&fd->mu) mmap_unit_t{};
+      }
+    }
+
+    fn_t fn() const { return fd->fn; }
+    auto ft() const { return fd->inode->ft(); }
+
+    auto fsz() const { return fd->inode->end; }
+    auto mfsz() const { return fd->inode->max_sz(); }
+    auto fend() const { return fd->inode->end; }
+
+    bool load()
+    {
+      auto &tmu = target_mu();
+      assert(tmu.buf != nullptr, TERM, "%d\r\n", fd->fn);
+      lock_guard guard{fd->mtx};
+      return fs.load(fd->inode, tmu.buf, tmu.sz);
+    }
+
+    size_t store() const
+    {
+      auto &tmu = target_mu();
+      assert(tmu.buf != nullptr, TERM);
+      lock_guard guard{fd->mtx};
+      return fs.store(fd->inode, tmu.buf, tmu.sz);
+    }
+
+    size_t store(size_t off, size_t sz) const
+    {
+      auto &tmu = target_mu();
+      assert(tmu.buf != nullptr && off >= 0 && off + sz <= tmu.sz, TERM);
+      lock_guard guard{fd->mtx};
+      return fs.store(fd->inode, off, ((uint8_t *)tmu.buf) + off, sz);
+    }
+
+    size_t write(const void *buf, size_t sz, size_t off = 0)
+    {
+      assert(ft() == CHAR, TERM);
+      lock_guard guard{fd->mtx};
+      return fs.store(fd->inode, buf, sz, off);
+    }
+
+    size_t append(const void *buf, size_t sz)
+    {
+      assert(ft() == CHAR, TERM);
+      lock_guard guard{fd->mtx};
+      return fs.store(fd->inode, buf, sz, fend());
+    }
+
+    size_t read(uint8_t *buf, size_t len, size_t off = 0) const
+    {
+      assert(ft() == CHAR, TERM);
+      lock_guard guard{fd->mtx};
+      return fs.load(fd->inode, buf, len, off);
+    }
+  };
+
+public:
   static file_t open(fn_t fn, uint32_t flags) { return file_t{fn, 0, flags}; }
 
   static file_t open(fn_t fn, size_t sz, uint32_t flags)
@@ -233,15 +266,10 @@ public:
     return file_t{fn, sz, flags};
   }
 
-  template <typename T, typename... Args>
-  static file_t open(fn_t fn, uint32_t flags, Args &&...args)
+  template <typename T>
+  static file_t open(fn_t fn, uint32_t flags)
   {
-    auto file = file_t{fn, sizeof(T), flags};
-    if (file.new_file) {
-      auto t = file.template mmap<T>();
-      new (t) T{std::forward<Args>(args)...};
-    }
-    return file;
+    return file_t{fn, sizeof(T), flags};
   }
 
   static void open(file_t &file, fn_t fn, size_t sz, uint32_t flags)
@@ -249,11 +277,13 @@ public:
     new (&file) file_t{fn, sz, flags};
   }
 
-  static void remove(fn_t fn)
+  static bool remove(fn_t fn, bool forced = false)
   {
-    if (is_open(fn))
-      return debug<ERROR>("fn %d is open, can't remove\r\n", fn);
-    fs.remove(fn);
+    if (is_open(fn)) {
+      debug<ERROR>("fn %d is open, can't remove\r\n", fn);
+      return false;
+    }
+    return fs.remove(fn, forced);
   }
 
   static void mount()
@@ -277,10 +307,50 @@ public:
     return fd != nullptr && fd->fn == fn;
   }
 
-  static void trace() { fs.trace(is_open); }
+  static bool exists(fn_t fn) { return fs.hd.tbl[fn].in_use(); }
 
-private:
-  inline static fs_t fs;
-  inline static allocator<alloc_heap, 4> pool;
-  inline static fd_t open_files[desc.n_open_files] = {};
+  static void trace(fn_t fn = null_fn)
+  {
+    if (fn == null_fn)
+      fs.trace();
+
+    auto dump = [&](fn_t fn) {
+      auto &inode = fs.hd.tbl[fn];
+      debug<INFO>(BOLD YELLOW "%d" DEFAULT ": "                 //
+                              "size = " BLUE "%d" DEFAULT ", "  //
+                              "type = " YELLOW "%s" DEFAULT " " //
+                              "blks: ",
+                  fn, inode.end, inode.ft() == CHAR ? "char," : "bin, ");
+
+      for (auto i = 0; i < inode.nblks - 1; i++)
+        debug<INFO>("%u, ", inode.blks[i]);
+      debug<INFO>("%u\r\n", inode.blks[inode.nblks - 1]);
+    };
+
+    if (fn != null_fn) {
+      if (!exists(fn))
+        return debug<INFO>("file " YELLOW "%d" DEFAULT " not found\r\n", fn);
+
+      debug<INFO>("[" BLUE "%c" DEFAULT "] ", is_open(fn) ? 'O' : 'C');
+      return dump(fn);
+    }
+
+    debug<INFO>(GREEN "  open files:" DEFAULT "\r\n");
+    for (fn_t fn = 0; fn < desc.n_inodes; fn++) {
+      if (exists(fn) && is_open(fn)) {
+        kprintf(TAB);
+        dump(fn);
+      }
+    }
+
+    debug<INFO>(CYAN "  closed files:" DEFAULT "\r\n");
+    for (fn_t fn = 0; fn < desc.n_inodes; fn++) {
+      if (exists(fn) && !is_open(fn)) {
+        kprintf(TAB);
+        dump(fn);
+      }
+    }
+
+    kprintf("\r\n");
+  }
 };

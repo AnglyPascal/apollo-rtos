@@ -50,25 +50,25 @@ __extern_C__ void hardfault_handler_body(void *fault_stack)
     debug<FATAL>("\r\nassertion failure at " //
                  BOLD YELLOW "%s:%d" DEFAULT "\r\n",
                  (const char *)stk->r0, stk->r1);
-  } else {
-    debug<FATAL>("\r\nhardfault\r\n"                    //
-                 "pc: " BOLD YELLOW "%x" DEFAULT "\t"   //
-                 "lr: " BOLD YELLOW "%x" DEFAULT "\r\n" //
-                 ,                                      //
-                 stk->pc, stk->lr);
-
-    debug<FATAL>(DEFAULT //
-                 "r0: " BOLD "%x" DEFAULT "\t"
-                 "r4: " BOLD "%x" DEFAULT "\r\n"
-                 "r1: " BOLD "%x" DEFAULT "\t"
-                 "r5: " BOLD "%x" DEFAULT "\r\n"
-                 "r2: " BOLD "%x" DEFAULT "\t"
-                 "r6: " BOLD "%x" DEFAULT "\r\n"
-                 "r3: " BOLD "%x" DEFAULT "\t"
-                 "r7: " BOLD "%x" DEFAULT "\r\n",
-                 stk->r0, stk->r1, stk->r2, stk->r3, stk->r4, stk->r5, stk->r6,
-                 stk->r7);
   }
+
+  debug<FATAL>("\r\nhardfault\r\n"                    //
+               "pc: " BOLD YELLOW "%x" DEFAULT "\t"   //
+               "lr: " BOLD YELLOW "%x" DEFAULT "\r\n" //
+               ,                                      //
+               stk->pc, stk->lr);
+
+  debug<FATAL>(DEFAULT //
+               "r0: " BOLD "%x" DEFAULT "\t"
+               "r4: " BOLD "%x" DEFAULT "\r\n"
+               "r1: " BOLD "%x" DEFAULT "\t"
+               "r5: " BOLD "%x" DEFAULT "\r\n"
+               "r2: " BOLD "%x" DEFAULT "\t"
+               "r6: " BOLD "%x" DEFAULT "\r\n"
+               "r3: " BOLD "%x" DEFAULT "\t"
+               "r7: " BOLD "%x" DEFAULT "\r\n",
+               stk->r0, stk->r1, stk->r2, stk->r3, stk->r4, stk->r5, stk->r6,
+               stk->r7);
 
   while (1) {
     char ch = serial::getc();

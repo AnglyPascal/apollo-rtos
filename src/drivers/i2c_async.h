@@ -181,8 +181,6 @@ __always_inline__ inline void handler(void)
 
     state.flag = flag_t::NONE;
 
-    mtx.unlock();
-
     // then wake up the currently working process
     sched::notify(intr_chan);
   }
@@ -191,7 +189,7 @@ __always_inline__ inline void handler(void)
 template <bool is_read>
 int xfer(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf, size_t n)
 {
-  mtx.lock();
+  lock_guard guard{mtx};
 
   state.flag = flag_t::BUSY;
 

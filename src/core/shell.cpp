@@ -103,8 +103,7 @@ SERVICE(shell, HIGH1, 256, param)
       continue;
     }
 
-    auto param = kmem::knew<args_t>();
-    param->run_bg = parser.run_bg;
+    auto param = kmem::knew<args_t>(parser.run_bg);
 
     auto p = parser.args;
     auto q = param->str;
@@ -138,6 +137,21 @@ APP(help, MID4, 128, param)
     }
   }
   kprintf("\r\n");
+}
+
+APP(opts, MID4, 128, param)
+{
+  auto args = (args_t *)param;
+
+  while (true) {
+    char c = args->get_option();
+    if (c == '\0')
+      break;
+    kputc(c);
+    kputc(' ');
+  }
+  auto n = args->get_int();
+  kprintf("n=%d, \"%s\"\r\n", n, args->s);
 }
 
 } // namespace

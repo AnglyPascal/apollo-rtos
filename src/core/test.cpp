@@ -87,7 +87,7 @@ inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
     clear_line();
     debug<ERROR>(DEFAULT "running %s.%s: ", suite, name);
     *passed = func();
-    debug<ERROR>("%s\r" DEFAULT, *passed ? GREEN "passed" : RED "FAILED");
+    debug<ERROR>("%s\r\n" DEFAULT, *passed ? GREEN "passed" : RED "FAILED");
     trigger_reset();
   }
 }

@@ -1,3 +1,4 @@
+#include "core/sched.h"
 #include "core/test.h"
 #include "fs/fs.h"
 #include "utility/debug.h"

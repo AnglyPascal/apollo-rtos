@@ -4,109 +4,104 @@
 #include "utility/bitset.h"
 #include "utility/debug.h"
 
-struct flag_t {
-  void reset() { _flag = 0; }
-
-  bool in_use() const { return _flag & IN_USE; }
-  void set_use() { _flag |= IN_USE; }
-
-  file_type_t ft() const { return (_flag & IS_CHAR) ? CHAR : BIN; }
-  void set_ft(file_type_t _ft)
-  {
-    if (_ft == CHAR)
-      _flag |= IS_CHAR;
-    else
-      _flag &= ~IS_CHAR;
-  }
-
-  bool is_perm() const { return _flag & IS_PERM; }
-  void set_perm() { _flag |= IS_PERM; }
-
-private:
-  uint8_t _flag = 0;
-  enum {
-    IN_USE = 1 << 0,
-    IS_CHAR = 1 << 1,
-    IS_PERM = 1 << 2,
-  };
-};
-
 template <typename desc_t, desc_t desc>
 struct _inode_t {
   using blk_addr_t = typename desc_t::blk_addr_t;
   using addr_t = typename desc_t::addr_t;
 
   blk_addr_t blks[desc.max_num_blks];
-
-  uint8_t nblks;
-  flag_t flag;
-
   mutable addr_t end;
+  const uint8_t nblks;
+  mutable uint8_t flag;
 
-  file_type_t ft() const { return flag.ft(); }
-  size_t fsz() const { return end; }
+  _inode_t() : end{0}, nblks{0}, flag{0} {}
+
   size_t max_sz() const { return nblks * desc_t::blk_sz; }
-};
 
-template <typename desc_t, desc_t desc>
-struct _fs_hd_t {
-  using fn_t = typename desc_t::fn_t;
-  using blk_addr_t = typename desc_t::blk_addr_t;
-
-  using inode_t = _inode_t<desc_t, desc>;
-
-  inode_t inode_tbl[desc.n_inodes];
-  uint32_t magic;
-
-  static constexpr size_t N_BLKS = (desc.end - desc.start) / desc_t::blk_sz;
-  static_assert(N_BLKS <= (1 << 8));
-  bitset<N_BLKS> free_set;
-
-  bool alloc_blks(blk_addr_t *buf, uint8_t nblks)
+  void reset()
   {
-    blk_addr_t addr = 0;
-    while (nblks-- > 0) {
-      addr = free_set.next(addr);
-      if (addr == MAX<size_t>)
-        return false;
-
-      *buf++ = addr;
-      free_set.erase(addr);
-      addr++;
+    { // not needed, but still
+      const_cast<uint8_t &>(nblks) = 0;
+      end = 0;
     }
-    return true;
+    flag = 0;
   }
 
-  void dealloc_blks(blk_addr_t *buf, uint8_t nblks)
+  bool in_use() const { return flag & IN_USE; }
+  void set_use() { flag |= IN_USE; }
+
+  file_type_t ft() const { return (flag & IS_CHAR) ? CHAR : BIN; }
+  void set_ft(file_type_t _ft)
   {
-    while (nblks-- > 0)
-      free_set.insert(*buf++);
+    if (_ft == CHAR)
+      flag |= IS_CHAR;
+    else
+      flag &= ~IS_CHAR;
   }
+
+  bool is_perm() const { return flag & IS_PERM; }
+  void set_perm() { flag |= IS_PERM; }
+
+  // invariant: is_valid() <=> end != 0
+  bool is_valid() const { return flag & IS_VALID; }
+  bool set_valid() const { return flag |= IS_VALID; }
+
+private:
+  enum {
+    IN_USE = 1 << 0,
+    IS_CHAR = 1 << 1,
+    IS_PERM = 1 << 2,
+    IS_VALID = 1 << 3,
+  };
 };
 
 template <typename desc_t, desc_t desc>
   requires(desc.start < desc.end) &&
-          (desc.fs_hd_addr < desc.end / desc_t::blk_sz) &&
-          (desc.fs_hd_addr >= desc.start / desc_t::blk_sz) &&
-          (desc.fs_hd_addr * desc_t::blk_sz + desc.fs_hd_sz <= desc.end)
+          (desc.start + desc.hd_addr * desc_t::blk_sz + desc.hd_sz <= desc.end)
 class _fs_t
 {
 public:
   using blk_addr_t = typename desc_t::blk_addr_t;
   using addr_t = typename desc_t::addr_t;
   using fn_t = typename desc_t::fn_t;
-
   using inode_t = _inode_t<desc_t, desc>;
 
   static constexpr auto BLK_SZ = desc_t::blk_sz;
-  static constexpr uint32_t BLK_MAGIC = 0xbebebabe;
+  static constexpr uint32_t BLK_MAGIC = 0xbabebabe;
+  static constexpr size_t N_BLKS = (desc.end - desc.start) / BLK_SZ;
 
-  bool first_boot = false;
+  static_assert(N_BLKS <= (1 << 8));
+
+  struct hd_t {
+    inode_t tbl[desc.n_inodes];
+    uint32_t magic;
+    bitset<N_BLKS> free_set;
+  };
+
+  static_assert(sizeof(hd_t) <= desc.hd_sz);
+
+  inline static hd_t hd;
 
 private:
-  using fs_hd_t = _fs_hd_t<desc_t, desc>;
-  fs_hd_t fs_hd;
-  static_assert(sizeof(fs_hd_t) <= desc.fs_hd_sz);
+  static inline bool alloc_blks(inode_t &inode)
+  {
+    blk_addr_t addr = 0;
+    for (uint8_t i = 0; i < inode.nblks; i++) {
+      addr = hd.free_set.next(addr);
+      if (addr == MAX<size_t>)
+        return false;
+
+      hd.free_set.erase(addr);
+      inode.blks[i] = addr++;
+    }
+    return true;
+  }
+
+  static inline void dealloc_blks(inode_t &inode)
+  {
+    for (uint8_t i = 0; i < inode.nblks; i++)
+      hd.free_set.insert(inode.blks[i]);
+  }
 
   static constexpr addr_t paddr(blk_addr_t blk_addr)
   {
@@ -115,46 +110,68 @@ private:
     return addr;
   }
 
-  inline void load_hd() const
+  static inline void load_hd()
   {
-    desc.read(paddr(desc.fs_hd_addr), (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+    desc.read(paddr(desc.hd_addr), (uint8_t *)&hd, sizeof(hd));
   }
 
-  inline void store_hd() const
+  static inline void store_hd()
   {
-    desc.write(paddr(desc.fs_hd_addr), (uint8_t *)&fs_hd, sizeof(fs_hd_t));
+    desc.write(paddr(desc.hd_addr), (uint8_t *)&hd, sizeof(hd));
+  }
+
+  static inline void store_inode(const inode_t &inode, bool with_freeset)
+  {
+    const auto hd_addr = paddr(desc.hd_addr);
+
+    const auto inode_off = (size_t)&inode - (size_t)&hd;
+    desc.write(hd_addr + inode_off, (uint8_t *)&inode, sizeof(inode));
+
+    if (with_freeset) {
+      const auto freeset_off = (size_t)&hd.free_set - (size_t)&hd;
+      desc.write(hd_addr + freeset_off, (uint8_t *)&hd.free_set,
+                 sizeof(hd.free_set));
+    }
+  }
+
+  static inline void update_hd(const inode_t &inode, bool with_freeset)
+  {
+    if constexpr (desc.is_ram)
+      store_inode(inode, with_freeset);
+    else
+      store_hd();
   }
 
 public:
-  bool valid() const { return fs_hd.magic == BLK_MAGIC; }
+  static inline bool valid() { return hd.magic == BLK_MAGIC; }
 
-  void format()
+  static inline void format()
   {
-    fs_hd.magic = BLK_MAGIC;
-    for (auto &inode : fs_hd.inode_tbl)
-      new (&inode) inode_t{};
-    fs_hd.free_set.set_all();
+    hd.magic = BLK_MAGIC;
+    for (auto &inode : hd.tbl)
+      inode.reset();
+    hd.free_set.set_all();
 
     store_hd();
   }
 
-  void mount()
+  static inline void mount()
   {
     load_hd();
-    first_boot = !valid();
     if (!valid())
       format();
   }
 
-  void umount() const { store_hd(); }
+  static inline void umount() { store_hd(); }
 
-  std::pair<const inode_t *, bool> open(fn_t fn, size_t sz, uint32_t flags)
+  // return the corresponding inode, and whether the file was just opened
+  static inline pair<const inode_t *, bool> open(fn_t fn, size_t sz,
+                                                 uint32_t flags)
   {
     assert(fn >= 0 && fn < desc.n_inodes, TERM);
 
-    auto &inode = fs_hd.inode_tbl[fn];
-    const bool in_use = inode.flag.in_use();
-
+    auto &inode = hd.tbl[fn];
+    const bool in_use = inode.in_use();
     const bool to_create = flags & O_CREATE;
 
     if (in_use || !to_create) {
@@ -165,51 +182,61 @@ public:
     }
 
     assert(to_create, TERM, "not creating non-existent file %d\r\n", fn);
-    inode.flag.set_use();
+    inode.set_use();
 
     uint8_t nblks = roundup(max(sz, BLK_SZ), BLK_SZ) / BLK_SZ;
     assert(nblks <= desc.max_num_blks, TERM);
-    inode.nblks = nblks;
+    const_cast<uint8_t &>(inode.nblks) = nblks;
 
-    auto success = fs_hd.alloc_blks(inode.blks, nblks);
+    auto success = alloc_blks(inode);
     assert(success, TERM, "block allocation failed for file %d\r\n", fn);
 
     if constexpr (desc.is_ram)
-      inode.flag.set_ft(flags & O_CHAR_FILE ? CHAR : BIN);
+      inode.set_ft(flags & O_CHAR_FILE ? CHAR : BIN);
     else
-      inode.flag.set_ft(BIN);
+      inode.set_ft(BIN);
 
     if (flags & O_PERM)
-      inode.flag.set_perm();
+      inode.set_perm();
 
     inode.end = 0;
-    store_hd();
+
+    update_hd(inode, true);
 
     return {&inode, true};
   }
 
-  void remove(fn_t fn)
+  static inline void close(const inode_t *inode) { update_hd(*inode, false); }
+
+  static inline bool remove(fn_t fn, bool forced = false)
   {
-    auto &inode = fs_hd.inode_tbl[fn];
+    auto &inode = hd.tbl[fn];
 
-    if (!inode.flag.in_use())
-      return debug<WARN>("deleting non-existent file does nothing %d\r\n", fn);
+    if (!inode.in_use()) {
+      debug<WARN>("deleting non-existent file does nothing %d\r\n", fn);
+      return false;
+    }
 
-    if (inode.flag.is_perm())
-      return debug<ERROR>("cannot delete permanent file %d\r\n", fn);
+    if (!forced && inode.is_perm()) {
+      debug<ERROR>("cannot delete permanent file %d\r\n", fn);
+      return false;
+    }
 
-    fs_hd.dealloc_blks(inode.blks, inode.nblks);
-    inode.flag.reset();
+    dealloc_blks(inode);
+    inode.reset();
 
-    store_hd();
+    update_hd(inode, true);
+
+    return true;
   }
 
 private:
+  // return the number of bytes written/read
   template <auto func>
-  static inline void xfer(const inode_t *inode, uint8_t *buf, size_t buf_sz,
-                          size_t offset = 0)
+  static inline size_t xfer(const inode_t *inode, uint8_t *buf,
+                            const size_t buf_sz, size_t offset = 0)
   {
-    assert(inode->max_sz() >= buf_sz, TERM);
+    assert(inode->max_sz() >= offset + buf_sz, TERM);
     const auto nblks = inode->nblks;
 
     uint8_t fst_blk = offset / BLK_SZ;
@@ -218,67 +245,58 @@ private:
 
     uint8_t i = fst_blk;
 
+    auto rem = buf_sz;
     func(paddr(inode->blks[i++]) + blk_offset, buf, fst_blk_sz);
     buf += fst_blk_sz;
-    buf_sz -= fst_blk_sz;
+    rem -= fst_blk_sz;
 
-    while (buf_sz > 0 && i < nblks) {
-      auto blk_sz = min(buf_sz, BLK_SZ);
+    while (rem > 0 && i < nblks) {
+      auto blk_sz = min(rem, BLK_SZ);
       func(paddr(inode->blks[i++]), buf, blk_sz);
 
       buf += blk_sz;
-      buf_sz -= blk_sz;
+      rem -= blk_sz;
     }
+
+    // FIXME: return the actual number of written bytes
+    return buf_sz - rem;
   }
 
 public:
-  static void load(const inode_t *inode, uint8_t *buf, size_t buf_sz,
-                   size_t off = 0)
+  static size_t load(const inode_t *inode, void *buf, size_t buf_sz,
+                     size_t off = 0)
   {
-    xfer<desc.read>(inode, buf, buf_sz, off);
+    return xfer<desc.read>(inode, (uint8_t *)buf, buf_sz, off);
   }
 
-  static void store(const inode_t *inode, const uint8_t *buf, size_t buf_sz,
-                    size_t off = 0)
+  static size_t store(const inode_t *inode, const void *buf, size_t buf_sz,
+                      size_t off = 0)
   {
-    xfer<desc.write>(inode, (uint8_t *)buf, buf_sz, off);
-    inode->end = max(inode->end, off + buf_sz);
+    auto nbytes = xfer<desc.write>(inode, (uint8_t *)buf, buf_sz, off);
+
+    bool prev_invalid = inode->end == 0;
+    inode->end = max(inode->end, off + nbytes);
+
+    if (inode->end != 0) {
+      inode->set_valid();
+      if (prev_invalid)
+        update_hd(*inode, false);
+    }
+
+    return nbytes;
   }
 
-  void trace(bool (*is_open)(fn_t))
+  static inline void trace()
   {
-    auto free_blks = fs_hd.free_set.size();
+    auto free_blks = hd.free_set.size();
     auto free_sz = (size_t)free_blks * BLK_SZ;
-    auto used_sz = fs_hd_t::N_BLKS * BLK_SZ - free_sz;
-    debug<INFO>("  |  free_blks: " BLUE "%d" DEFAULT ", free: " BLUE
-                "%d" DEFAULT ", in use: " BLUE "%d" DEFAULT "\r\n",
+    auto used_sz = N_BLKS * BLK_SZ - free_sz;
+
+    debug<INFO>("  |  "                              //
+                "free_blks: " BLUE "%d" DEFAULT ", " //
+                "free: " BLUE "%d" DEFAULT ", "      //
+                "in use: " BLUE "%d" DEFAULT "\r\n",
                 free_blks, free_sz, used_sz);
-
-    auto dump = [&](bool open) {
-      for (fn_t fn = 0; fn < desc.n_inodes; fn++) {
-        auto &inode = fs_hd.inode_tbl[fn];
-        if (!inode.flag.in_use())
-          continue;
-        if (is_open(fn) != open)
-          continue;
-
-        debug<INFO>("  |  "                           //
-                    BOLD YELLOW "%d" DEFAULT ": "     //
-                    "size = " BLUE "%d" DEFAULT ", "  //
-                    "type = " YELLOW "%s" DEFAULT " " //
-                    "blks: ",
-                    fn, inode.fsz(), inode.ft() == CHAR ? "char," : "bin, ");
-
-        for (auto i = 0; i < inode.nblks - 1; i++)
-          debug<INFO>("%u, ", inode.blks[i]);
-        debug<INFO>("%u\r\n", inode.blks[inode.nblks - 1]);
-      }
-    };
-
-    debug<INFO>(GREEN "  open files:" DEFAULT "\r\n");
-    dump(true);
-    debug<INFO>(CYAN "  closed files:" DEFAULT "\r\n");
-    dump(false);
   }
 };
 

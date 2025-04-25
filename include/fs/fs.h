@@ -29,8 +29,8 @@ inline constexpr desc_t desc = {
     .start = FLASH_END - N_BLKS * BLK_SZ,
     .end = FLASH_END,
 
-    .fs_hd_addr = N_BLKS - N_FS_BLKS,
-    .fs_hd_sz = BLK_SZ * N_FS_BLKS,
+    .hd_addr = N_BLKS - N_FS_BLKS,
+    .hd_sz = BLK_SZ * N_FS_BLKS,
 
     .max_num_blks = 8,
     .n_inodes = 16,
@@ -43,9 +43,8 @@ inline constexpr desc_t desc = {
 inline bool first_boot()
 {
   static constexpr uint32_t FIRST_BOOT_MAGIC = 0xbebebabe;
-  using fs_hd_t = _fs_hd_t<desc_t, desc>;
-  size_t addr =
-      desc.start + desc.fs_hd_addr * BLK_SZ + offsetof(fs_hd_t, magic);
+  using hd_t = _fs_t<desc_t, desc>::hd_t;
+  size_t addr = desc.start + desc.hd_addr * BLK_SZ + offsetof(hd_t, magic);
 
   uint32_t magic;
   read(addr, (uint8_t *)&magic, sizeof(magic));
@@ -83,8 +82,8 @@ inline constexpr desc_t desc = {
     .start = 0x0,
     .end = FRAM_END,
 
-    .fs_hd_addr = N_BLKS - N_FS_BLKS,
-    .fs_hd_sz = BLK_SZ * N_FS_BLKS,
+    .hd_addr = N_BLKS - N_FS_BLKS,
+    .hd_sz = BLK_SZ * N_FS_BLKS,
 
     .max_num_blks = 24,
     .n_inodes = 32,
@@ -117,7 +116,7 @@ inline void init()
   fram::mount();
 
 #if FLASH_FS == 1
-  _first_boot = flash::first_boot();
+  _first_boot = !flash::valid();
 #else
   _first_boot = _flash::first_boot();
 #endif
@@ -131,14 +130,17 @@ inline void flush()
   fram::umount();
 }
 
-inline void trace()
+inline void trace(fn_t fn = null_fn)
 {
 #if FLASH_FS == 1
-  debug<INFO>(BOLD "flash fs: \r\n" DEFAULT);
-  flash::trace();
+  if (fn == null_fn)
+    debug<INFO>(BOLD "flash fs: \r\n" DEFAULT);
+  flash::trace(fn);
 #endif
-  debug<INFO>(BOLD "fram fs: \r\n" DEFAULT);
-  fram::trace();
+
+  if (fn == null_fn)
+    debug<INFO>(BOLD "fram fs: \r\n" DEFAULT);
+  fram::trace(fn);
 }
 } // namespace fs
 

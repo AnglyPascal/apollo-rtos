@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/sched.h"
+#include "core/sched_sync.h"
 #include "core/types.h"
 #include "utility/debug.h"
 
@@ -17,7 +17,7 @@ private:
 public:
   mutex() : name{""}, lock_chan{}, busy{false} {}
 
-  mutex(const char *name) : name{name}, lock_chan{}, busy{false} {}
+  mutex(const char *const name) : name{name}, lock_chan{}, busy{false} {}
 
   mutex(const mutex &) = delete;
   mutex &operator=(const mutex &) = delete;
@@ -27,9 +27,9 @@ public:
 
   void lock() const
   {
-    while (busy) {
+    while (busy)
       sched::wait(lock_chan);
-    }
+
     busy = true;
   }
 
@@ -53,6 +53,13 @@ private:
 
 public:
   lock_guard(_mutex &_m) : _m{_m} { _m.lock(); }
+
+  lock_guard(_mutex &_m, const char *str) : _m{_m}
+  {
+    debug<INFO>("lock at %s\r\n", str);
+    _m.lock();
+  }
+
   ~lock_guard() { _m.unlock(); }
 
   lock_guard(const lock_guard &) = delete;

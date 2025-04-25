@@ -87,7 +87,7 @@ function(add_custom_executable target_name target_dir)
   add_custom_command(
     TARGET ${target_name}
     POST_BUILD
-    COMMAND ${CMAKE_OBJDUMP} -S ${target_name}.elf > ${target_name}.S
+    COMMAND ${CMAKE_OBJDUMP} -SC ${target_name}.elf > ${target_name}.S
     COMMENT "Converting ELF to assembly"
   )
 

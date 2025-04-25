@@ -281,11 +281,11 @@ using namespace sched;
 
 namespace curr_proc
 {
-pid_t pid() { return procs.pid(cpu.curr_proc); }
 string name() { return cpu.curr_proc->name; }
 const proc_def_t *def() { return cpu.curr_proc->def; }
 bool term_req() { return cpu.curr_proc->term_req; }
 bool set_up() { return cpu.set_up; }
+pid_t pid() { return set_up() ? procs.pid(cpu.curr_proc) : null_pid; }
 
 chunk_list_t &used_list() { return cpu.curr_proc->used_list; }
 fn_t out_fn() { return !set_up() ? stdout : cpu.curr_proc->out_fn; }
@@ -338,31 +338,24 @@ namespace
 {
 APP(pkill, HIGHEST, 128, param)
 {
-  auto buf = (args_t *)param;
-  auto args = buf->str;
+  auto args = (args_t *)param;
 
-  bool kill = args[0] == '-' && args[1] == '9';
-  if (kill) {
-    args += 2;
-    while (*args == ' ')
-      args++;
-  }
-
-  pid_t pid;
-  if (*args <= '9' && *args >= '0') {
-    pid = atoi(buf->str);
-  } else {
+  auto kill = args->get_option() == '9';
+  pid_t pid = args->get_uint<pid_t>();
+  if (pid == MAX<pid_t>) {
+    auto name = args->get_str();
     for (pid = 0; pid < N_PROCS; pid++) {
-      if (procs[pid]->name == string{args})
+      if (procs[pid]->name == string{name})
         break;
     }
   }
 
   if (pid >= N_PROCS || procs[pid]->priority == EMPTY)
-    return debug<ERROR>("Process not found\r\n");
+    return debug<ERROR>(DEFAULT "Process " RED "%d" DEFAULT " not found\r\n",
+                        pid);
 
   if (pid == IDLE_PID)
-    return debug<FATAL>("Cannot kill idle_proc\r\n");
+    return debug<FATAL>(DEFAULT "Cannot kill " RED "idle_proc" DEFAULT "\r\n");
 
   send_signal(pid, kill ? SIGKILL : SIGTERM);
 
