@@ -65,11 +65,17 @@ pid_t _reg_proc_impl(const proc_def_t *def, void *param)
   auto [name, priority, stk_sz, func, ticks] = *def;
   assert(priority > 0, H_RESET);
 
-  intr_guard guard;
+  proc_t *proc = nullptr;
+  {
+    intr_guard guard;
 
-  auto proc = procs.alloc();
+    proc = procs.alloc();
+    assert(proc != nullptr, S_RESET);
+
+    stack_allocator.acquire(proc, stk_sz, func, param, exit);
+  }
+
   auto pid = procs.pid(proc);
-  assert(proc != nullptr, S_RESET);
 
   proc->name = name;
   proc->param = param;
@@ -79,7 +85,6 @@ pid_t _reg_proc_impl(const proc_def_t *def, void *param)
   proc->term_req = false;
   new (&proc->signals) signals_t{};
 
-  stack_allocator.acquire(proc, stk_sz, func, param, exit);
   incr_priority(pid, priority);
 
   return pid;
@@ -145,15 +150,21 @@ void decr_priority(int32_t priority)
 {
   assert(cpu.curr_proc->priority > priority, S_RESET);
 
-  cpu.curr_proc->priority.lev = (priority_lev_t)priority;
-  cpu.hi_proc = procs.max_priority();
+  {
+    intr_guard guard;
+    cpu.curr_proc->priority.lev = (priority_lev_t)priority;
+    cpu.hi_proc = procs.max_priority();
+  }
 
   change_proc();
 }
 
 void yield()
 {
-  cpu.hi_proc = procs.max_priority();
+  {
+    intr_guard guard;
+    cpu.hi_proc = procs.max_priority();
+  }
   change_proc();
 }
 

@@ -163,6 +163,8 @@ public:
 
   proc_t *max_priority()
   {
+    intr_guard guard;
+
     proc_t *max_proc = nullptr;
     priority_t max_priority{0};
 

@@ -50,7 +50,7 @@ inline void dealloc(waitlist_t *ptr)
 
 void reg(string name, time_t interval, runnable_t func, void *param)
 {
-  intr_guard guard;
+  intr_guard guard{TIMER1_IRQ};
 
   auto task = alloc();
   assert(task != nullptr, S_RESET);
@@ -80,8 +80,6 @@ time_t last = 0;
 
 void run()
 {
-  intr_guard guard;
-
   auto head = &waitlist_hd;
   if (head->next != nullptr)
     head->next->remaining -= update_interval;
