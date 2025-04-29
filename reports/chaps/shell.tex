@@ -1,126 +1,75 @@
 \section{Shell and Shell Commands}
 \label{sec:shell}
 
-Apollo-RTOS provides a Linux-like \lstinline[style=myagc]|shell| that listens to inputs
-on the serial bus, and once a full command has been sent out, it schedules a the
-corresponding process.
+Apollo-RTOS includes a Unix-like shell that executes commands sent over the serial bus.
+The shell runs as a high-priority process that sleeps while waiting for input.
 
-The \lstinline[style=myagc]|shell| is a high priority process, that spends most of its
-time asleep. At startup, it registers a \lstinline[style=myagc]|listener| that wakes up
-shell when it receives a \lstinline[style=myagc]|'\r'| or \lstinline[style=myagc]|'\n'|
-character. The \lstinline[style=myagc]|shell| then becomes the highest priority process
-and processes the command as soon as it is allowed to run. 
+\begin{itemize}
+    \item By default, all UART inputs are forwarded to the listener registered by
+        \lstinline[style=myagc]|shell|. This listener buffers characters until a line
+        break (\lstinline[style=myagc]|'\r'| or \lstinline[style=myagc]|'\n'|) is
+        received, then wakes the shell process.
+    \item Upon waking, \lstinline[style=myagc]|shell| parses the input to extract the
+        command name, its arguments, background execution flag, and any output
+        redirection to a file.
+    \item It then searches the \lstinline[style=myagc]|.apps| section for a matching
+    process, packages the arguments into an \lstinline[style=myagc]|args_t| structure
+    (\autoref{ds:args}), and schedules the new process with this structure as its
+        parameter.
+    \item Finally, it clears the input buffer and returns to sleep.
+\end{itemize}
 
-When processing the command, \lstinline[style=myagc]|shell| allocates some memory to
-copy the command line arguments, and passess it to the process it schedules. It then
-clears out it's internal buffer, and goes to sleep again.
+Shell commands follow the syntax:
+\begin{lstlisting}[style=mytty]
+cmd [arguments] [> fn] [&]
+\end{lstlisting}
+For example, \lstinline[style=mytty]|echo hello, world > 10| writes
+\lstinline[style=mytty]|hello, world| to the file \lstinline[style=mytty]|10|.
 
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/shell.cpp}},
-    linebackgroundcolor={\line{10} \line{19}},
-]
-chan_t<1> chan; // channel of length 1 for the shell to wait on
-args_buffer_t buf; // buffer where the command is accumulated
-
-/* definition of shell */
-{
-  serial::register_listener(listener);
-
-  while ((volatile bool)true) {
-    buf.reset();
-    sched::wait(chan); // wait until the listener wakes it up
-
-    const char *cmd = /* extract the command string */;
-    proc_def_t *cmd_def = /* find corresponding process defintiion */;
-
-    if (cmd_def == nullptr)
-      continue; // ignore this command
-
-    auto param = /* allocate memory and copy the arguments */;
-    sched::reg_proc(cmd_def, param);
-
-    // ... rinse and repeat
-  }
-}
+Available commands are listed using the \lstinline[style=myagc]|help| command:
+\begin{lstlisting}[style=mytty]
+>> help
+pkill   htop    help    prof    accel   show
+calc    clear   echo    cat     ls      touch
+rm      heart   
 \end{lstlisting}
 
-And the \lstinline[style=myagc]|listener| is implemented as such:
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/shell.cpp}},
-    linebackgroundcolor={\line{10} \line{16}},
-    morekeywords={listener}
-]
-bool listener(char c)
-{
-  // ... handle some special characters
+Alongside familiar Unix-like commands, Apollo-RTOS provides custom commands to
+demonstrate system features:
 
-  // print the character back 
-  serial::intr_putc(c);
-
-  // if the character is a normal character, append it to the buffer
-  if (c >= 32 && c < 127) {
-    buf.push(c);
-    return true;
-  }
-
-  // if the CR or Return character is received, wake up the shell process
-  if (c == '\r' || c == '\n') {
-    sched::notify(chan);
-    return true;
-  }
-
-  // any unhandled character resets the buffer
-  printf("\'%d\'\r\n", c);
-  buf.reset();
-
-  // this listener processes all characters, 
-  // and is the last listener in the listeners stack
-  return true;
-}
+\paragraph*{\lstinline[style=myagc]|htop|} Displays running processes, waitlist tasks,
+and open files:
+\begin{lstlisting}[style=mytty]
+>> htop
+boot level: flash
+curr_proc: htop
+  |  0. idle : (idle), [runnable]
+  |  1. shell : (high), [asleep]
+  |  2. display : (low), [runnable]
+  |  3. accel_bg : (high), [runnable]
+  |  4. htop : (medium), [running]
+waitlist: NONE
+fram fs:
+  |  free_blks: 245, free: 31360, in use: 1408
+  open files:
+  |  0: size = 1024, type = char, blks: 0, 1, 2, 3, 4, 5, 6, 7
+  |  5: size = 36, type = bin,  blks: 9
 \end{lstlisting}
 
+\paragraph*{\lstinline[style=myagc]|accel|} Launches a simple accelerometer-based
+compass on the LED matrix, pointing an arrow toward the ground. It can run in the
+background or foreground:
+\begin{lstlisting}[style=mytty]
+>> accel &
+started [4] output to stdout
 
+>> pkill accel
+killed [4]
 
-\subsection{Notable Shell Commands}
-
-Currently there are a few shell commands that are useful to demonstrate different
-aspects of the system. Here are some of them:
-
-\paragraph*{\lstinline[style=myagc]|trace|} This command produces a dump of the current
-processes, waitlist tasks, current open files etc:
-\begin{lstlisting}[style=mytxt]
-    trace
-
-    boot level: reset
-    curr_proc: trace
-      |  0. idle : (idle), [runnable], 44.88736%
-      |  1. shell : (high), [asleep], 0.0%
-      |  2. display : (low), [runnable], 54.258086%
-      |  3. accel_bg : (high), [runnable], 0.31%
-      |  4. test : (low), [asleep], 1.652978%
-      |  5. trace : (medium), [runnable], 0.2881%
-    waitlist:
-      |  test
-      |    interval: 48
-    fram fs:
-      |  free_blks: 244, free: 31232, in use: 1536
-      |  [O] 0: size = 1024, type = bin, blks: 1, 2, 3, 4, 5, 6, 7, 8
-      |  [C] 2: size = 128, type = bin, blks: 0
-      |  [O] 5: size = 128, type = bin, blks: 9
+>> accel
+x: 1, y: -5, z: 64
 \end{lstlisting}
 
-\paragraph*{\lstinline[style=myagc]|echo|} Does what the name
-suggests: echoes the argument:
-\begin{lstlisting}[style=mytxt]
-    echo hello world
-    >> hello world
-\end{lstlisting}
-
-
-\paragraph*{\lstinline[style=myagc]|accel|} Starts a small compass like program on the
-LEDs that always point an arrow towards the ground:
 
 \begin{figure}[H]
     \centering
@@ -143,8 +92,10 @@ LEDs that always point an arrow towards the ground:
 \end{figure}
 
 
-\paragraph*{\lstinline[style=myagc]|calc|} Starts a sub-shell like command that is
-``supposed'' to implement a calculator. Right now, it just takes over the inputs, and
-echoes the arguments it receives.
-
-
+\newpage
+\lstinputlisting[
+    style=mytty,
+    frame=single,
+    basicstyle=\linespread{1}\ttfamily\codefontsize,
+    caption={Sample workflow on shell on \texttt{minicom}}
+]{code/ex.sh}

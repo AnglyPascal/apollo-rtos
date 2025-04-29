@@ -1,48 +1,46 @@
 \section{The Apollo Guidance Computer}
 
-The Apollo Guidance Computer (AGC) was an early digital computer developed in the 1960s
-to help navigate and control Apollo spacecraft on their missions to the Moon. It
-provided real-time guidance and control, making it essential for the success of the
-Apollo program.
+The \textbf{Apollo Guidance Computer} (AGC) was an early digital computer developed in
+the 1960s to provide real-time navigation and control for the Apollo spacecraft.
+Despite operating under severe hardware constraints, it became a cornerstone of the
+Apollo program’s success.
 
-The AGC ran at a speed of 2.048 MHz, which translated to about 40,000 instructions per
-second. The AGC had a 16-bit \texttt{word} length, 15 bits for data, and one parity
-bit. It had 2 kilowords or 4KB of erasable magnetic-core memory (RAM) along with 36
-kilowords or 72KB of fixed core rope memory (ROM) for storing software and mission
-data. Astronauts interacted with the AGC using the Display and Keyboard (DSKY), a
-21-digit display with a 19-button keyboard that allowed them to input commands and
-receive information. This interface was critical for making manual adjustments and
-monitoring the system during missions.
+The AGC featured a \textit{2.048 MHz} CPU capable of executing approximately
+\textit{40,000 instructions per second}. It used a \textit{16-bit word length}, with 15
+bits for data and 1 parity bit. The memory system combined \textit{2 kilowords} (4KB)
+of erasable magnetic-core RAM with \textit{36 kilowords} (72KB) of fixed core rope ROM
+to store both software and mission data.
 
-\begin{center}
-\begin{minipage}{.6\linewidth}
-    \begin{figure}[H]
-        \centering \includegraphics[width=.7\linewidth]{margaret_hamilton}
-        \caption{Margaret Hamilton standing next to listings of the software she and
-        her MIT team produced for the Apollo Project.}
-    \end{figure}
-\end{minipage}
+Astronauts interacted with the AGC through the \textbf{Display and Keyboard} (DSKY)
+unit—a 21-digit segmented display coupled with a 19-button keypad—enabling manual
+command input and real-time monitoring. This human-machine interface was critical for
+spacecraft operation, particularly during complex maneuvers.
+
+\begin{center} 
+    \begin{minipage}{.6\linewidth} 
+        \begin{figure}[H] 
+            \centering 
+            \includegraphics[width=.7\linewidth]{margaret_hamilton} 
+            \caption{Margaret Hamilton standing next to listings of the software she
+            and her MIT team produced for the Apollo Project.} 
+        \end{figure} 
+\end{minipage} 
 \end{center}
 
-Due to these constraints, the operating system, called the Executive, had to
-efficiently manage resources. It ensured that important tasks were prioritized over
-less critical ones and that key functions could continue even if the system experienced
-a reset due to an error.
+Given the severe resource limitations, the AGC operating system, known as \textbf{the
+Executive}, was engineered for maximum efficiency. It prioritized critical tasks,
+ensured graceful degradation under faults, and maintained system stability even after
+resets or failures.
 
-The Executive was written in AGC assembly, where each instruction was 16 bits long.
-Because the instruction set was small, the system also included a sophisticated
-interpreter that acted as a virtual machine, providing more advanced
-pseudo-instructions beyond the basic AGC instructions.
+The following subsections summarize the main architectural features of the AGC
+Executive, based primarily on \citet{agc_book}.
 
-The details of the AGC Executive explained below is taken from \citet{agc_book}.
 
-\subsection{The Executive} 
+\subsection{The Executive}
 
-The central component of the AGC software was the Executive, which ensured fair
-allocation of system resources, such as CPU time and dynamic memory, to processes and
-tasks. To seamlessly perform real-time control and navigation tasks with extreme
-reliability and efficiency, the Executive implemented a \textbf{priority-based
-cooperative scheduling} algorithm, described below:
+The \textbf{Executive} was the core component responsible for allocating system
+resources such as CPU time and dynamic memory to processes. It implemented a
+\textbf{priority-based cooperative scheduling} algorithm, summarized as follows:
 
 \begin{emptythm}
     \begin{itemize}[left=8pt]
@@ -50,239 +48,175 @@ cooperative scheduling} algorithm, described below:
         \item Lower-priority processes remain idle until the highest-priority process:
             \begin{itemize}
                 \item lowers its priority, or
-                \item goes to \texttt{sleep} while waiting for an event.
+                \item enters \texttt{sleep} while waiting for an event.
             \end{itemize}
-        \item If a new process with a higher priority is scheduled while another is
+        \item If a new process with higher priority is scheduled while another is
             running:
             \begin{itemize}
                 \item the new process waits until the current process lowers its
-                    priority or goes to \texttt{sleep},
-                \item then the new process starts executing.
+                    priority or sleeps,
+                \item then immediately starts execution.
             \end{itemize}
     \end{itemize}
 \end{emptythm}
 
-\paragraph*{Core Sets} Information about running processes was stored in a table called
-Core Sets, which functioned similarly to modern process descriptors. Each Core Set had
-a structure similar to:
-
-\begin{lstlisting}[style=mycpp, morekeywords={word}]
-struct CORE_SET {
-    word priority;
-    word program_counter; 
-    word bbank_reg; // area in unswitched memory where the code is
-    word vac_ptr;   // pointer to extra memory
-
-    word mpac[7];   // multi-purpose accumulators
-    word mpac_mode; 
-};
-\end{lstlisting}
-
-Each active process occupied one Core Set. The system provided:
+\paragraph*{Core Sets} Process metadata was maintained in a table called \textbf{Core
+Sets}, similar to modern process descriptors. Each active process occupied one Core
+Set. The system supported:
 \begin{itemize}
     \item 6 Core Sets in the Command Module, and
     \item 7 Core Sets in the Lunar Module.
 \end{itemize}
-In either case, Core Set 0 always contained the currently running process. A context
-switch was essentially performed by swapping the current Core Set with Core Set 0.
 
-\paragraph*{Addressable Memory} The 7 \texttt{mpac} words served two purposes. In
-normal mode, they provided 7 words of freely usable memory. In interpreter mode, they
-functioned as accumulator registers, storing values for calculations performed by the
-interpreter. If a process required more memory, it could request 42 additional words
-from the \textbf{Vector Accumulator} (VAC) area.
+\paragraph*{Addressable Memory} Each process was allocated 7 words of private memory,
+typically used for general computation. In interpreter mode, these acted as accumulator
+registers. Processes requiring more memory could request 42 additional words from the
+Vector Accumulator (VAC) area.
 
-\paragraph*{Starting a New Process} To start a new process, an empty Core Set had to be
-located, followed by a VAC area if needed. After populating the Core Set, the Executive
-determined if the new process had a higher priority. 
-
-A special register, \texttt{NEWJOB}, was used for this purpose:
+\paragraph*{Starting a New Process} When a process was created, it did not immediately
+preempt the CPU, even if it had higher priority. A special register, \texttt{NEWJOB},
+indicated the ID of the highest-priority runnable process:
 \begin{itemize}
-    \item If \texttt{NEWJOB} is 0, the current process has the highest priority.
-    \item If \texttt{NEWJOB} is non-zero (say \texttt{d}), the process represented by
-        Core Set \texttt{d} has the highest priority.
+    \item \texttt{NEWJOB == 0} indicated the current process was the highest-priority.
+    \item A nonzero \texttt{d} indicated that the process represented by Core Set
+        \texttt{d} had higher priority.
 \end{itemize}
-When a new process was created, its priority was compared to that of the currently
-running process, and \texttt{NEWJOB} was updated accordingly.
+Upon new process creation, \texttt{NEWJOB} was updated if the new process had higher
+priority than the currently running one.
 
-\paragraph*{Process Switching} A context switch only occurred when the current process
-voluntarily relinquished control. The process was required to check \texttt{NEWJOB} at
-least every 20ms to detect higher-priority processes. If \texttt{NEWJOB} was not
-checked for over 640ms, it was assumed that the process had stalled, triggering a
-hardware restart.
+\paragraph*{Process Switching} Context switches occurred only when the current process
+voluntarily yielded control. A running process was required to check \texttt{NEWJOB} at
+least every 20 ms to detect higher-priority contenders. Failure to check
+\texttt{NEWJOB} for more than 640 ms was treated as a stall, triggering a hardware
+restart.
 
-To switch processes, the Executive stored the current context in Core Set 0 and swapped
-it with the Core Set indexed by \texttt{NEWJOB}. Since the program counter was restored
-directly from the Core Set, execution of the switched-in process resumed automatically
-from its last instruction.
+During a switch, the current process's context was saved in Core Set 0, and the context
+of the new process, identified by \texttt{NEWJOB}, was restored. Execution then resumed
+automatically from the last instruction of the switched-in process.
 
-If the current process was still the highest-priority process but needed to go to sleep
-or lower its priority, the system scanned the Core Set table to identify the next
-highest-priority process and performed a switch accordingly.
+If a process relinquished execution—either by sleeping or lowering its priority—the
+system scanned the Core Set table to find and schedule the next highest-priority
+runnable process.
 
-\paragraph*{Sleep and Wakeup} A process could voluntarily relinquish execution while
-waiting for an external event by going to sleep. The \texttt{JOBSLEEP} instruction
-marked a process as sleeping by negating its priority. The next highest-priority
-process was then scheduled.
+\paragraph*{Sleep and Wakeup} A process could enter \texttt{sleep} to wait for an
+external event. The \texttt{JOBSLEEP} instruction marked the process as sleeping by
+negating its priority, allowing the next eligible process to run.
 
-When the awaited event occurred, another process could wake the sleeping process using
-the \texttt{JOBWAKE} instruction. This reversed the priority negation, making the
-process runnable again. \texttt{JOBWAKE} then checked \texttt{NEWJOB} to determine if
-the woken process should run immediately.
+When the awaited event occurred, another process could wake it using \texttt{JOBWAKE},
+which reversed the priority negation. \texttt{JOBWAKE} also checked \texttt{NEWJOB} to
+determine whether the woken process is highest priority.
 
-A process could also call \texttt{DELAYJOB} to sleep for a fixed duration. This
-scheduled an "alarm" task via the \textbf{waitlist}, described in the next section.
+Processes could also delay themselves for a fixed duration using \texttt{DELAYJOB},
+which scheduled an ``alarm" via the \textbf{waitlist} mechanism.
 
-
-\subsubsection{The Waitlist}
-
-The core processes in the Executive were all cooperative, meaning that even the
-highest-priority process would not preempt the currently running process until it
-voluntarily relinquished execution. The waitlist introduced preemptive scheduling
-capabilities to the AGC, allowing tasks to be scheduled with strict deadlines. Every
-10ms, a timer interrupt was triggered to execute any waitlist task that was due.
-
-In essence, the waitlist was a \emph{sorted linked list} of tasks ordered by increasing
-deadlines. When a new waitlist task \(t\) was scheduled with a particular deadline, it
-was inserted into the list such that:
+\paragraph*{The Waitlist} The \textbf{waitlist} introduced preemptive capabilities to
+the otherwise cooperative Executive, allowing tasks to be scheduled with precise
+deadlines. Conceptually, it was a \emph{sorted linked list} of tasks ordered by
+deadline. When a new task \(t\) was added, it was inserted such that:
 \begin{itemize}
     \item any task \(t_0\) with an earlier deadline appeared before \(t\), and
     \item any task \(t_1\) with a later deadline appeared after \(t\).
 \end{itemize}
-Every 10ms, the timer interrupt checked whether the first task in the list had reached
-its deadline. If so, the task was executed and then removed from the list. Since
-waitlist tasks were executed within an interrupt handler, they had to be
-short-lived—typically around 5ms or 150–200 instructions.
 
-The waitlist implementation in Apollo-RTOS closely follows that of the AGC.
-Implementation details will be discussed later.
+Every 10 ms, a timer interrupt checked if the earliest task had reached its deadline.
+If so, the task was executed and removed from the list. Waitlist tasks, executed inside
+the interrupt handler, were required to be brief—typically under 5 ms or 150–200
+instructions.
 
 \subsection{Restart Mechanism}
 
-Despite its limited resources, the AGC needed to be highly reliable, even in the
-presence of errors. Modern CPU and OS designs dedicate significant resources to
-detecting and recovering from faults. However, the AGC lacked the hardware to support
-sophisticated error handling. Furthermore, without a memory protection unit, it was
-nearly impossible to reliably detect errors caused by memory corruption. As a result,
-the AGC adopted a radical approach:
+Despite its limited resources, the AGC was engineered to achieve high reliability, even
+in the presence of faults. Modern CPU and OS designs dedicate extensive resources to
+error detection and recovery; by contrast, the AGC lacked hardware support for
+sophisticated fault management. In particular, the absence of a memory protection unit
+made reliable detection of memory corruption nearly impossible.
+
+Instead, the AGC adopted a radical but effective strategy:
 \begin{quote}
     \centering Just restart everything.
 \end{quote}
-However, restarting at an arbitrary point in time required careful handling, as it
-could terminate critical tasks mid-execution.
 
-To address this, critical tasks and processes could define recovery behavior in case of
-a restart. Each program belonged to one of six restart groups. A process could use the
-\texttt{PHASCHNG} instruction to set up an entry in the restart phase table. Each group
-could recover only one process at a time. Based on its needs, a process could configure
-its group's recovery procedure to one of the following four modes:
+Restarting the system at arbitrary points posed challenges, as critical tasks could be
+interrupted mid-execution. To mitigate this, critical processes defined explicit
+recovery behaviors in the event of a restart. Each program was assigned to one of six
+\textbf{restart groups}, with each group capable of recovering one process at a time. A
+group could configure its recovery procedure to one of four modes:
 \begin{itemize}
-    \item \textbf{Inhibit group restart:} No processes in this group are restarted.
-    \item \textbf{Restart last display:} Restore and display the last known contents
-        before the restart.
+    \item \textbf{Inhibit group restart:} No processes in the group are restarted.
+    \item \textbf{Restart last display:} Restore and display the last known screen
+        contents.
     \item \textbf{Execute one restart routine:} Restart the process from the beginning
         with minimal cleanup.
-    \item \textbf{Execute two restart routines:} Schedule a task to clean up data and
-        re-enter the process from a designated point.
+    \item \textbf{Execute two restart routines:} Perform cleanup and resume execution
+        from a designated recovery point.
 \end{itemize}
-To conserve memory, the AGC stored recovery information in a compressed format within
-the phase tables.
 
-During a restart:
+To minimize overhead, recovery information was stored in a compressed format within the
+\textbf{phase tables}. During a restart:
 \begin{itemize}
-    \item All active jobs were canceled, and all tasks in the waitlist queue were
-        deleted.
-    \item Interrupts were disabled, and all tables were cleared and reinitialized.
-    \item The integrity of the restart phase table was verified.
-    \item Restart processing was carried out sequentially for each active phase in
-        groups 6 to 1.
+    \item All active jobs and waitlist tasks were canceled.
+    \item Interrupts were disabled, and system tables were cleared and reinitialized.
+    \item The integrity of the restart phase table was verified, and recovery routines
+        for each group were executed sequentially.
 \end{itemize}
-These mechanisms ensured that the AGC could gracefully recover from many types of
-failures—an essential requirement for spacecraft operations, where computer failures
-could have catastrophic consequences.
+
+These mechanisms enabled the AGC to gracefully recover from a wide range of faults—an
+essential requirement for spacecraft systems where failure tolerance was critical to
+mission success.
 
 \subsubsection{The 1201 and 1202 Alarms During Apollo 11's Lunar Descent}
 
-During Apollo 11's final descent to the lunar surface, the Lunar Module's guidance
-computer triggered several unexpected alarms—specifically, program alarms 1201 and
-1202. These alarms indicated ``executive overflows," meaning the computer's task
-scheduling system was overloaded and unable to complete all its tasks in real-time.
+The Apollo 11 lunar landing provided a dramatic demonstration of the AGC's resilience.
+During the final descent to the Moon, the Lunar Module's guidance computer triggered
+unexpected alarms—specifically, program alarms 1201 and 1202. These alarms indicated
+\textit{executive overflows}, meaning the system's scheduler was overloaded and unable
+to complete all tasks within real-time constraints.
 
-The root cause was traced to the rendezvous radar being left on during descent. This
-radar, intended for docking procedures, inadvertently fed spurious data to the computer
-due to a hardware design quirk \citep*{witt_2019_apollo}. This resulted in excessive
-``cycle stealing," where the radar's data processing consumed significant CPU time,
-leaving insufficient resources for other tasks. Compounding the issue, an additional
-command to display altitude data further taxed the system, leading to the alarms.
+The root cause was traced to the rendezvous radar being left active during descent,
+introducing spurious data due to a hardware quirk \citep*{witt_2019_apollo}. This
+unexpected input consumed significant CPU time, reducing the availability of
+computational resources for other tasks. An additional command to display altitude data
+further strained the system, ultimately triggering the alarms.
 
-Despite these alarms, the guidance computer's design allowed it to prioritize critical
-tasks. Upon encountering an overload, the system would perform a soft restart, shedding
-lower-priority tasks while maintaining essential functions like engine control and
-navigation. This resilience was a testament to the foresight of the software engineers,
-particularly Hal Laning, whose design ensured that even in the face of unexpected
-issues, the mission could proceed safely.
-
-Mission Control, relying on their understanding of the system's behavior, assessed the
-situation and determined it was safe to continue. Their decision, combined with the
-computer's robust design, allowed Apollo 11 to successfully land on the Moon, turning a
-potential mission abort into a historic achievement.
+Despite these conditions, the AGC's design allowed it to prioritize critical tasks. On
+detecting overload, the system gracefully shed nonessential processes through a
+controlled restart while maintaining key operations such as engine control and
+navigation. Mission Control evaluated the situation and, trusting the system's
+robustness, authorized the crew to proceed. Thanks to this resilience, Apollo 11
+successfully landed on the Moon, transforming a potential abort into a historic
+achievement.
 
 \subsection{Interpreter}
 
-The Apollo Guidance Computer (AGC) featured a custom virtual machine known as the
-\textbf{Interpreter}, designed to extend its limited instruction set. This was
-necessary because the AGC's native instruction set was highly restricted, containing
-only 11 opcodes in AGC Block II. The Interpreter enabled more complex operations while
-conserving memory and improving execution efficiency for key tasks.
+To extend its limited native instruction set, the AGC incorporated a custom virtual
+machine known as the \textbf{Interpreter}. The Interpreter operated as a
+\textit{bytecode engine} layered atop the AGC's basic instruction set, enabling the
+execution of more complex \textit{pseudo-instructions} while conserving memory and
+improving computational efficiency for critical tasks.
 
-The Interpreter functioned as a \textit{bytecode interpreter}, running on top of the
-AGC's native instruction set. It allowed the execution of \textit{pseudo-instructions},
-which were more powerful than basic machine instructions. These pseudo-instructions
-were stored as compact \textit{6-bit opcodes}, maximizing memory efficiency.
+The Interpreter provided a broader set of operations, including arithmetic,
+trigonometric, vector and matrix calculations, data manipulation, and sophisticated
+branching. These extensions were essential for supporting the advanced navigation and
+guidance computations required during spaceflight.
 
-The AGC Interpreter provided an extended set of \textit{arithmetic and vector
-operations}, primarily aiding navigation and guidance computations. Key capabilities
-included:
-\begin{itemize}
-    \item \textbf{Arithmetic Operations}: Fixed, single, and double-precision
-        floating-point arithmetic, as well as \texttt{sqrt} calculations.
-    \item \textbf{Vector and Matrix Operations}: Dot products, cross products, and
-        matrix transformations.
-    \item \textbf{Trigonometric Functions}: Sine, cosine, and related functions for
-        celestial navigation.
-    \item \textbf{Data Movement and Manipulation}: Indexed memory access (not available
-        in native AGC instructions), indirect addressing, and array operations.
-    \item \textbf{Flow Control}: Conditional branching and subroutine-like operations
-        for reusable code execution.
-\end{itemize}
+While the AGC's native instruction set emphasized speed, the Interpreter introduced
+compact, high-level mathematical functionality without compromising system
+responsiveness.
 
-The AGC’s native instruction set prioritized speed but lacked flexibility for advanced
-navigation tasks. The Interpreter enabled \textit{higher-level mathematical operations}
-to be executed compactly and efficiently.
+\subsubsection{Display and Keyboard}
 
+The AGC featured a distinctive human-machine interface called the \textit{Display and
+Keyboard} (\textbf{DSKY}), which allowed astronauts to interact with the computer using
+a structured \textit{verb-noun paradigm}. Commands were constructed by selecting a
+\textit{verb} (action) followed by a \textit{noun} (object), mirroring natural
+language. For example, the command ``Verb 06 Noun 36'' instructed the AGC to display
+the current time.
 
-\subsection{Display and Keyboard}
-
-The AGC featured a unique human-machine interface known as the \textit{Display and
-Keyboard (DSKY)}, allowing astronauts to communicate with the computer using an
-intuitive \textit{verb-noun paradigm}. With its green \textit{electroluminescent
-displays}, \textit{19-key input panel}, and \textit{status indicators}, the DSKY played
-a crucial role in both the Command Module and Lunar Module cockpits. Despite its simple
-appearance, it incorporated sophisticated software routines, enabling astronauts to
-\textit{monitor spacecraft systems, compute trajectories, and execute maneuvers with
-precision}.
-
-The \textit{verb-noun paradigm} structured commands similarly to natural language,
-where astronauts first selected a \textit{verb} (the action) followed by a
-\textit{noun} (the object of that action). Using \textit{two-digit numeric codes} for
-both components, astronauts could issue commands efficiently. For example, the command
-\textit{“Verb 06 Noun 36”} instructed the AGC to \textit{display the current time}.
-This system provided a consistent interface for a range of operations, from
-\textit{simple data retrieval to complex trajectory calculations}.
+This consistent, intuitive interface enabled astronauts to monitor spacecraft systems,
+execute computations, and perform maneuvering operations precisely and reliably.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=.4\linewidth]{dsky}
-    \caption{DSKY interface diagram by Oona Räisänen}
+    \caption{DSKY interface diagram by Oona Räisänen.}
 \end{figure}
-

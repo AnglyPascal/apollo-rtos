@@ -2,73 +2,87 @@
 
 \subsection{Background \& Motivation}
 
-Computing capabilities have grown at an unprecedented rate over the last century. The
-\textbf{Apollo Guidance Computer} (AGC), which played a critical role in the Apollo
-program, operated with a modest \textit{2 MHz CPU}, \textit{4 KB of RAM}, and
-\textit{72 KB of ROM}. To maximize its limited resources, the AGC's operating system
-introduced innovative solutions for \textit{task scheduling}, \textit{error handling},
-and \textit{resource-efficient computation}. One of its most groundbreaking features
-was a hybrid scheduling mechanism that combined cooperative and preemptive
-multiprogramming, ensuring that critical tasks could execute reliably even in adverse
-conditions. Additionally, the AGC incorporated a robust recovery mechanism, enabling
-fault tolerance in the face of system failures.
+Over the past century, computing capabilities have grown at an unprecedented rate. The
+\textbf{Apollo Guidance Computer} (AGC), a pioneering system developed for the Apollo
+program, operated with just a \textit{2 MHz CPU}, \textit{4 KB of RAM}, and \textit{72
+KB of ROM}. Despite its severe hardware constraints, the AGC’s operating system
+introduced a series of innovations that remain remarkably relevant: a hybrid task
+scheduler combining cooperative and preemptive mechanisms, robust error detection with
+system-wide recovery, and efficient use of limited memory through careful task
+prioritization and synchronization.
 
-Today, a compact \texttt{micro:bit} device costing less than \pounds20 possesses
-significantly more computing power than the AGC. Such microcontrollers are now
-ubiquitous, powering applications ranging from consumer electronics to mission-critical
-systems. Despite the vast improvements in computational power, many of the challenges
-that the AGC’s operating system addressed remain highly relevant, particularly in
-constrained embedded environments where real-time performance, reliability, and fault
-tolerance are essential.
+One of the AGC's most groundbreaking design philosophies was its embrace of
+\textit{restart-driven fault tolerance}. Rather than attempt complex error handling
+routines in hardware-constrained conditions, the AGC favored quick, controlled restarts
+to recover from faults, enabling resilience even under critical mission conditions—as
+dramatically demonstrated during the Apollo 11 lunar descent when 1201 and 1202 alarms
+threatened to abort the landing.
 
+Today, a device like the \texttt{micro:bit}—costing less than \pounds20—offers
+significantly greater raw computing power than the AGC. Yet in embedded systems, the
+fundamental challenges remain: \textit{real-time responsiveness}, \textit{reliability},
+\textit{fault tolerance}, and \textit{resource efficiency} are still paramount,
+especially for mission- or safety-critical applications.
+
+This project draws inspiration not only from the AGC's design but also from the modular
+robustness of modern Unix systems like Linux, and from the elegant abstraction
+facilities provided by the C++ Standard Library. The goal is to reimagine the AGC’s
+philosophies for a modern embedded context: combining historical pragmatism with
+contemporary programming paradigms.
 
 \subsection{Project Summary}
 
-This project investigates the design of the Apollo Guidance Computer (AGC) operating
-system and explores how its core ideas—most notably its hybrid cooperative-preemptive
-scheduling and fault-tolerant recovery—can be adapted to modern embedded systems. The
-result is \textbf{Apollo-RTOS}, a fully-featured real-time operating system implemented
-for the \texttt{micro:bit} v1 device.
+This work presents \textbf{Apollo-RTOS}: a fully-featured, real-time operating system
+for the \texttt{micro:bit} v1, deeply inspired by the AGC and informed by the design
+philosophies of Linux and C++20. Apollo-RTOS adapts the AGC’s core concepts—most
+notably its hybrid cooperative-preemptive scheduling model and restart-driven recovery
+mechanism—while integrating modern operating system abstractions essential for
+contemporary embedded platforms.
 
-Apollo-RTOS faithfully adapts several AGC concepts such as priority-based cooperative
-multitasking, a preemptive task queue, and a system-wide recovery mechanism that
-tolerates resets and hardware faults. These are combined with modern operating system
-abstractions including dynamic memory allocation, file systems, inter-process
-communication, and a Unix-like shell interface. The implementation is written in modern
-C++, leveraging RAII, templates, and static typing for safety and performance.
-
-At the architectural level, Apollo-RTOS follows a \textit{monolithic kernel design},
-incorporating a compact scheduler and a recovery-aware process model. It also includes
-a modular file system stack with support for both flash and FRAM-backed block devices,
-along with lightweight drivers for peripherals including UART, display, and I2C-based
-sensors. Developers interact with the OS using a shell and a suite of programmable
-applications, written against a familiar C++ API. An integrated testing framework
-supports unit and subsystem testing.
-
-\paragraph*{Key Contributions}
-\begin{itemize}[left=0pt]
-    \item A lightweight, deterministic \textbf{hybrid scheduler} combining cooperative
-        and preemptive semantics. [\autoref{sec:sched}]
-    \item \textbf{Fault-tolerant process recovery} and boot-stage awareness using
-        AGC-inspired restart groups. [\autoref{sec:rec}]
-    \item \textbf{Dual file system support} over flash and FRAM devices using a shared
-        template-based backend. [\autoref{sec:mem}]
-    \item A minimalist \textbf{Unix-like shell interface} with support for foreground
-        apps and command dispatch. [\autoref{sec:shell}]
-    \item A robust, modern \textbf{C++20 implementation} using RAII, templates,
-        constexprs, and type deduction.
-    \item A \textbf{unit and integration testing framework} to validate system
-        components in isolation. [\autoref{sec:testing}]
+Key architectural features include: 
+\begin{itemize}[left=10pt] 
+    \item A lightweight, deterministic \textbf{hybrid scheduler} capable of supporting
+        up to 16 concurrent processes, with synchronization primitives ensuring
+        race-free concurrent execution. [\autoref{sec:sched}] 
+    \item A \textbf{fault-tolerant recovery system} based on restart groups, enabling
+        processes to persist across resets or power failures. [\autoref{sec:rec}] 
+    \item A modular \textbf{file system} that unifies flash and FRAM storage, providing
+        durable, high-endurance storage critical for recovery and data integrity.
+        [\autoref{sec:fs}] 
+    \item A \textbf{Unix-like shell interface} for process management, file
+        manipulation, and system interaction, offering a familiar development
+        environment. [\autoref{sec:shell}] 
+    \item An \textbf{automated testing framework} and build infrastructure to validate
+        components, accelerate development, and enable systematic debugging.
+        [\autoref{sec:testing}] 
+    \item A \textbf{C++20-based implementation} leveraging RAII, templates, constexpr
+        programming, and static typing, inspired by the robustness and clarity of the
+        C++ Standard Library. 
 \end{itemize}
 
-Apollo-RTOS demonstrates that historical system design choices, when reinterpreted
-through the lens of modern software engineering, can lead to elegant and effective
-solutions for contemporary embedded platforms. It provides a practical example of
-building robust, modular systems under tight resource constraints while remaining
-extensible, maintainable, and developer-friendly.
+Apollo-RTOS is built around a \textit{monolithic kernel architecture}, balancing
+simplicity and performance. Critical system services—including drivers for UART, I2C,
+and display peripherals—are designed as lightweight, reusable modules. File system
+operations are abstracted over a block device layer, supporting both high-endurance
+FRAM and flash memory with transparent access semantics.
 
-The source code of Apollo-RTOS can be found here:
-\vspace{-1em}
-\begin{center}
-    \url{https://github.com/AnglyPascal/apollo-rtos}
-\end{center}
+Beyond reinterpreting the AGC’s innovations, Apollo-RTOS demonstrates how combining
+minimalist principles with modern software engineering can produce resilient,
+extensible, and maintainable real-time operating systems. It offers a practical
+blueprint for building robust, modular systems under tight resource constraints—an
+increasingly valuable skill in the landscape of embedded and edge computing.
+
+The complete source code for Apollo-RTOS is available at:
+\[
+   \impeq{\text{\url{https://github.com/AnglyPascal/apollo-rtos}}}
+\]
+
+\lstinputlisting[style=mytty, caption={Landing screen of Apollo-RTOS on
+\texttt{minicom}}]{code/ex1.sh}
+
+% \begin{minipage}{.5\linewidth}
+%     \includegraphics[width=.9\linewidth]{ex1}
+% \end{minipage}\hfill%
+% \begin{minipage}{.5\linewidth}
+%     \includegraphics[width=.9\linewidth]{ex2}
+% \end{minipage}

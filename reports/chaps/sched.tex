@@ -1,85 +1,187 @@
-\section{Scheduling: Co-operative and Pre-emptive}
+\section{Scheduling: Cooperative and Preemptive}
 \label{sec:sched}
 
-The core scheduler of Apollo-RTOS is a priority-based cooperative scheduler. It allows
-the highest-priority process to run indefinitely until it voluntarily gives up
-execution, at which point other processes are given the opportunity to run. This simple
-approach offers several benefits:
-
+At the core of Apollo-RTOS lies the scheduler. It is a simple, priority-based
+cooperative scheduler inspired by the AGC Executive. The highest-priority process
+retains exclusive control of the CPU until it voluntarily yields or lowers its priority.
+This design offers several important advantages:
 \begin{itemize}
-    \item Simplicity: The implementation is straightforward.
-    \item Fewer race conditions: Since one process never preempts another, data races
-        on shared variables are largely eliminated.
+    \item \textbf{Simplicity}: The scheduling algorithm is straightforward to
+        implement and debug.
+    \item \textbf{Determinism}: Execution order is predictable, making system behavior
+        easier to reason about.
+    \item \textbf{Fewer Race Conditions}: Since processes do not preempt each other,
+        data races on shared variables are significantly reduced.
 \end{itemize}
 
-However, processes must be aware of their runtime context and yield execution
-periodically to prevent deadlocks. This can be done in two ways:
-\begin{itemize}
-    \item Lowering their priority.
-    \item Going to sleep.
-\end{itemize}
+A global structure \lstinline[style=myagc]|cpu| tracks the currently running process
+(\lstinline[style=myagc]|curr_proc|) and the highest-priority process ready to run
+(\lstinline[style=myagc]|hi_proc|). When a new process is created, its priority is
+compared with \lstinline[style=myagc]|hi_proc| and updated if necessary.
 
-With this design, the interface for process creation and management remains simple:
+A context switch occurs when the running process voluntarily yields, either by sleeping
+on a channel or setting a timeout. Alternatively, if the running process lowers its
+priority, the scheduler searches the process descriptor table for the next highest-priority
+runnable process.
 
-\begin{lstlisting}[style=myagc,]
-// Register a process defined by 'proc_def', passing 'param' as an argument
-pid_t reg_proc(const proc_def_t *proc_def, void *param);
+\begin{emptythm}
+    A process’s priority is represented by two parameters: a \textit{priority level}
+    and a \textit{weight}. Each time a process runs, its weight increments. To ensure
+    fairness among processes with identical priority levels, the process with the lower
+    weight is favored.
+\end{emptythm}
 
-// Increase the priority
-void incr_priority(pid_t pid, priority_t priority);
+\begin{lstlisting}[style=myagc, caption={\file{include/core/procs.h}}]
+struct priority_t {
+  priority_lev_t lev = EMPTY;
+  uint8_t weight = 0;
 
-// Decrease the priority
-void decr_priority(priority_t priority);
-\end{lstlisting}
-
-Defining a process is minimalistic:
-
-\begin{lstlisting}[style=myagc,]
-struct proc_def_t {
-  string      name;
-  priority_t  priority;
-  size_t      stk_sz;
-  runnable_t  func;       // where runnable_t = void ()(void);
+  friend auto operator<=>(const priority_t &lhs, const priority_t &rhs)
+  {
+    if (lhs.lev != rhs.lev)
+      return lhs.lev <=> rhs.lev;
+    return (rhs.weight) <=> lhs.weight;
+  }
 };
 \end{lstlisting}
 
-At runtime, each process is represented in a process descriptor table, which stores essential metadata about active processes. The most important fields are:
+To guarantee that the system always has a runnable process, an \emph{idle process}
+(\autoref{sec:idle_proc}) with the lowest priority is registered during system startup.
+The idle process runs whenever no other process is runnable.
 
-\begin{lstlisting}[style=myagc]
+At runtime, processes are represented by \lstinline[style=myagc]|proc_t| structures,
+stored in a fixed-size process descriptor table. By default, this table contains 16
+entries, allowing up to 15 concurrent user processes alongside the idle process.
+Each \lstinline[style=myagc]|proc_t| holds the execution context and metadata needed
+for scheduling.
+
+\begin{lstlisting}[style=myagc, caption={\file{include/core/procs.h}}]
 struct proc_t {
-  priority_t  priority;   // Current priority
-  byte_t      *stk_ptr;   // Current stack pointer
-  byte_t      *stack;     // Start of the stack area
-  size_t      stk_sz;     // Stack size
-  void        *param;     // Parameter passed to the process function
+  priority_t  priority;  // Current priority
+  void       *param;     // Parameter passed to the process function
+
+  byte_t     *stk_ptr;   // Current stack pointer
+  byte_t     *stack;     // Start of the stack area
+  size_t      stk_sz;    // Stack size
+
   // ... other fields
 };
 \end{lstlisting}
 
-Stack Layout in Arm Cortex-M0
+When a process finishes execution, its allocated resources are deallocated, and its
+descriptor is marked available for reuse.
 
-To understand the scheduling mechanism, we first examine the stack layout in the Arm Cortex-M0 architecture:
+
+\subsection{Process Creation}
+
+Processes are created using the library function \lstinline[style=myagc]|reg_proc|. Its
+role is straightforward: find an available process descriptor, allocate a stack, and
+update the \lstinline[style=myagc]|hi_proc| variable if necessary.
+
+\begin{lstlisting}[
+    style=myagc,
+    linebackgroundcolor={\line{6} \line{9} \line{12}},
+    caption={\file{src/core/sched.cpp}},
+    mathescape=true,
+]
+pid_t reg_proc(const proc_def_t *def, void *param)
+{
+  auto &[name, priority, stk_sz, proc_func] = *def;
+
+  // allocate a process descriptor
+  proc_t *proc = procs.alloc();  
+
+  // allocate and populate the stack frame according to $\autoref{sec:stack_frame}$
+  stack_allocator.acquire(proc, stk_sz, proc_func, param, exit);
+
+  // raises priority, comparing against hi_proc 
+  incr_priority(pid, priority);  
+
+  // ...
+  return pid;
+}
+\end{lstlisting}
 
 \begin{emptythm}
-    The stack in Arm architecture starts at a higher address and grows downward.
+    A newly created process is treated as if it has just undergone a context switch.
+    Thus, the stack must be pre-filled with the appropriate register values in the
+    correct order, as detailed in \autoref{sec:stack_frame}. Line 9 ensures this setup
+    is performed correctly.
+\end{emptythm}
 
-    When execution is preempted by an interrupt, the hardware automatically pushes key
+In line 12, \lstinline[style=myagc]|reg_proc| calls
+\lstinline[style=myagc]|incr_priority| to raise the new process’s priority. This
+function also checks and updates \lstinline[style=myagc]|hi_proc| if the newly created
+process has a higher priority.
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{src/core/sched.cap}},
+    linebackgroundcolor={\lines{5}{6}},
+]
+void incr_priority(pid_t pid, priority_t priority)
+{
+  proc_t *proc = procs[pid];
+  proc->priority = priority; // set priority
+  if (cpu.hi_proc == nullptr || cpu.hi_proc->priority < priority)
+    cpu.hi_proc = proc;
+}
+\end{lstlisting}
+
+Processes can call \lstinline[style=myagc]|incr_priority| to increase their own or
+another process’s priority before entering a critical section. However, processes are
+expected to be mindful of system-wide fairness: a high-priority process should lower its
+priority once it no longer needs exclusive control. This is done via
+\lstinline[style=myagc]|decr_priority|. When a process lowers its priority, the process
+descriptor table is scanned for the next highest-priority runnable process, and a
+context switch is triggered.
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{src/core/sched.cpp}},
+    linebackgroundcolor={\lines{4}{5} \lines{10}{11}},
+]
+void decr_priority(priority_t priority)
+{
+  cpu.curr_proc->priority = priority;
+  cpu.hi_proc = procs.max_priority();
+  change_proc();
+}
+
+void change_proc()
+{
+  if (cpu.hi_proc != cpu.curr_proc)
+    /* trigger a PendSV interrupt, initiating context switch */
+}
+\end{lstlisting}
+
+
+\subsection{Context Switching}
+\label{sec:stack_frame}
+
+During a context switch, the execution context of the old process must be saved to its
+stack in a predetermined layout so that it can be restored later. Thus, we must first
+understand the stack layout on the Arm Cortex-M0.
+
+\begin{emptythm}
+    When \lstinline[style=myagc]|change_proc| triggers the
+    \lstinline[style=myagc]|PendSV| interrupt, the hardware automatically pushes key
     registers onto the stack in the following order (from lower to higher addresses):
-\begin{lstlisting}[style=mytxt]
+\begin{lstlisting}[style=mytxt, caption={Hardware saved registers}, label={hard_context}]
        new stack pointer -> |                               
                             |  r0                          
-                            |  r1                          
-                    ^       |  r2                          
-       stack grows  |       |  r3                          
-       downwards    |       |  r12                         
-                            |  lr      Link register       
-                            |  pc      Program counter     
-       old stack pointer -> |  psr     Status register     
+                    ^       |  r1                          
+       stack grows  |       |  r2                          
+       downwards    |       |  r3                          
+       in memory    |       |  r12                         
+                    |       |  lr   # Link register       
+                            |  pc   # Program counter     
+       old stack pointer -> |  psr  # Program status register     
 \end{lstlisting}
-To enable context switching between processes, additional registers must be saved
-manually. This is done via software, giving us control over the order. We chose the
-following layout:
-\begin{lstlisting}[style=mytxt]
+
+The remaining registers must be saved manually by the software. We chose the following
+layout for the software-saved context:
+\begin{lstlisting}[style=mytxt, caption={Software saved registers}, label={soft_context}]
        new stack pointer -> |                               
                             |  r8
                             |  r9
@@ -89,310 +191,304 @@ following layout:
                             |  r5
                             |  r6
     stack pointer after     |  r7
-    hardware pushes regs -> |  lr_intr   Return from interrupt address
+    hardware pushes regs -> |  lr_intr  # Return-from-interrupt address
 \end{lstlisting}
-
 \end{emptythm}
 
-With the stack management details covered, we can now discuss how the scheduling
-algorithm works.
-
-\subsection{Process Creation}
-
-The implementation of \lstinline[style=myagc]|reg_proc| can be summarized as follows:
+The \lstinline[style=myagc]|PendSV| interrupt handler performs exactly this operation:
+saving the old process's context and restoring the new process's context.
 
 \begin{lstlisting}[
-    style=myagc,
-    linebackgroundcolor={ \line{4} \line{7} \line{8} },
-    title={\file{src/core/sched.cpp}}
+    style=myarm, 
+    caption={\file{src/mpx.s}}, 
+    morekeywords={cxt_switch, pendsv_handler},
+    label={code:mpx}
 ]
-pid_t reg_proc(const proc_def_t *def, void *param)
-{
-  auto [name, priority, stk_sz, proc_func] = *def;
-  proc_t *proc = procs.alloc();  // allocate a process descriptor
-  proc->param = param;  // store the param for future cleanup
+@@@ PendSV handler for context switching
+  .global pendsv_handler
+  .thumb_func
 
-  stack_allocator.acquire(proc, stk_sz, proc_func, param, exit);
-  incr_priority(pid, priority);
+pendsv_handler:
 
-  // ...
-  return pid;
-}
-\end{lstlisting}
+  @ Save current process state
+  @@ by pushing software-saved registers onto the stack
 
-The key operations occur on lines 7 and 8. In line 7, the local pool allocator assigns
-a block of memory of size \lstinline[style=myagc]|stk_sz| and initializes it with the
-required parameters.
-
-\begin{emptythm}
-    A newly created process is treated as if it has just undergone a context switch.
-    This means the stack must be set up with the appropriate register values in the
-    correct order, as discussed earlier. Line 7 ensures this setup is performed
-    correctly.
-\end{emptythm}
-
-Examining the \lstinline[style=myagc]|acquire| function:
-
-\begin{lstlisting}[
-    style=myagc,
-    linebackgroundcolor={\lines{10}{14}},
-    title={\file{src/core/stack\_allocator.h}}
-]
-void acquire(proc_t *proc, size_t stk_sz, runnable_t func, void *param,
-             void (*ret)())
-{
-  proc->stack = (byte_t *)pool.alloc(stk_sz);  // allocate the stack
-  // ...
-
-  auto stk_ptr = (context_t *)(proc->stack + stk_sz - sizeof(context_t));
-
-  // setup initial stack frame
-  stk_ptr->psr     = init_psr;        // 0x01000000 to enable Thumb mode
-  stk_ptr->pc      = (uint32_t)func;  // entry to the process
-  stk_ptr->lr      = (uint32_t)ret;   // exit from the process
-  stk_ptr->r0      = (uint32_t)param; // parameter
-  stk_ptr->lr_intr = lr_intr_magic;   // return address from interrupts
-
-  proc->stk_ptr = (byte_t *)stk_ptr;
-  proc->stk_sz = stk_sz;
-}
-\end{lstlisting}
-
-Lines 10-14 populate the process context. The entry point is stored in the \texttt{pc} register, the exit sequence in the \texttt{lr} register, and the process parameter in \texttt{r0}. The interrupt return address is also set.
-
-\subsection{Priority Modification}
-
-A singleton object, \lstinline[style=myagc]|cpu|, tracks the currently running process and the highest-priority process:
-
-\begin{lstlisting}[style=myagc, title={\file{src/core/sched.cpp}}]
-volatile struct {
-  proc_t *hi_proc = nullptr;    // highest priority process
-  proc_t *curr_proc = nullptr;  // currently running process
-} cpu;
-\end{lstlisting}
-This object functions similarly to the \texttt{NEWJOB} register in the AGC. When a process is created, its priority is compared with the highest-priority process. If it is higher, \lstinline[style=myagc]|hi_proc| is updated.
-
-In \lstinline[style=myagc]|reg_proc| (line 8), \lstinline[style=myagc]|incr_priority| is called:
-
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/sched.cpp}},
-    linebackgroundcolor={\lines{6}{7}},
-]
-void incr_priority(pid_t pid, priority_t priority)
-{
-  proc_t *proc = procs[pid];
-  // ... disable interrupts
-  proc->priority = priority; // set priority
-  if (cpu.hi_proc == nullptr || cpu.hi_proc->priority < priority)
-    cpu.hi_proc = proc;
-}
-\end{lstlisting}
-
-When a high-priority process completes its critical section, it should lower its priority to allow other processes to run:
-
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/sched.cpp}},
-    linebackgroundcolor={\lines{4}{5}},
-]
-void decr_priority(priority_t priority)
-{
-  cpu.curr_proc->priority = priority;
-  cpu.hi_proc = procs.max_priority();
-  change_proc();
-}
-\end{lstlisting}
-
-The highest-priority process is updated, and \lstinline[style=myagc]|change_proc| is called to check if a context switch is needed:
-
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/sched.cpp}},
-    linebackgroundcolor={\lines{4}{5}},
-]
-void change_proc()
-{
-  // enable interrupts
-  if (cpu.hi_proc != cpu.curr_proc)
-    reschedule();   // triggers pendsv interrupt
-}
-\end{lstlisting}
-
-Now, we examine how context switching is performed.
-
-\subsection{Context Switching}
-
-When \lstinline[style=myagc]|reschedule()| triggers the \lstinline[style=myagc]|pendsv| interrupt, the hardware first pushes key registers onto the stack. Then, \lstinline[style=myagc]|pendsv_handler| is called. We then save additional registers, swap stack pointers, and restore the state for the new process.
-
-The register saving/restoring is handled in assembly, while stack pointer swapping is done in C++:
-
-\begin{lstlisting}[style=myarm, title={\file{src/mpx.s}}]
-@@@ push software-saved registers onto stack
-  .macro isave
-  push {r4-r7, lr}            @ Copy from high to low
-  mov r4, r8
+  push {r4-r7, lr}     @ Save low registers and lr
+  mov r4, r8           @ Copy high registers into r4-r7
   mov r5, r9
   mov r6, r10
   mov r7, r11
   push {r4-r7}
-  mrs r0, msp                 @ Copy from high to low
-  .endm
+  mrs r0, msp          @ Move current stack pointer to r0
 
-@@@ pop software-saved registers
-  .macro irestore             @ Expect process sp in r0
-  msr msp, r0
+  @ Select new process
+  bl cxt_switch        
+
+  @ Restore new process state
+  @@ by popping software-saved registers from the stack pointed by r0
+
+  msr msp, r0          @ Update stack pointer to new process stack
   pop {r4-r7}
   mov r11, r7
   mov r10, r6
   mov r9, r5
   mov r8, r4
   pop {r4-r7}
-  pop {pc}                    @ pop lr into pc, jumping to new process
-  .endm
-
-@@@ PendSV handler for context switching
-  .global pendsv_handler
-  .thumb_func
-pendsv_handler:
-  isave                       @ Save current process state
-  bl cxt_switch               @ Select new process
-  irestore                    @ Restore new process state
+  pop {pc}             @ Pop lr into pc, jumping to the new process
 \end{lstlisting}
 
-The definition of \lstinline[style=myagc]|cxt_switch|:
+The function \lstinline[style=myagc]|cxt_switch| swaps the old process's stack pointer
+with the new process’s stack pointer:
 
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/sched.cpp}},
-    linebackgroundcolor={\line{6} \lines{8}{9}},
-]
-void *cxt_switch(void stk_ptr)
+\begin{lstlisting}[style=myagc, caption={\file{src/core/sched.cpp}}, linebackgroundcolor={\line{6} \lines{8}{9}}]
+void *cxt_switch(void *stk_ptr)
 {
-  if (/* cpu.curr_proc is done */)
+  if (/* cpu.curr_proc is exiting */)
     /* release resources */
   else
-    cpu.curr_proc->stk_ptr = (byte_t *)stk_ptr;  // store old stk_ptr
+    cpu.curr_proc->stk_ptr = (byte_t *)stk_ptr;  // Save old stack pointer
 
   cpu.curr_proc = cpu.hi_proc;
-  return cpu.hi_proc->stk_ptr;  // restore new stk_ptr
+  return cpu.hi_proc->stk_ptr;  // Load new stack pointer
 }
 \end{lstlisting}
 
 
-\subsection{Process Suspension}
-
-A process can voluntarily yield execution either by lowering its priority or by
-suspending execution (sleeping) to be woken up later.
-
-The wake-up mechanism is more involved, so we will discuss it in two parts. A process
-can wake up in one of two ways:
-\begin{itemize}
-    \item By setting an alarm when going to sleep, which wakes it up after a specified
-        time.
-    \item By waiting for a specific event to occur before resuming execution.
-\end{itemize}
-The first method relies on the waitlist, while the second requires a synchronization
-mechanism. We will first discuss process suspension before covering these mechanisms.
+\subsection{Process Suspension and Synchronization}
 
 \begin{emptythm}
-    A runnable process is represented by a positive priority value. To put a process to
-    sleep while preserving its original priority, we simply negate its priority.
+    A \indef{runnable} process is represented by a positive priority value. A process
+    is marked as \indef{asleep} by negating its priority.
 \end{emptythm}
+
+This simple mechanism enables temporary suspension of a process without permanently
+changing its priority. A process can voluntarily give up execution in three main ways:
+\begin{itemize}
+    \item \lstinline[style=myagc]|yield()|: The process checks whether it is the
+        highest-priority runnable process. If not, it yields execution to the current
+        highest-priority process.
 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{src/core/sched.cpp}},
+    caption={\file{src/core/sched.cpp}},
     linebackgroundcolor={\line{8}},
 ]
-void sleep(time_t period = 0)
+void yield()
 {
-  if (period > 0)
-   /* set an alarm in the waitlist */
-  /* else suspend execution until another process wakes me up */
-
-  // Negate priority to mark process as ASLEEP
-  decr_priority(-cpu.curr_proc->priority);
+  cpu.hi_proc = procs.max_priority();
+  change_proc();
 }
 \end{lstlisting}
 
-A process that wants to wake up a sleeping process simply negates its priority:
+    \item \lstinline[style=myagc]|sleep(timeout)|: The process negates its priority to
+        indicate an asleep state. It also registers an alarm
+        ($\text{\autoref{lst:alarm}}$) in the waitlist to wake it up after
+        \lstinline[style=myagc]|timeout| milliseconds. A
+        \lstinline[style=myagc]|timeout = 0| indicates indefinite sleep.
 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{src/core/sched.cpp}},
-    linebackgroundcolor={\line{2}},
+    caption={\file{src/core/sched.cpp}},
+    linebackgroundcolor={\line{8}},
+    label={code:sleep},
+    mathescape=true,
 ]
-void wakeup(pid_t pid) {
+bool sleep(time_t timeout = 0)
+{
+  if (period == 0)
+    /* suspend indefinitely until someone else wakes it up */
+
+  /* register an alarm ($\text{\autoref{lst:alarm}}$) to wake it up after timeout ms */
+  // negate priority to indicate asleep state
+  decr_priority(-cpu.curr_proc->priority); 
+
+  /* return true if woken up by the alarm, false otherwise */
+}
+
+void wakeup(pid_t pid) 
+{
   incr_priority(pid, -procs[pid]->priority);
 }
 \end{lstlisting}
 
+    \item \lstinline[style=myagc]|wait(chan, timeout)|: The process goes to sleep,
+        waiting for a notification on the channel \lstinline[style=myagc]|chan|. If no
+        notification arrives within \lstinline[style=myagc]|timeout| milliseconds, the
+        process wakes up automatically and handles the timeout as an error.
 
-\subsection{Idle Process and Scheduler Initialization}
-\label{sec:idle_proc}
+        A channel is implemented as a fixed-length FIFO queue: processes that enqueue
+        first are serviced first.
 
-Since it could happen that all the running processes are waiting for some event to
-occur, when they are all sleeping, something needs to keep running in the cpu. That's
-the job for the \lstinline[style=myagc]|IDLE_PROC|. This is the lowest priority
-process defined when the scheduler is initialized during startup that basically just
-loops 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{src/core/sched.cpp}},
-    linebackgroundcolor={\line{5} \lineC{3}{thmBgC!90!black}
-    \lineC{11}{thmBgC!90!black} \lines{18}{20}},
+    caption={\file{include/core/sync.h}},
+    linebackgroundcolor={\lines{6}{7}},
 ]
-void idle_task(void *)
+bool wait(auto &chan, time_t timeout = 0)
 {
-  intr_enable(); // re-enable interrupts after setup is done
+  /* return error if the channel is full of waiting processes */
+
+  // enqueue in the channel to be woken up by notify()
+  chan.enqueue(curr_proc::pid()); 
+  return !sleep(timeout); 
+    // the alarm should not wake up the process, indicates an error
+}
+
+void notify(auto &chan)
+{
+  /* return if nobody is waiting on channel */
+
+  // wake up the first process waiting on channel
+  wakeup(chan.dequeue());
+}
+\end{lstlisting}
+\end{itemize}
+
+\subsubsection{Idle Process}
+
+At times, all processes may be suspended, awaiting external events. To prevent the CPU
+from being left idle without supervision, a dedicated \emph{idle process} is registered
+at system startup. The idle process has the lowest possible priority and runs whenever
+no other process is runnable. It continuously checks if any higher-priority process
+becomes ready to execute.
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{src/core/sched.cpp}},
+    linebackgroundcolor={\line{5}},
+    label={sec:idle_proc},
+]
+// defines the idle process with the lowest priority IDLE
+PROC(idle, IDLE, 0, p)
+{
   while (true) 
     change_proc(); 
-    // idle process always checks if any other process is ready to run
 }
+\end{lstlisting}
 
-void sched::init()
+
+\subsubsection{Synchronization}
+
+The \lstinline[style=myagc]|wait|/\lstinline[style=myagc]|notify| primitives form the
+backbone of the \lstinline[style=myagc]|mutex| implementation. Mutexes provide mutual
+exclusion for protecting shared resources. Critical components such as shared memory,
+file descriptors, and recovery phase table entries are guarded using mutexes.
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{include/core/sync.h}},
+    linebackgroundcolor={\lines{9}{11} \lines{16}{17}},
+]
+class mutex
 {
-  intr_disable(); // disable interrupt while setup is ongoing
+  mutable chan_t lock_chan;
+  mutable bool busy = false;
 
-  IDLE_PID = reg_proc(&idle_proc_def, nullptr);
-  cpu.curr_proc = procs[IDLE_PID];
+public:
+  void lock() const
+  {
+    while (busy) // if the mutex is locked, queue in the lock_chan
+      sched::wait(lock_chan);
+    busy = true;
+  }
 
-  // ... set up rest of the processes
+  void unlock() const
+  {
+    busy = false; // unlock the mutex by waking up a waiting process
+    sched::notify(lock_chan);
+  }
+};
+\end{lstlisting}
 
-  cpu.curr_proc->stk_ptr = /* setup the stack for the idle_task */;
-  /* setup the assigned stack and jump directly to idle_task */
-  __run(idle_task, &cpu.curr_proc->stk_ptr);
+To simplify usage, a wrapper RAII class \lstinline[style=myagc]|lock_guard| is provided.
+\lstinline[style=myagc]|lock_guard| acquires the mutex in its constructor and releases
+it in its destructor, ensuring that the mutes is always properly released when exiting
+a critical section.
+
+
+\subsubsection{Waiting for Child Processes to Terminate}
+
+Apollo-RTOS does not impose a strict parent-child process hierarchy as in Linux.
+However, it is often necessary for a process to wait for another process—potentially
+one it spawned—to terminate before continuing execution.
+
+This is achieved through a synchronization primitive called
+\lstinline[style=myagc]|barrier_t|, implemented internally using
+\lstinline[style=myagc]|mutex|. A barrier blocks the current process until all
+processes it is waiting on have terminated.
+
+Suppose process \lstinline[style=myagc]|p0| needs to wait for processes
+\lstinline[style=myagc]|p1|, \lstinline[style=myagc]|p2|, and
+\lstinline[style=myagc]|p3|:
+\begin{itemize}
+    \item \lstinline[style=myagc]|p0| creates a \lstinline[style=myagc]|barrier_t| of
+    size 3 and registers this barrier to the process descriptors of
+    \lstinline[style=myagc]|p1|, \lstinline[style=myagc]|p2|, and
+    \lstinline[style=myagc]|p3|.
+    \item It calls \lstinline[style=myagc]|acquire| on the barrier for each process,
+    going to sleep after the final \lstinline[style=myagc]|acquire|.
+    \item When any of \lstinline[style=myagc]|p1|, \lstinline[style=myagc]|p2|, or
+        \lstinline[style=myagc]|p3| terminates, the cleanup routine checks for an
+        associated barrier and calls \lstinline[style=myagc]|release| on it.
+    \item Once all registered processes have terminated, the barrier is fully released,
+        and \lstinline[style=myagc]|p0| is woken up to continue execution.
+\end{itemize}
+
+This mechanism is encapsulated in an overloaded function \lstinline[style=myagc]|wait|,
+which allows a process to wait on multiple \lstinline[style=myagc]|pid_t|'s
+simultaneously:
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{include/core/sync.h}},
+    linebackgroundcolor={\line{8} \lines{12}{13} \line{19}},
+]
+// waits for multiple processes to terminate within a timeout,
+// returns false if any awaited process does not terminate in time.
+template <typename... Args>
+  requires(std::same_as<remove_ref_cv_t<Args>, pid_t> && ...)
+bool wait(time_t timeout, const Args &...args)
+{
+  // create a barrier sized to the number of awaited processes
+  barrier_t bar{sizeof...(args), timeout};
+
+  // lambda to register the barrier with a single process
+  auto lam = [&](auto arg) {
+    /* attempt to acquire a barrier slot for the process with pid 'arg' */
+    return bar.acquire(arg);
+  };
+
+  // attempt to acquire the barrier for each process,
+  // returns true if all processes terminated within the timeout,
+  // returns false if any process failed to terminate in time.
+  return (lam(args) && ...);
 }
 \end{lstlisting}
 
-\lstinline[style=myagc]|__run| is an assembly function, that just loads the stack
-pointer to the \lstinline[style=myagc]|sp| register, and jumps to the function
-provided:
-\begin{lstlisting}[style=myarm]
-@@@ enter process mode
-    .global __run
-    .thumb_func
-__run:
-    ldr r2, [r1]                @ load idle proc's stack value 
-    msr msp, r2
-    isb                         @ Drain the pipeline
-    bx r0                       @ Call the body
-\end{lstlisting}
+\paragraph*{Applications of Barrier-based Waiting}
 
-The \lstinline[style=myagc]|sched::init| function needs to do some other initialization
-as well to setup the processes that will be running after the startup, and we'll
-discuss them in \autoref{sec:rec_init}.
+The process waiting mechanism is utilized in several key areas:
+\begin{itemize}
+    \item \lstinline[style=mytty]|shell|: To wait for a spawned foreground process to
+        complete execution.
+    \item \lstinline[style=mytty]|pkill|: To wait until the target process is fully
+        terminated.
+    \item Unit tests: To wait for multiple spawned processes to terminate before
+        verifying test outcomes.
+\end{itemize}
+
 
 
 \subsection{Waitlist: Preemptive Scheduling}
 \label{sec:waitlist}
 
-The waitlist is implemented as a sorted linked list of tasks:
+The waitlist is a timer-driven list of tasks scheduled to execute after a specified
+interval. The algorithm we use is nearly identical to that of the AGC, except we
+implement it using a sorted linked list rather than a static array.
 
 \begin{lstlisting}[
   style=myagc,
-  title={\file{src/core/waitlist.cpp}},
+  caption={\file{src/core/waitlist.cpp}},
   linebackgroundcolor={\line{5}},
 ]
 struct waitlist_t {
@@ -404,259 +500,210 @@ struct waitlist_t {
 \end{lstlisting}
 
 \begin{emptythm}
-    If a task \(t_0\) is scheduled to run in \(n_0\) ticks, it is placed in the waitlist between tasks
-    \(t_1\) and \(t_2\) such that if \(t_1\) and \(t_2\) have deadlines \(n_1\) and
-    \(n_2\), then \(n_1 \le n_0 \le n_2\). We set:
-    \[\texttt{remaining} = n_0 - n_1\]
-    Thus, the time until executes is the sum of the \texttt{remaining} values for all
-    preceding tasks.
+    If a task \(t_0\) is scheduled to run in \(n_0\) ticks, it is placed between tasks
+    \(t_1\) and \(t_2\) with deadlines \(n_1\) and \(n_2\) such that \(n_1 \leq n_0 \leq n_2\).
+    We then set
+    \[
+        t_0.\texttt{remaining} = n_0 - n_1
+    \]
+    Thus, the time until \(t_0\) executes is the sum of the \texttt{remaining} values of
+    all preceding tasks.
 \end{emptythm}
 
-This algorithm, originally used in the AGC, has key implications:
-\begin{itemize}
-    \item Maintaining a sorted linked list has insertion complexity. However, with an
-        upper limit of \lstinline[style=myagc]|N_WAITLIST = 16|, this cost is
-        negligible.
-    \item Using remaining values, we only need to check the first task on each timer
-        tick, reducing computational overhead.
-\end{itemize}
-
-Task registration and execution are implemented as follows:
+Tasks are registered to the waitlist via:
 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{src/core/waitlist.cpp}},
     linebackgroundcolor={\line{3} \line{8} \line{16} \line{18}},
 ]
-void reg(string name, time_t interval, runnable_t func, void *param)
-{
-  waitlist_t *task = alloc();
-  waitlist_t *hd = &waitlist_hd;
-  time_t prev = 0;
-  while (hd->next != nullptr && prev + hd->next->remaining <= interval) {
-    prev += hd->next->remaining;
-    hd = hd->next;
-  }
-  time_t remaining = interval - prev;
-
-  if (hd->next != nullptr)
-    hd->next->remaining -= remaining;
-
-  *task = {name, remaining, func, param, hd->next};
-  hd->next = task;
-}
+void reg(string name, time_t interval, runnable_t func, void *param);
 \end{lstlisting}
 
-During a timer interrupt, expired tasks are executed:
+When the deadline for the first task in the list expires, it is simply popped off the
+list. The \lstinline[style=myagc]|remaining| field of the new head then indicates how
+long until its deadline expires.
+
+Waitlist tasks are checked and executed at a fixed interval of
+\lstinline[style=myagc]|update_interval = 8ms|. When this interval elapses, the timer
+interrupt checks if there are any outstanding tasks. If so, it sets up a temporary
+stack to isolate the waitlist tasks and calls \lstinline[style=myagc]|waitlist::run()|.
+
+The function \lstinline[style=myagc]|waitlist::run()| simply decrements the
+\lstinline[style=myagc]|remaining| field of the first task by
+\lstinline[style=myagc]|update_interval| and checks if the task has expired. If so, it
+executes all tasks with expired deadlines sequentially.
 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{src/core/waitlist.cpp}},
+    caption={\file{src/core/waitlist.cpp}},
     linebackgroundcolor={\line{5} \line{13}},
 ]
 void run()
 {
   auto head = &waitlist_hd;
-  if (head->next != nullptr)
-    head->next->remaining -= update_interval;
+  if (head->next != nullptr) // there is a pending task
+    head->next->remaining -= update_interval; 
 
-  while (head->next != nullptr && head->next->remaining == 0) {
+  // run tasks whose deadline has expired
+  while (head->next != nullptr && head->next->remaining == 0) { 
     auto task = head->next;
     head->next = task->next;
 
     auto [name, remaining, func, param, next] = *task;
-    dealloc(task);
     func(param);
+    dealloc(task);
   }
 }
 \end{lstlisting}
 
-This approach minimizes overhead in interrupt-inhibited situations, making it ideal for
-real-time constraints.
-
-\subsubsection{Wakeup Alarm}
-
-With the waitlist implemented, setting up an alarm is simple:
+The alarm tasks used by the scheduler to wake up sleeping processes after a timeout
+(\autoref{code:sleep}) are registered to the waitlist using the same mechanism.
 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{src/core/sched.cpp}},
-    linebackgroundcolor={\lines{5}{8} \line{11}},
+    caption={\file{src/core/sched.cpp}},
+    linebackgroundcolor={\line{6} \line{13}},
+    label={lst:alarm},
+    morekeywords={default_alarm},
 ]
-void sleep(time_t period = 0)
+void default_alarm(void *ptr)
 {
-  auto proc = cpu.curr_proc;
-
-  auto default_alarm = [](void *ptr) {
-    auto proc = (proc_t )ptr;
-    incr_priority(/ pid of proc */, -proc->priority);
-  };
-
-  if (period > 0)
-    waitlist::reg(proc->name, period, default_alarm, (void *)proc);
-
-  decr_priority(-proc->priority);
-}
-\end{lstlisting}
-
-\subsection{Synchronization Mechanism}
-
-We implement channels for synchronization, using a FIFO queue of waiting processes
-based on \texttt{circular\_buffer}:
-
-\begin{lstlisting}[
-    style=myagc,
-    title=\file{include/core/sched.h},
-]
-template <size_t chan_len>
-struct chan_t : public circular_buffer<pid_t, chan_len> {};
-\end{lstlisting}
-
-A process waiting for an event enqueues itself and sleeps, while another process
-signals the event by dequeuing and waking it up:
-
-\begin{lstlisting}[
-    style=myagc,
-    title=\file{include/core/sched.h},
-    linebackgroundcolor={\line{5} \line{15} \line{23}}
-]
-template <size_t chan_len>
-void wait(chan_t<chan_len> &chan)
-{
-  intr_guard guard;
-  chan.enqueue(/* current process */);
-  sleep();
-}
-
-template <size_t chan_len>
-void notify(chan_t<chan_len> &chan)
-{
-  intr_guard guard;
-  if (chan.empty())
+  auto proc = (proc_t *)ptr;
+  if (/* the process is already awake */)
     return;
-  wakeup(chan.dequeue());
+  incr_priority(procs.pid(proc), -proc->priority.lev);
 }
 
-template <size_t chan_len>
-void notify_all(chan_t<chan_len> &chan)
+// it is then used in sched::sleep
+bool sleep(time_t timeout = 0)
 {
-  intr_guard guard;
-  while (!chan.empty())
-    wakeup(chan.dequeue());
+  ...
+  waitlist::reg(proc->name(), timeout, default_alarm, (void *)proc);
+  ...
 }
 \end{lstlisting}
 
-Using channels and \lstinline[style=myagc]|wait, notify|, we can implement a
-\lstinline[style=myagc]|mutex| 
 
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{include/utility/mutex.h}},
-    linebackgroundcolor={\line{10} \line{17} \line{23}}
-]
-template <size_t chan_len>
-class mutex {
-  chan_t<chan_len> lock_chan;
-  bool busy = false;
+\subsection{Signal Handling}
+\label{sec:signals}
 
-public:
-  void lock()
-  {
-    while (busy)
-      sched::wait(lock_chan);
-    busy = true;
-  }
+Apollo-RTOS provides a lightweight, cooperative signal handling mechanism to support
+asynchronous inter-process communication and process control.
 
-  void unlock()
-  {
-    busy = false;
-    sched::notify(lock_chan);
-  }
-};
-\end{lstlisting}
+Signals are defined as an enumerated type \lstinline[style=myagc]|signal_t|, with
+predefined values:
+\begin{itemize}
+    \item \lstinline[style=myagc]|SIGTERM|: Request process termination.
+    \item \lstinline[style=myagc]|SIGKILL|: Force immediate process termination.
+    \item \lstinline[style=myagc]|SIGMSSG|: User-defined message signal.
+    \item \lstinline[style=myagc]|SIGDUMP|: Request process state dump.
+\end{itemize}
 
-Usually we acquare a mutex before a critical section, and then release it at the end of
-the section. Using the RAII paradigm, we can implement a class
-\lstinline[style=myagc]|lock_guard| (named after
-\lstinline[style=myagc]|std::lock_guard|) that acquire the mutex upon construction, and
-releases it in its destructor, giving a simple interface for locking.
+Each process maintains an instance of \lstinline[style=myagc]|signals_t| within its
+descriptor, which tracks pending signals and their associated handlers:
 
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{include/utility/mutex.h}},
-    linebackgroundcolor={\lines{6}{7}}
-]
-template <typename _mutex>
-class lock_guard {
-  _mutex &_m;
-
-public:
-  lock_guard(_mutex &_m) : _m{_m} { _m.lock(); }
-  ~lock_guard() { _m.unlock(); }
-};
-\end{lstlisting}
-
-\subsubsection{Interrupts management}
-
-We also implement a similar mechanism for disabling and enabling interrupts before and
-after a cricital section. This implementation uses template type deduction to choose
-between the two scenarios when we want to disable all interrupts vs disable only one
-interrupt:
-
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{include/core/irq.h}},
-    linebackgroundcolor={\lines{7}{18}, \lines{21}{34}}
-]
-template <typename T>
-class intr_guard
-{
-  int irq;
-
-public:
-  // when no argument is passed, deduce T = void & disable all interrupts
-  intr_guard(void) requires std::same_as<T, void>
-    : irq{get_primask()}                                                
-  {                                                     +-------------+
-    intr_disable();                                     |  T == void  |
-  }                                                     |  all irqs   |
-                                                        +-------------+
-  // re-enable all interrupts if T = void
-  ~intr_guard() requires std::same_as<T, void>
-  { 
-    set_primask(irq); 
-  }
-
-
-  // if an arugment is passed, deduce T = int, and disable only that irq
-  intr_guard(int irq) requires std::same_as<T, int>
-    : irq{irq}
-  {                                                     +-------------+
-    disable_irq(irq);                                   |  T == int   |
-  }                                                     |  one irq    |
-                                                        +-------------+
-
-  // if T = int, enable only that irq
-  ~intr_guard() requires std::same_as<T, int>
-  {
-    clear_pending(irq);
-    enable_irq(irq);
-  }
-};
-
-// type deduction hints for the constructor
-intr_guard(void) -> intr_guard<void>;
-intr_guard(int) -> intr_guard<int>;
-\end{lstlisting}
-
-This interface is then used simply as:
 \begin{lstlisting}[style=myagc]
-{ // critical section
-  intr_guard guard; // disable all interrupts and re-enable at the end
-}
+struct signals_t {
+private:
+  uint32_t raised = 0;
+  signal_handler_t handlers[N_SIGNALS] = { /* default handlers */ };
 
-{ // critical section
-  intr_guard guard{UART_IRQ}; // disable only the UART interrupt
+public:
+  // Raise a signal
+  void send(signal_t sig) { raised |= (1 << sig); }
+
+  // Handle all raised signals
+  void handle_signals();
+
+  // Swap a signal handler and return the old one
+  signal_handler_t swap(signal_t sig, signal_handler_t new_handler);
+
+  // Clear all pending signals
+  void reset() { raised = 0; }
+};
+\end{lstlisting}
+
+Each signal is initially associated with a default handler, implemented via template
+specializations of \lstinline[style=myagc]|default_handler<sig>()|.  Processes can
+override handlers dynamically using %
+\lstinline[style=myagc]|swap_handler(signal_t sig, signal_handler_t new_handler)|.
+
+\paragraph*{Sending and Handling Signals} Processes can asynchronously raise signals in
+other processes by calling %
+\lstinline[style=myagc]|send_signal(pid_t pid, signal_t sig)|.  Signals are handled
+cooperatively: when a process is context-switched in, its pending signals are processed
+before normal execution resumes.
+
+This mechanism is integrated at the assembly level inside the PendSV interrupt handler
+(\lstinline[style=myagc]|pendsv_handler|). Before restoring the new process context,
+the system branches to \lstinline[style=myagc]|handle_signals|. Specifically, the call
+is inserted after restoring registers in \autoref{code:mpx}:
+
+\begin{lstlisting}[
+    style=myarm,
+    caption={\file{src/mpx.s}},
+    morekeywords={cxt_switch, pendsv_handler, handle_signals},
+    linebackgroundcolor={\line{11} \line{13} \line{15}}
+]
+@@@ PendSV handler for context switching
+pendsv_handler:
+  @ Save current process state
+  ...
+
+  @ Select new process
+  bl cxt_switch        
+
+  @ Restore new process state
+  ...
+  pop {r4-r7}
+
+  bl handle_signals    @ handle signals before jumping into the new process
+
+  pop {pc}             @ Pop lr into pc, jumping to the new process
+\end{lstlisting}
+
+The \lstinline[style=myagc]|handle_signals| function processes all raised signals for
+the incoming process (accessible via \lstinline[style=myagc]|cpu.curr_proc|), invoking
+the corresponding handlers:
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{src/core/sched.cpp}}
+]
+__extern_C__ void handle_signals(void)
+{
+  cpu.curr_proc->signals.handle_signals();
 }
 \end{lstlisting}
+
+\paragraph*{Process Termination via Signals} Process termination is implemented using
+signals.  The shell command \lstinline[style=mytty]|pkill| sends a
+\lstinline[style=myagc]|SIGTERM| signal to the target process.  The default handler for
+\lstinline[style=myagc]|SIGTERM| sets the \lstinline[style=myagc]|term_req| flag within
+the process descriptor:
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{src/core/sched.cpp}}
+]
+template <>
+void default_handler<SIGTERM>(void)
+{
+  cpu.curr_proc->term_req = true;
+}
+\end{lstlisting}
+
+Well-behaved processes are expected to check this flag periodically within their main
+execution loops:
+
+\begin{lstlisting}[style=myagc]
+...
+while (!curr_proc::term_req()) {
+    // process work
+}
+...
+\end{lstlisting}
+
+Upon detecting a termination request, the process can perform cleanup and exit
+gracefully.
 

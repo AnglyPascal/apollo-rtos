@@ -1,0 +1,329 @@
+\subsection{File system Data Structures}
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={File system description: \file{include/fs/fs\_desc.h}},
+    linebackgroundcolor={\lines{18}{19} \lines{4}{5} \line{8} \line{10}},
+    label={fs:desc}
+]
+template <...>
+struct fs_desc_t {
+  using addr_t = /* type of address supported by device */;
+    // for flash, it is uint32_t since writes must be word aligned
+    // for fram, it can be uint16_t to save space 
+
+  size_t blk_sz; /* size of a block */
+    // for flash, it is 1024, 
+    //   since that's the smallest unit we can effectively write
+    // for FRAM, it is 128
+
+  size_t max_num_blks; /* man number of blocks per file */
+  size_t n_inodes; /* number of files */
+
+  size_t n_open_files; /* number of open files */
+
+
+  using fs_xfer_t = size_t (*)(addr_t addr, uint8_t *buf, size_t buf_sz);
+
+  // methods to transfer data to and from the target device
+  fs_xfer_t write, write_sync;
+  fs_xfer_t read, read_sync;
+};
+\end{lstlisting}
+
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={Filesystem backend: \file{include/fs/fs\_bck.h}},
+    linebackgroundcolor={},
+    label={fs:fs}
+]
+template <...>
+class fs_t
+{
+  struct hd_t {
+    inode_t tbl[N_INODES];
+    uint32_t magic;
+    bitset<N_BLKS> free_set;
+  };
+
+  inline static hd_t hd;
+
+public:
+  // return the corresponding inode, and whether the file was just opened
+  static inline pair<const inode_t *, bool> open(fn_t fn, size_t sz,
+                                                 uint32_t flags)
+  {
+    assert(fn >= 0 && fn < desc.n_inodes, TERM);
+
+    auto &inode = hd.tbl[fn];
+    const bool in_use = inode.in_use();
+    const bool to_create = flags & O_CREATE;
+
+    if (in_use || !to_create) {
+      assert(in_use, TERM, "file does not exist\r\n");
+      if (sz != 0)
+        debug<TRACE>("passing size (%d) to open existing file %d\r\n", sz, fn);
+      return {&inode, false};
+    }
+
+    assert(to_create, TERM, "not creating non-existent file %d\r\n", fn);
+    inode.set_use();
+
+    uint8_t nblks = roundup(max(sz, BLK_SZ), BLK_SZ) / BLK_SZ;
+    assert(nblks <= desc.max_num_blks, TERM);
+    const_cast<uint8_t &>(inode.nblks) = nblks;
+
+    auto success = alloc_blks(inode);
+    assert(success, TERM, "block allocation failed for file %d\r\n", fn);
+
+    if constexpr (desc.is_ram)
+      inode.set_ft(flags & O_CHAR_FILE ? CHAR : BIN);
+    else
+      inode.set_ft(BIN);
+
+    if (flags & O_PERM)
+      inode.set_perm();
+
+    inode.end = 0;
+
+    // partial update, only modifies the inode entry on the device
+    update_hd(inode); 
+
+    return {&inode, true};
+  }
+
+private:
+  // return the number of bytes written/read
+  template <auto func>
+  static inline size_t xfer(const inode_t *inode, uint8_t *buf,
+                            const size_t buf_sz, size_t offset = 0)
+  {
+    assert(inode->max_sz() >= offset + buf_sz, TERM);
+    const auto nblks = inode->nblks;
+
+    uint8_t fst_blk = offset / BLK_SZ;
+    size_t blk_offset = offset % BLK_SZ;
+    size_t fst_blk_sz = min(buf_sz, BLK_SZ - blk_offset);
+
+    uint8_t i = fst_blk;
+
+    size_t sent_sz;
+
+    auto rem = buf_sz;
+    sent_sz = func(paddr(inode->blks[i++]) + blk_offset, buf, fst_blk_sz);
+    if (sent_sz < fst_blk_sz)
+      return sent_sz;
+
+    buf += fst_blk_sz;
+    rem -= fst_blk_sz;
+
+    while (rem > 0 && i < nblks) {
+      auto blk_sz = min(rem, BLK_SZ);
+
+      sent_sz = func(paddr(inode->blks[i++]), buf, blk_sz);
+      if (sent_sz < blk_sz)
+        return buf_sz - (rem - sent_sz);
+
+      buf += blk_sz;
+      rem -= blk_sz;
+    }
+
+    return buf_sz;
+  }
+
+public:
+  template <bool sync = ASYNC>
+  static size_t load(const inode_t *inode, void *buf, size_t buf_sz,
+                     size_t off = 0)
+  {
+    constexpr auto read = sync ? desc.read_sync : desc.read;
+    return xfer<read>(inode, (uint8_t *)buf, buf_sz, off);
+  }
+
+  template <bool sync = ASYNC>
+  static size_t store(const inode_t *inode, const void *buf, size_t buf_sz,
+                      size_t off = 0)
+  {
+    constexpr auto write = sync ? desc.write_sync : desc.write;
+    auto nbytes = xfer<write>(inode, (uint8_t *)buf, buf_sz, off);
+
+    bool prev_invalid = inode->end == 0;
+    inode->end = max(inode->end, off + nbytes);
+
+    return nbytes;
+  }
+};
+\end{lstlisting}
+
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={Input file stream: \file{include/fs/ifstream.h}},
+    linebackgroundcolor={},
+    label={fs:ifstream}
+]
+template <auto desc>
+class ifstream
+{
+  using file_t = fs_impl_t<desc>::file_t;
+  file_t file;
+
+  static constexpr size_t buf_len = 16;
+  char buf[buf_len];
+  size_t buf_pos = buf_len;
+
+  size_t remaining;
+  size_t idx;
+  size_t offset;
+
+  inline void fetch()
+  {
+    size_t n_chars = min(remaining, buf_len);
+    file.read((uint8_t *)buf, n_chars, offset);
+
+    remaining -= n_chars;
+    offset += n_chars;
+    buf_pos = 0;
+  }
+
+public:
+  ifstream(fn_t fn, size_t sz, size_t off = 0)
+      : file{fn, O_READ}, remaining{sz}, idx{sz}, offset{off}
+  {
+  }
+
+  char operator*()
+  {
+    if (idx == 0)
+      return '\0';
+
+    if (buf_pos == buf_len)
+      fetch();
+
+    return buf[buf_pos];
+  }
+
+  ifstream &operator++()
+  {
+    if (buf_pos == buf_len)
+      fetch();
+
+    idx--;
+    buf_pos++;
+    return *this;
+  }
+\end{lstlisting}
+
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={Output file stream: \file{include/fs/ofstream.h}},
+    linebackgroundcolor={},
+    label={fs:ofstream}
+]
+template <auto desc>
+class ofstream
+{
+  using file_t = fs_impl_t<desc>::file_t;
+  file_t file;
+
+  static constexpr size_t buf_len = 16;
+  char buf[buf_len];
+  size_t buf_pos = 0;
+
+  size_t offset;
+
+  void flush()
+  {
+    if (buf_pos != 0) {
+      file.write(buf, buf_pos, offset);
+      offset += buf_pos;
+      buf_pos = 0;
+    }
+  }
+
+public:
+  ofstream(fn_t fn, uint32_t flags = 0)
+      : file{fn, flags | O_WRITE | O_CHAR_FILE}, offset{0}
+  {
+  }
+
+  void seek(size_t off) { offset = off == EOF ? file.fend() : off; }
+
+  void putc(char c)
+  {
+    if (buf_pos == buf_len)
+      flush();
+    buf[buf_pos++] = c;
+  }
+
+  template <typename... Args>
+  void printf(Args... args)
+  {
+    do_printf(*this, std::forward<Args>(args)...);
+  }
+};
+\end{lstlisting}
+
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={File handler, file opening and closing sequence},
+    linebackgroundcolor={}
+]
+class file_t {
+  fd_t *fd = nullptr;
+  /* memory mapping information */
+
+public:
+
+  file_t(fn_t fn, size_t sz, uint32_t flags) {
+    fd = find_fd(fn); // first find available file descriptor
+
+    // then open the file, getting the inode
+    auto [inode, _new_file] = fs.open(fn, sz, flags);
+
+    // if the file is already open
+    if (fd->fn == fn) {
+      assert(!_new_file && fd->inode == inode, H_RESET);
+
+      fd->r_cnt++;
+      fd->w_cnt += w_en;
+      return;
+    }
+
+    // otherwise set up the file descriptor
+    fd->fn = fn;
+    fd->inode = inode;
+
+    fd->mu = mmap_unit_t{};
+    fd->r_cnt = 1;
+    fd->w_cnt = w_en;
+  }
+
+  ~file_t() {
+    if (fd != nullptr) // if it's not alrady closed
+      close();
+  }
+
+  void close() {
+    unmap();
+
+    fd->r_cnt--;
+    fd->w_cnt -= w_en;
+
+    fs.close(fd->inode);
+
+    // last reference
+    if (fd->r_cnt == 0) {
+      fd->fn = null_fn;
+      fd->inode = nullptr;
+      fd->mu = mmap_unit_t{};
+    }
+
+    fd = nullptr;
+  }
+};
+
+\end{lstlisting}

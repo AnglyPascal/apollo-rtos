@@ -1,195 +1,120 @@
 \section{Error Handling and Recovery}
 \label{sec:rec}
 
-For a critical mission like the Apollo program, where astronauts' lives depended on
-flawless execution, thorough testing of the entire codebase was essential. However, no
-matter how well-tested a system is, some errors only show up randomly due to hardware
-faults or unforeseen corner cases. To handle such situations, the AGC’s operating
-system had a robust error handling and recovery mechanism.
+Linux invests significant resources into isolating, detecting, and recovering from
+runtime errors, whether caused by external events or internal bugs. However, on
+resource-constrained hardware like the Cortex-M0 or the AGC, such extensive error
+handling is nearly impossible due to hardware limitations. Instead, the AGC developers
+adopted a radically simpler approach: perform a clean system restart after any detected
+error.
 
-Because of the thorough testing during development, the AGC developers assumed that any
-error occurring at runtime was likely from some external source rather than a software
-bug. This made the age-old solution of “just rebooting it” a reasonable recovery
-strategy.
+Of course, an unexpected restart during a critical operation could leave the system in
+an undefined state. To mitigate this, the AGC introduced a mechanism allowing processes
+to register recovery routines. Similarly, Apollo-RTOS adopts this strategy: critical
+processes can register recovery table entries so that, if an error triggers a restart,
+the system can recover to a safe state.
 
-Of course, an unexpected restart during a critical operation could cause problems. To
-mitigate this, the AGC maintained a restart table, where processes could store recovery
-information, ensuring they could resume correctly after a reset.
+Despite its simplicity, this strategy proves highly effective on small systems, as
+demonstrated by the success of the Apollo missions themselves.
 
-Apollo-RTOS follows a similar strategy for error handling and recovery. Before
-explaining the implementation, we need to discuss how the system determines its current
-state.
+\subsection{Error Handling}
 
-\subsection{Boot Levels}
+Since the Cortex-M0 lacks a memory protection unit (MPU) for RAM, it is practically
+impossible to detect memory corruption caused by unauthorized writes at the hardware
+level—just as it was in the AGC. Consequently, error detection must be implemented
+entirely in software.
 
-From an error-handling perspective, the device can be in one of four states:
+Apollo-RTOS follows a similar philosophy to the AGC. Error detection is performed
+through extensive software checks: function arguments and critical memory locations are
+validated using assertions. This is carried out via calls to
+\lstinline[style=myagc]|assert|, which verifies conditions and, upon failure, triggers
+appropriate recovery procedures.
+
+An error can have three levels of severity:
 \begin{itemize}
-    \item \texttt{FLASH} – The device has just been flashed. Everything is shiny and
-        new, and all hardware has been reset.
-    \item \texttt{POWER} – The device was unplugged and powered back on, resulting in a
-        state similar to \texttt{FLASH}.
-    \item \texttt{BOOT} – The reset button was pressed, causing a full restart, though
-        some registers may retain their values.
-    \item \texttt{RESET} – A software reset occurred. RAM contents are retained, but
-        execution restarts from the beginning.
-\end{itemize}
-According to the Nordic nRF51 technical reference manual \citep{board_trm}, RAM
-contents are retained in a soft reset, but may be corrupted in other forms of reset.
-
-Now, suppose an error occurs. There are three ways to handle it:
-\begin{itemize}
-    \item Terminate the faulty process and let the system continue.
-    \item Trigger a soft reset, rebooting the entire system automatically.
-    \item Halt and wait for manual intervention, requiring a physical reset.
-\end{itemize}
-
-A power outage is a more extreme case. In theory, once the device loses power, the
-mission has already failed. But since Apollo-RTOS isn’t responsible for landing a
-spacecraft, we take a more lenient approach: when power is restored, the system
-attempts to resume major tasks that were running before the outage.
-
-\subsubsection{How to Detect Boot Stages}
-\label{sec:boot_stages}
-
-To distinguish between these boot stages, we use the retention properties of different
-memory regions:
-\begin{itemize}
-    \item \texttt{FLASH} – Flash memory is completely overwritten when reflashed. If a
-        magic value at a specific flash address is missing, we know the system was just
-        flashed.
-    \item \texttt{RESET} – Since RAM is retained during a soft reset, we store a magic
-        number at a particular RAM address. If it’s still there after a reboot, we’ve
-        had a soft reset.
-    \item \texttt{POWER} – At first power-on, the
-        \lstinline[style=myagc]|POWER.RESETREAS| register is set to . This register
-        tracks reset causes, so technically, we could use it to detect soft resets as
-        well—but we prefer the magic number solution.
-    \item \texttt{BOOT} – If none of the above conditions apply, we assume we’re in a
-        normal boot state.
-\end{itemize}
-
-All of this logic is encapsulated in the \lstinline[style=myagc]|boot| namespace, providing a simple way to determine the system’s current state and react accordingly.
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{include/code/boot.h}},
-]
-namespace boot
-{
-boot_lev_t lev(); /* tells us the current boot level */
-void init(); /* discovers what the current level is */
-} // namespace boot
-\end{lstlisting}
-
-As a demonstration, here’s what Apollo-RTOS prints on boot:
-\begin{lstlisting}[style=mytxt]
-    boot level: flash
-    boot stat: n_flash = 395, n_boot = 22, n_power = 19, n_reset = 114
-\end{lstlisting}
-This output shows the current boot level (flash) and the number of times the system has gone through different reset modes since the last FRAM file system format (one week ago).
-
-
-\subsection{Error handling}
-
-The scary part about not having a memory protection unit for the RAM is that a process
-can virtually rewrite any memory address. So in situations where we would really like
-to get a \texttt{segfault}, we will get silence, only for the system to crash horribly
-long time later.
-
-So it's up to the programmer to ensure that the programs are free of bugs. The best way
-to ensure that is by having lots of checks throughout the code that checks parameters,
-results of calcuations, and anything that could go wrong.
-
-The C-header \texttt{<assert>} provides a macro \lstinline[style=myagc]|assert| that
-allows us to check that something holds, throwing an error if it doesn't. Since we
-don't have a mechanism for throwing errors in our microcontroller, we have to implement
-our own \lstinline[style=myagc]|assert|.
-
-Before that, let's talk about how we debug things in a microcontroller. The only true
-answer to that question is: by printing stuff. So we need an implementation of
-\lstinline[style=myagc]|printf|. This \lstinline[style=myagc]|printf| implementation in
-Apollo-RTOS uses a buffer to send characters over the serial bus asynchronously. So we
-also provide a blocking implementation in \lstinline[style=myagc]|kprintf|. We then can
-implement a convenience function \lstinline[style=myagc]|debug|, which only outputs
-stuff if the debug level is high enough.
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{include/utility/debug.h}},
-]
-template <debug_t level, typename... Args>
-void debug(const char *fmt, Args... args)
-{
-  if constexpr (level <= DEBUG_LEV) {
-    if constexpr (level <= ERROR)
-      kprintf(fmt, args...);
-    else
-      printf(fmt, args...);
-  }
-}
-\end{lstlisting}
-
-With that, we can now implement a lightweight \lstinline[style=myagc]|assert| method.
-We use the macro as \lstinline[style=myagc]|assert(expr, lev)| expecting to cause a
-reset at the level \lstinline[style=myagc]|lev| if the expression
-\lstinline[style=myagc]|expr| evaluates to \lstinline[style=myagc]|false|.
-\lstinline[style=myagc]|lev| can be one of the three values:
-\begin{itemize}
-    \item \lstinline[style=myagc]|H_RESET|: causes a hardware reset if the assertion is
-        false,
-    \item \lstinline[style=myagc]|S_RESET|: causes a soft reset,
-    \item \lstinline[style=myagc]|TERM|: terminates the current process.
+    \item \lstinline[style=myagc]|H_RESET|: A hardware reset of the device is required.
+    \item \lstinline[style=myagc]|S_RESET|: A system-wide software reset is sufficient.
+    \item \lstinline[style=myagc]|TERM|: Only the faulty process must be terminated.
 \end{itemize}
 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{include/utility/debug.h}},
-    linebackgroundcolor={\line{5} \line{11} \line{15} \line{18} \line{21}}
+    caption={\file{include/utility/debug.h}},
+    linebackgroundcolor={\line{5}\line{26} \lines{10}{11} \lines{16}{17} \lines{21}{22}},
+    emph={[6]reset_lev_t},
+    emphstyle={[6]\typestyle},
+    emph={[7]__assert, trigger_hardfault, trigger_reset, trigger_term, HARDFAULT_MAGIC,
+    __FILENAME__, __LINE__},
+    emphstyle={[7]\stdlibstyle},
 ]
-template <auto lev, typename... Args>
-void __assert(bool ex, Args... args)
+template <reset_lev_t lev, typename... Args>
+void __assert(bool ex, const char *file, uint32_t line, Args &&...args)
 {
-  if (ex) 
-    return; // everything under control
+  if (ex)
+    return;
 
   if constexpr (lev == H_RESET) {
-    if constexpr (sizeof...(args) != 0)
-      /* print debug information */
-
-    return trigger_hardfault(); // halt for manual intervention
+    /* if any debug statement is supplied in args, print it */
+    /* copy file name and line number to registers r0, r1 */
+    return trigger_hardfault(); 
+        // print debug information and wait for manual intervention
   }
 
-  if constexpr (lev == S_RESET)
-    return trigger_reset(); // cause a soft reset
+  if constexpr (lev == S_RESET) {
+    /* print debug statement */
+    return trigger_reset();
+        // cause the system to restart automatically
+  }
 
-  if constexpr (lev == TERM)
-    return trigger_termination(); // terminate the current process
+  if constexpr (lev == TERM) {
+    return trigger_term(file, line);
+        // terminate the faulty process and carry on normally
+  }
 }
 
-#define assert(EX, LEV, ...) __assert<LEV>((EX), ##__VA_ARGS__)
+#define assert(EX, LEV, ...) __assert<LEV>((EX), __FILENAME__, __LINE__)
 \end{lstlisting}
 
-
-To halt for manual intervention, we trigger a hardfault, which calls the
-\lstinline[style=myagc]|hardfault_handler|. In the hardfault, the system prints some
-debug information and waits in a loop for either a soft reset caused by pressing
-CTRL(d), or a pin reset. Interrupts are also automatically disabled in the hardfault
-handler.
+Once a hardfault interrupt is raised, hardware pushes some registers onto the stack as
+described in \autoref{hard_context}. In the \lstinline[style=myagc]|hardfault_handler|
+we first manually push the software saved registers \autoref{soft_context} onto the
+stack, completing the context frame. The handler then prints available debug
+information, offering two recovery options:
+\begin{itemize}
+    \item Manual intervention by pressing \texttt{<CTRL+D>} to trigger a software
+        reset.
+    \item Performing a hardware reset by manually pressing the reset button on the
+        board.
+\end{itemize}
 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{src/core/hardfault.cpp}},
+    caption={\file{src/core/hardfault.cpp}},
+    emph={[6]context_t, __extern_C__},
+    emphstyle={[6]\typestyle},
+    emph={[7]__assert, trigger_hardfault, trigger_reset, trigger_term, CTRL,
+    hardfault_handler_body},
+    emphstyle={[7]\stdlibstyle},
 ]
-extern "C" void hardfault_handler()
+__extern_C__ void hardfault_handler_body(context_t *fault_stack)
 {
-  // ... print the pc and lr registers from the faulted stack frame 
+  // disable all interrupts
 
-  while (true) {
+  if (/* hardfault was triggered by an assert statement */) {
+    /* print the source file name and line number */
+  }
+
+  /* print the context listing all register values
+   * right before the hardfault */
+
+  while (1) {
     switch (serial::getc()) {
-    case CTRL('d'): 
-      trigger_reset();  // soft reset can be raised from a hardfault
+    case CTRL('d'):
+      trigger_reset();
       break;
 
     case '?':
-      // dump debug information
+      /* print a trace of the system resources */
       break;
     }
   }
@@ -197,292 +122,159 @@ extern "C" void hardfault_handler()
 \end{lstlisting}
 
 
-\subsection{Recovery}
+\subsection{Recovery Table}
+\label{sec:rec_tbl}
 
-Now that we've handled the errors and caused an appropriate reset, we can talk about
-how the recovery mechanism actually works. 
-
-The recovery mechanism keeps a table where recovery information is stored. Upon
-entering a critical section that needs to be protected against a reset, a process or a
-task added an entry to this table that describes what to do after a restart if a reset
-were to happen while the process or the task was still in the critical section.
-
-To be able to recover from a power off reset, this recovery table is stored in a file
-in the FRAM file system. Everytime a process or a task updates an entry in the table,
-the relevant portion of the table is updated in the FRAM as well.
-
-Recovery of processses and tasks are handled differently. So we will explain them
-separately.
-
-
-\subsubsection{Recovering a process}
-
-The only meaningful recovery mechanism for a process is to just restart the process.
-But the process needs to know which state it was when it was interrupted by the reset,
-so there's a \texttt{20B} long unstructured storage in the recovery table entry where
-the process can store information about it's last running state. When the process is
-restarted by the recovery mechanism, this data is passed to the process as the
-parameter. The process should then decide how to proceed from there.
-
-A recovery entry for a process looks like this (the actual implementation differs in
-structure, but has the same fields). The \lstinline[style=myagc]|recover| function is
-called when the system restarts, and notices that this entry is occupied by a process.
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/recover.cpp}},
-    linebackgroundcolor={\line{2} \line{5} \line{19} \lines{15}{16} \line{8}}
-]
-struct alignas(uint32_t) entry_proc_t {
-  const proc_def_t *proc_def;
-  lev_t lev = NONE; // discussed later
-
-  uint8_t data[N_REC_DATA];
-  uint8_t data_sz;
-
-  void recover(lev_t curr_lev)
-  {
-    if (lev < curr_lev)
-      return;
- 
-    uint8_t *copied_data = nullptr
-    if (data_sz > 0) {
-      copied_data = (uint8_t *)kmem::kmalloc(data_sz);
-      _memcpy(copied_data, data, data_sz);
-    }
-
-    sched::reg_proc(proc_def, copied_data);
-  }
-}
-\end{lstlisting}
-
-Notice the field \lstinline[style=myagc]|lev_t lev| in the entry. There can be three
-levels of recovery:
+When a process or a function enters a critical section, it can be unexpectedly
+terminated by three main causes:
 \begin{itemize}
-    \item \lstinline[style=myagc]|NONE|: the default, no process is occupying this
-        entry, so nothing is recovered from this entry.
-    \item \lstinline[style=myagc]|RESET|: the process occupying this entry should be
-        restarted after hardware and soft reset.
-    \item \lstinline[style=myagc]|POWER_OFF|: the process in this entry should also be
-        started after a power on reset. This is the highest level, so a process with
-        recovery level \lstinline[style=myagc]|POWER_OFF| is also restarted during a
-        hardware or soft reset.
+    \item A hardware reset caused by pressing the power button,
+    \item An unexpected loss of power, or
+    \item A software-triggered reset following error detection.
+\end{itemize}
+We assume that a hardware reset is a deliberate action to restart everything from
+scratch. This leaves the other two scenarios, which critical sections must be protected
+against.
+
+On the frontend, two RAII classes allow a process or function to set up recovery table
+entries:
+\begin{itemize}
+    \item \lstinline[style=myagc]|guard_proc|: Used by a process to declare, ``I am
+        entering a critical section; if a reset occurs, restart me with this recovery
+        data.'' Upon recovery, the process can decide how to proceed based on the stored
+        data.
+    \item \lstinline[style=myagc]|guard_task|: Used by a process or function to register
+        a task that must be executed at the next startup if a reset occurs mid-critical
+        section. This is useful for cleanup or initiating new processes.
 \end{itemize}
 
-When a process exits its critical section, it should remove or change it's recovery
-policy. It does so by setting the entry level to \lstinline[style=myagc]|NONE|. The
-entry then can be reused by other processes to set their recovery policy. This
-``acquire" and then ``release'' sequence sounds like it could be made into RAII, and
-that's what we have:
+Recovery entries can be associated with two levels:
+\begin{itemize}
+    \item \lstinline[style=myagc]|RESET|: Recover from both a software reset and a power
+        failure.
+    \item \lstinline[style=myagc]|POWER_OFF|: Recover only from a power failure.
+\end{itemize}
 
 \begin{lstlisting}[
     style=myagc,
-    title={\file{include/core/recover.h}},
-    linebackgroundcolor={}
+    caption={\file{include/core/recover.h}},
+    emph={[6]rec_id_t},
+    emphstyle={[6]\typestyle},
+    linebackgroundcolor={\line{4} \lines{12}{13}},
 ]
 struct guard_proc {
-private:
-  size_t recovery_table_entry;
+  // setup a recovery table entry at the start of the critical section
+  //   to restart the current process 
+  guard_proc(lev_t lev, const uint8_t *data = nullptr, size_t data_sz = 0);
 
-public:
-  // acquire an entry, set the current process' recovery level to lev, 
-  // and store the data
-  guard_proc(lev_t lev, const uint8_t *data, size_t data_sz);
-
-  // convenience
-  template <typename T>
-  guard_proc(lev_t lev, const T &data)
-      : guard_proc(lev, (const uint8_t *)&data, sizeof(T)) {}
-
-  // release the entry by setting the recovery level to NONE
+  // remove the entry when exiting from the critical sectino
   ~guard_proc();
+};
+
+struct guard_task {
+  // setup a recovery task to be run at startup 
+  guard_task(lev_t lev, runnable_t task, time_t interval = 0,
+             const uint8_t *data = nullptr, size_t data_sz = 0);
+
+  ~guard_task();
 };
 \end{lstlisting}
 
-With this setup, we can use it in practice just by writing
-
-\begin{lstlisting}[style=myagc]
-{ /* start of process */ 
-  ...
-  { /* start of critical section */
-    int i = /* whatever */;
-    recover::guard_proc guard{POWER_OFF, i};
-
-    // ... do critical stuff
-
-  } /* recovery table entry is automatically released */
-  ...
-}
-\end{lstlisting}
-
-
-
-\subsubsection{Recovering a task}
-
-Recovery of a task is similar to recoverying a process, but instead of restarting the
-original task, the task can assign any arbitrary function to be run during startup. 
-
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/recover.cpp}},
-    linebackgroundcolor={\lines{2}{3} \line{6} \line{17} \line{19}}
-]
-struct alignas(uint32_t) entry_task_t {
-  time_t interval = 0;
-  runnable_t task = nullptr;
-  lev_t lev = NONE; // discussed later
-
-  uint8_t data[N_REC_DATA];
-  uint8_t data_sz;
-
-  void recover(lev_t curr_lev)
-  {
-    if (lev < curr_lev)
-      return;
- 
-    uint8_t *copied_data = /* copy data here */;
-
-    if (interval == 0)
-      task(copied_data);
-    else
-      waitlist::reg("recover", interval, task, copied_data);
-  }
-}
-\end{lstlisting}
-
-And similar to \lstinline[style=myagc]|guard_proc| above, there is a RAII class
-\lstinline[style=myagc]|guard_task| that acquires a recovery entry for a task at the
-start of a critical section and
-releases it and the end of the section automatically:
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{apollo/test.cpp}},
-    linebackgroundcolor={}
-]
-void reset_task_test()
-{
-  { /* start of critical section */
-    auto cleanup = [](void *p) { /* whatever */ };
-    recover::guard_task guard{RESET, cleanup, 0, /*data to be passed*/}; 
-    // run cleanup immediately after restart
-    
-    // ... do stuff
-  }
-
-  /* no recovery after task has completed the critical section */
-}
-\end{lstlisting}
-
-
-
-\subsection{Recovery at the startup}
-\label{sec:rec_init}
-
-So far we have seen how processes and tasks declare the policy for recovering them from
-a reset. Where in the boot sequence is this recovery done? To understand that, we need
-to understand how the boot sequence in a microcontroller like \texttt{micro:bit} works.
-
-When the \texttt{micro:bit} starts, it reads off the stack address from the address
-\lstinline[style=myagc]|0x0| and loads it to the \lstinline[style=myagc]|sp| regisster.
-It then starts executing the code from the instruction stored at address
-\lstinline[style=myagc]|0x4|. It's apparent when we look at the vector table:
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/vector\_table.c}},
-    linebackgroundcolor={}
-]
-__attribute((section(".vectors"))) void *__vectors[] = {
-    __stack, // Initial Main Stack Pointer (MSP) value
-    __reset, // Reset Handler: Entry point after power-up or reset
-
-    ... // interrupt handlers
-}
-\end{lstlisting}
-This vector table lists all the interrupt handlers as well. This table is placed at the
-address \lstinline[style=myagc]|0x0| by the linker. 
-
-So it is this \lstinline[style=myagc]|__reset| function where our execution begins.
-If we have a look at the \lstinline[style=myagc]|__reset| function,
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/startup.cpp}},
-    linebackgroundcolor={\line{8}}
-]
-extern "C" void __reset(void)
-{
-  // ... activate the clock
-  // ... setup memory protection for the code area
-  // ... initialize data sections like .data and .bss
-  // ... initialization for various modules and drivers
-
-  sched::init();
-}
-\end{lstlisting}
-It's the line 8 that actually sets up all the startup processes, and starts execution
-from the idle process as discussed in \autoref{sec:idle_proc}. After registering the
-idle process, \lstinline[style=myagc]|sched::init| must set up the rest of the
-processes. This is where it calls the two functions:
-\begin{lstlisting}[
-    style=myagc,
-    title={\file{src/core/sched.cpp}},
-    linebackgroundcolor={\lines{5}{6}}
-]
-void sched::init()
-{
-  // setup init_proc
-
-  setup_startups();
-  recover::init();
-
-  timer::init(); // start the timer
-
-  // jump to init_proc
-}
-\end{lstlisting}
-
-\lstinline[style=myagc]|setup_startups| sets up processes that MUST run at the beginning
-no matter what. Currently there are two processes \lstinline[style=myagc]|shell| and
-\lstinline[style=myagc]|display| that are run as part of the startups.
-\lstinline[style=myagc]|shell| implements the Linux like command prompt, and
-\lstinline[style=myagc]|display| handles displaying images on the LEDs.
-
-We're more interested in \lstinline[style=myagc]|recover::init|. This function first
-checks what the boot level is, and whether this startup was due to a soft reset or a
-power on reset. 
+Internally, the recovery mechanism is backed by two tables:
 \begin{itemize}
-    \item If this startup was due to the device being freshly flashed, or if it was due
-        to the \texttt{pin reset}, then \lstinline[style=myagc]|recover::init| setups
-        up another set of startup processes. For example, it sets up a driver process
-        called \lstinline[style=myagc]|accel| that constantly read from the
-        accelerometer and stores the data in a file that other processes can access. 
-    \item However, if the startup was due to a \lstinline[style=myagc]|soft reset| or a
-        power on reset, then the recovery table is scanned for processes and tasks
-        needing to be recovered. 
+    \item \lstinline[style=myagc]|proc_tbl|: Contains entries for recovering processes.
+        Each entry includes:
+\begin{lstlisting}[
+    style=myagc,
+    emph={[6]proc_entry_t, task_entry_t},
+    emphstyle={[6]\typestyle},
+]
+struct proc_entry_t {
+  uint32_t lev; // Recovery level
+
+  const proc_def_t *proc_def;
+
+  uint8_t data[N_REC_DATA] = {0xFF};
+  uint16_t data_sz;
+};
+\end{lstlisting}
+
+    \item \lstinline[style=myagc]|task_tbl|: Contains entries for recovering tasks.
+\begin{lstlisting}[
+    style=myagc,
+    emph={[6]proc_entry_t, task_entry_t},
+    emphstyle={[6]\typestyle},
+]
+struct task_entry_t {
+  uint32_t lev; // Recovery level
+
+  runnable_t task = nullptr;
+  time_t interval = 0;
+
+  uint8_t data[N_REC_DATA] = {0xFF};
+  uint16_t data_sz;
+};
+\end{lstlisting}
 \end{itemize}
 
+The recovery tables are stored in a file on the FRAM file system, ensuring persistence
+even across power failures. When an entry is updated, only that specific entry is
+synchronized with the file system, minimizing the cost of each transaction.
+
+\paragraph*{Recovery} Upon detection of an error that issues a system reset via
+\lstinline[style=myagc]|assert|, or after a power outage, the startup code distinguishes
+whether it is recovering from a software reset or a power failure. It then carries out
+the recovery procedures according to the entries in the recovery tables.
+
 \begin{lstlisting}[
     style=myagc,
-    title={\file{src/core/recover.cpp}},
-    linebackgroundcolor={\lines{8}{9} \lines{11}{12}}
+    caption={\file{src/core/recover.cpp}},
+    emph={[6]proc_entry_t, task_entry_t},
+    emphstyle={[6]\typestyle},
+    emph={[7]recover, enabled, task},
+    emphstyle={[7]\stdlibstyle},
+    linebackgroundcolor={\line{21} \lines{23}{24} \line{35} \line{1} \line{16}},
+    label={code:recover}
 ]
-void recover::init()
+void recover(lev_t curr_lev) // recovery level: RESET or POWER_OFF
 {
-  auto file = /* open and load the recovery file containing the table */
-  auto &tbl = /* reference the recovery table */
+  for (auto &entry : task_tbl)     
+    recover(curr_lev);
 
-  auto boot_lev = boot::lev();
-  if (boot_lev == BOOT || boot_lev == FLASH) {
-    tbl.reset(); // reset the table 
-    sched::setup_procs(); // set up processes that runs at startup
-  } else {
-    auto reset_lev = boot_lev == RESET ? RESET : POWER_OFF;
-    tbl.recover(reset_lev); 
-    // recover from entries that have policy to recover at this level
-    // this also resets the entry
-  }
+  for (auto &entry : proc_tbl)     
+    recover(curr_lev);
 
-  file.store(); // finally store the now reset recover table
+  /* reset the tables */
 }
+
+struct task_entry_t {
+  ...
+  void recover(lev_t curr_lev)
+  {
+    if (!enabled(curr_lev)) // if entry is not enabled for this level
+      return;
+  
+    auto ptr = copy_data();
+    if (interval == 0)
+      task(ptr); // immediate run the task
+    else
+      waitlist::reg("recover", interval, task, ptr);
+        // or set up a waitlist task to be run later
+  }
+  ...
+};
+
+struct proc_entry_t {
+  ...
+  void recover(lev_t curr_lev)
+  {
+    if (!enabled(curr_lev))
+      return;
+    sched::reg_proc(proc_def, copy_data()); // schedule the process
+  }
+  ...
+};
 \end{lstlisting}
 
-With that set up, the execution can continue smoothly.
+
 

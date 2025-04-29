@@ -1,0 +1,216 @@
+\section{Startup Sequence}
+\label{sec:rec_init}
+
+When the \texttt{micro:bit} device starts, it reads the initial stack pointer from
+address \lstinline[style=myagc]|0x0| into the \lstinline[style=myagc]|sp| register. It
+then begins executing the code at the instruction address stored at
+\lstinline[style=myagc]|0x4|. The \lstinline[style=myagc]|__stack| and
+\lstinline[style=myagc]|__reset| symbols are placed at the start of the vector table
+along with the interrupt handlers. This table is loaded at address
+\lstinline[style=myagc]|0x0| by the linker script.
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{src/vector\_table.c}},
+]
+__attribute((section(".vectors"))) void *__vectors[] = {
+    __stack, // Initial Main Stack Pointer (MSP) value
+    __reset, // Reset Handler: Entry point after power-up or reset
+
+    ... // interrupt handlers
+};
+\end{lstlisting}
+
+It is the job of the \lstinline[style=myagc]|__reset| function to initialize the clock,
+set up memory sections, initialize hardware and drivers, run tests, and finally start
+the scheduler.
+
+\begin{lstlisting}[
+    style=myagcs,
+    caption={\file{src/startup.cpp}},
+    label={code:startup},
+    emph={[6] __extern_C__ },
+    emphstyle={[6]\typestyle},
+    emph={[7] SEC_ZERO, is_boot, clear_screen, trigger_hardfault, call_constructors},
+    emphstyle={[7]\stdlibstyle},
+    linebackgroundcolor={\lines{6}{10} \line{12} \lines{14}{17} \line{19} \lines{21}{23}},
+]
+__extern_C__ void __reset(void)
+{
+  /* Activate the crystal clock */
+  /* Set up memory protection for the first half of FLASH */
+
+  SEC_INIT(data);         
+  SEC_ZERO(bss);          +-------------------------------+
+  SEC_INIT(services);     | Initialize data sections      |
+  SEC_INIT(startups);     +-------------------------------+
+  SEC_INIT(apps);
+
+  call_constructors();    // Manually call necessary constructors
+
+  led::init();            +-------------------------------+
+  serial::init();         | Set up hardware and drivers    |
+  i2c::init();            +-------------------------------+
+  fs::init();             
+
+  boot::init();           // Identify the type of boot
+
+  recover::init();        +-------------------------------+
+  tests::run();           | Run tests and start processes  |
+  sched::init();          +-------------------------------+
+
+  // Should never get here
+  trigger_hardfault();
+}
+\end{lstlisting}
+
+\paragraph*{Initialization of Data Sections} 
+
+During linking, the linker places all static and global data structures into specific
+sections in FLASH. These must be copied to RAM at startup at pre-determined addresses.
+Thus, the first task of \lstinline[style=myagc]|__reset| is to initialize these sections.
+
+The macro \lstinline[style=myagc]|SEC_INIT| copies data from FLASH to RAM, while
+\lstinline[style=myagc]|SEC_ZERO| zero-initializes a section:
+\begin{lstlisting}[style=myagc]
+#define SEC_INIT(name) \
+  memcpy(SEC_START(name), SEC_LOAD(name), SEC_END(name) - SEC_START(name))
+
+#define SEC_ZERO(name) \
+  memset(SEC_START(name), 0, SEC_END(name) - SEC_START(name))
+\end{lstlisting}
+
+Besides the default \lstinline[style=myagc]|.bss| and \lstinline[style=myagc]|.data|
+sections, we define additional custom sections:
+\begin{itemize}
+    \item \lstinline[style=myagc]|.recover|: Is retained across soft resets.
+    \item \lstinline[style=myagc]|.services|: Stores definitions for service processes
+        (e.g., \lstinline[style=myagc]|display|, see \autoref{proc:display}) started at
+        every boot.
+    \item \lstinline[style=myagc]|.startups|: Contains processes only launched after a
+        hardware reset, not during recoveries.
+    \item \lstinline[style=myagc]|.apps|: Contains processes launchable via the shell
+        (\autoref{sec:shell}).
+\end{itemize}
+
+The testing framework also defines \lstinline[style=myagc]|.unit_tests| and
+\lstinline[style=myagc]|.sys_tests| sections for test objects (\autoref{sec:testing}).
+
+\paragraph*{Dynamic Global Object Construction} 
+
+In embedded settings, global object constructors are usually disabled for performance.
+However, some constructors (e.g., for \lstinline[style=myagc]|static_list_t|,
+\autoref{ds:list}) must run at startup. To support this, we manually define
+initializers in a special FLASH section \lstinline[style=myagc]|.init_funcs|, and call
+them explicitly via \lstinline[style=myagc,
+basicstyle=\bfseries\codestyle\codefontsize]|call_constructors|.
+
+\paragraph*{Driver Initialization} 
+
+\lstinline[style=myagc]|__reset| then initializes modules and device drivers. These
+\lstinline[style=myagc]|init| functions set up hardware peripherals and internal data
+structures as needed.
+
+\paragraph*{Boot Type Identification} 
+
+As discussed in \autoref{sec:rec_tbl}, recovery mechanisms depend on knowing the boot
+type. We distinguish among:
+\begin{itemize}
+    \item \texttt{FLASH} — Full flash programming occurred.
+    \item \texttt{POWER} — Power was disconnected and reconnected.
+    \item \texttt{BOOT} — Reset button triggered restart.
+    \item \texttt{RESET} — Software-triggered soft reset.
+\end{itemize}
+
+Detection relies on:
+\begin{itemize}
+    \item \texttt{FLASH} — Missing magic value in flash indicates reprogramming.
+    \item \texttt{RESET} — RAM-retained magic value indicates a soft reset.
+    \item \texttt{POWER} — Zeroed \lstinline[style=myagc]|POWER.RESETREAS| register
+        indicates power-on reset.
+    \item \texttt{BOOT} — Default fallback if none of the above apply.
+\end{itemize}
+
+\paragraph*{Boot Statistics} 
+
+We track and store boot type statistics in a FRAM file, printed at every startup for
+diagnostic (and amusement) purposes:
+\begin{lstlisting}[style=mytxt]
+boot level: flash
+boot stat: n_flash = 395, n_boot = 22, n_power = 19, n_reset = 114
+\end{lstlisting}
+
+This output shows the current boot level (\texttt{flash}) and counts for different reset
+modes since the last FRAM filesystem format.
+
+
+\subsection{Scheduler Initialization}
+
+After memory, hardware devices, and drivers have been initialized, the recovery table
+is set up:
+\begin{itemize}
+    \item If the boot type is \lstinline[style=myagc]|FLASH| or
+        \lstinline[style=myagc]|BOOT|, the recovery table is cleanly initialized.
+    \item Otherwise, the table is copied from its file stored in FRAM into RAM.
+    \item If the boot type is not \lstinline[style=myagc]|RESET|, the
+        \lstinline[style=myagc]|.recover| section is also copied from FLASH to RAM.
+\end{itemize}
+
+If there are tests to run, they are executed at this stage (see \autoref{sec:testing}
+for details).
+
+Finally, the scheduler is initialized:
+\begin{itemize}
+    \item The idle process is registered (\autoref{sec:idle_proc}).
+    \item Service processes are registered.
+    \item Startups are launched or recovery routines are executed, depending on the
+        boot type.
+    \item The system timer is started.
+    \item Control transfers to the idle process, which immediately yields to the
+        highest-priority process.
+\end{itemize}
+This completes the system startup.
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{src/core/sched.cpp}},
+    linebackgroundcolor={\lines{6}{7} \line{10} \line{13} \line{17} \line{21}
+    \lines{29}{30}},
+    emph={[7]setup, PROC_FUNC, intr_disable, IDLE_PID, setup_startups, recover},
+    emphstyle={[7]\stdlibstyle},
+    label={sched:init},
+    mathescape=true,
+]
+/* assign idle_task to the main process, 
+ * sets up service processes, 
+ * then enters the idle_task */
+void init()
+{
+  intr_disable(); 
+    // disable all interrupts, which will be enabled by the idle proc later
+
+  // register the idle process, and mark it as the currently running process
+  IDLE_PID = REG_PROC(idle, nullptr);
+  cpu.curr_proc = procs[IDLE_PID];
+
+  setup_services(); // register all service processes
+
+  if (/* if boot type is FLASH or BOOT */) {
+    // setup the startup processes from .startup section
+    sched::setup_startups();
+  } else {
+    // run the recovery mechanisms set in the recovery table
+    auto reset_lev = /* RESET or POWER_OFF */;
+    recover(reset_lev); // $\text{\autoref{code:recover}}$
+  }
+
+  // start the timer
+  timer::init();
+
+  // then jump to the execution of the idle task by a context switch
+  // which as seen in $\text{\autoref{sec:idle_proc}}$, immediately calls change_proc
+  cpu.curr_proc->stk_ptr = cpu.curr_proc->stack + cpu.curr_proc->stk_sz;
+  __run(PROC_FUNC(idle), &cpu.curr_proc->stk_ptr);
+}
+\end{lstlisting}
+

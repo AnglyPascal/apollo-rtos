@@ -1,5 +1,50 @@
 \section{Conclusion}
 
+Apollo-RTOS set out to explore whether the principles behind the Apollo Guidance
+Computer's operating system could be effectively adapted to a modern embedded platform.
+Through the design and implementation of a real-time operating system for the
+\texttt{micro:bit} v1, this project has shown that simple, well-structured scheduling
+and fault-tolerant techniques remain highly relevant, even on contemporary hardware.
+
+The resulting system offers deterministic scheduling, robust error recovery, file
+system support, and a Unix-like shell interface, all implemented within the limited
+resources of the \texttt{micro:bit}. Modern C++ techniques such as RAII, templates, and
+type deduction helped improve both code reliability and developer productivity. 
+
+While there are still areas for improvement—such as robust file system error detection,
+safer primitives for IPC, and more extensive testing under load—the project
+successfully meets its primary objectives. It demonstrates that careful architectural
+choices can produce lightweight yet powerful operating systems suitable for constrained
+environments.
+
+
+\subsection{Reflection}
+
+This was my first full-fledged project in embedded systems and operating systems, where
+close attention to details like memory management, synchronization, and process
+handling was essential. A key lesson was how mistakes in foundational modules—such as
+memory allocation and stack setup—can lead to difficult-to-trace bugs in unrelated
+parts of the system.
+
+Initially, the lack of a systematic testing framework made diagnosing such issues
+difficult. Unit tests for critical components like allocators and the scheduler would
+have caught many problems early; however, these were only added late in the project.
+Once the testing framework was in place, debugging and development became significantly
+more manageable.
+
+Another major improvement came from adding automatic debug information dumping in the
+hardfault handler and error messages. Early on, the lack of detailed error reporting
+greatly slowed down debugging, but once proper diagnostics were implemented, it
+dramatically accelerated development.
+
+Overall, this project has deepened my appreciation for rigorous engineering practices
+like early testing, detailed debugging, and defensive programming, all of which are
+critical for building reliable systems even on constrained hardware.
+
+
+\ifextraC
+\section{Conclusion}
+
 This project aimed to develop an operating system inspired by the Apollo Guidance
 Computer (AGC), focusing on its scheduling and error-handling algorithms. The result,
 Apollo-RTOS, reimagines the core ideas of the AGC with modern concepts, demonstrating
@@ -14,14 +59,18 @@ can achieve significant functionality. The system can concurrently run 16 proces
 serialize their execution deterministically, and handle errors gracefully, making it a
 strong candidate for real-world applications.
 
-However, there is still room for improvement. Testing in this project was limited, and
-it was impossible to explore every possible combination of events within the given
-timeframe. Many hardware features were not tested under adverse conditions, which is
-crucial before real-world deployment. Additionally, the implementation is not fully
-optimized. Memory and CPU usage were managed leniently, without strict restrictions on
-execution time. For an RTOS, strict guarantees on upper bounds for each operation are
-essential, and Apollo-RTOS currently lacks these guarantees or has not yet been tested
-for them.
+
+Despite these limitations, Apollo-RTOS highlights how historical concepts can still be
+applied in modern contexts. It also demonstrates the feasibility of creating a general
+purpose, lightweight, efficient, and reliable operating system for resource-constrained
+microcontrollers, opening new possibilities for real-world applications.
+
+
+\subsection{Reflection}
+
+
+
+\subsection{Future Work}
 
 In terms of features, Apollo-RTOS does not yet support all hardware components
 available on the \texttt{micro:bit}. Notably, it lacks drivers for the SPI bus,
@@ -29,9 +78,4 @@ watchdog timer, sensors, radio device, and others. Some limitations also stem fr
 hardware constraints of the \texttt{micro:bit} v1. For example, the Cortex M0 processor
 lacks a floating-point unit (FPU), requiring software libraries to handle
 floating-point arithmetic. Integrating such a library remains a task for future work.
-
-Despite these limitations, Apollo-RTOS highlights how historical concepts can still be
-applied in modern contexts. It also demonstrates the feasibility of creating a general
-purpose, lightweight, efficient, and reliable operating system for resource-constrained
-microcontrollers, opening new possibilities for real-world applications.
-
+\fi     

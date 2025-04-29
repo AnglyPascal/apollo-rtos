@@ -1,105 +1,45 @@
 \section{Codebase Structure}
 
-The codebase follows a standard structure, with headers residing in the
-\texttt{include/} directory and implementations in \texttt{src/}. These directories are
-further divided into subdirectories to group related files.
+The Apollo-RTOS codebase follows a conventional structure: header files reside in the
+\texttt{include/} directory, while corresponding implementations are organized under
+\texttt{src/}. These directories are further subdivided into logical groups based on
+functionality.
 
-A brief overview of the key directories and files is as follows:
+Application-level code, including shell commands and utilities, resides outside the
+core system directories. For example, the default Apollo-RTOS binary is compiled from
+both the \texttt{src/} and \texttt{apollo/} directories.
 
-\begin{itemize}[left=0pt]
-    \item \texttt{\textbf{include/}}: Contains headers for core functionality.
-        \begin{itemize}[left=0pt]
-            \item \texttt{\textbf{core/}}: Core system components.
-                \begin{itemize}[left=0pt]
-                    \item \texttt{hardware.h} --- Hardware register descriptions
-                        (adapted from \citet{microbian}).
-                    \item \texttt{types.h} --- Type aliases and constants shared across
-                        the codebase.
-                    \item \texttt{irq.h} --- Header-only interrupt handling utilities.
-                    \item \texttt{boot.h} --- Functions for retrieving the current boot
-                        level.
-                    \item \texttt{sched.h} --- Scheduler interface.
-                    \item \texttt{waitlist.h} --- Methods for registering waitlist
-                        tasks.
-                    \item \texttt{memory.h} --- Memory management utilities.
-                    \item \texttt{recover.h} --- Recovery mechanisms for processes and
-                        tasks.
-                    \item \texttt{signal.h} --- Methods for inter-process signaling.
-                \end{itemize}
-            \item \texttt{\textbf{drivers/}}: Hardware drivers.
-                \begin{itemize}[left=0pt]
-                    \item \texttt{timer.h} --- Provides system time (\texttt{now}) and
-                        profiling (\texttt{debug\_ticks}).
-                    \item \texttt{display.h} --- Convenience functions for displaying
-                        images on the LED matrix.
-                    \item \texttt{i2c.h} --- Methods for I2C communication.
-                    \item \texttt{accel.h} --- Reads accelerometer data.
-                    \item \texttt{gpio.h} --- GPIO utility functions.
-                    \item \texttt{serial.h} --- Serial I/O functions, including an
-                        interface for redirecting input from the shell to other
-                        processes.
-                \end{itemize}
-            \item \texttt{\textbf{utility/}}: General-purpose utilities.
-                \begin{itemize}[left=0pt]
-                    \item \texttt{allocator.h} --- Core memory pool allocator used by
-                        different \texttt{malloc} implementations.
-                    \item \texttt{format.h} --- Provides printf-style formatting
-                        functions.
-                    \item \texttt{debug.h} --- Conditional debugging output based on
-                        verbosity levels; also includes the \texttt{assert} macro.
-                    \item \texttt{mutex.h} --- Lightweight mutex implementation using
-                        wait queues and \texttt{sleep/wakeup} from \texttt{sched.h}.
-                    \item \texttt{profile.h} --- Macros for enabling function and
-                        process profiling.
-                    \item \texttt{args.h} --- Data structures for passing command-line
-                        arguments to processes.
-                    \item \texttt{bitset.h} --- Bitset implementation.
-                    \item \texttt{circular\_buffer.h} --- Circular buffer
-                        implementation.
-                \end{itemize}
-            \item \texttt{\textbf{fs/}}: Header-only file system implementation
-                (detailed later).
-                \begin{itemize}[left=0pt]
-                    \item \texttt{fs\_bck.h} --- Backend for reading/writing device
-                        storage.
-                    \item \texttt{fs\_impl.h} --- Manages open files, runtime memory
-                        maps, and file access.
-                    \item \texttt{fs\_desc.h} --- Type definitions for template-based
-                        file system operations.
-                    \item \texttt{fs.h} --- Top-level file system interface, enabling
-                        separate instances for FLASH and FRAM storage.
-                \end{itemize}
-        \end{itemize}
-    \item \texttt{\textbf{src/}}: Mirrors \texttt{include/}, implementing the
-        corresponding functionality.
-        \begin{itemize}[left=0pt]
-            \item \texttt{vector\_table.c} --- Defines the interrupt vector table.
-            \item \texttt{mpx.s} --- Handles context switching logic.
-            \item \texttt{device.ld} --- Linker script defining memory layout.
-            \item \texttt{startup.cpp} --- Initializes data sections and sets up core
-                system modules.
-                \end{itemize}
-    \item \texttt{\textbf{apollo/}}: Defines processes and built-in shell commands for
-        Apollo-RTOS.
-    \item \texttt{\textbf{tests/}}: Contains test cases demonstrating various aspects
-        of the system.
-\end{itemize}
+A brief overview of the key directories and files is presented below:
+
+
+\lstinputlisting[
+    style=mytxt,
+    % caption={Static linked list: \file{include/utility/list.h}},
+    % label={ds:list},
+    emph={[6] include, src, core, drivers, fs, utility, apollo, tests, recovery, lib,
+    mem},
+    emphstyle={[6]\stdlibstyle},
+]{code/t}
+
 
 \begin{center}
 \begin{minipage}{.9\linewidth}
-\begin{lstlisting}[style=mytxt]
-==================================================================
- Language       Files      Lines       Code    Comments    Blanks
-==================================================================
- Assembly           1         98         55         28         15
- C                  1        114         83         11         20
- C++ Header        31       3402       2646        120        636
- C++               27       2694       2128         75        491
-==================================================================
- Total             60       6308       4912        234       1162
-==================================================================
+\begin{lstlisting}[
+    style=mytxt,
+    linebackgroundcolor={\line{10}},
+]
+===========================================================================
+ Language       Files        Lines         Code       Comments      Blanks
+===========================================================================
+ Assembly          1           90           50           28           12
+ Autoconf          1          131          109            5           17
+ C                 1          114           83           11           20
+ C Header         42         4870         3774          131          965
+ C++              43         4730         3718           90          922
+===========================================================================
+ Total            88         9935         7734          265         1936
+===========================================================================
 \end{lstlisting}
 \end{minipage}
 \end{center}
-
 

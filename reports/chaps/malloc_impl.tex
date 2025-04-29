@@ -1,0 +1,52 @@
+\subsection{Malloc and Free}
+
+\begin{lstlisting}[
+    style=myagc, 
+    caption={\file{src/core/memory.cpp}},
+    linebackgroundcolor={\line{3} \line{17} \line{22} \line{30} \line{38}{40}},
+    label={impl:malloc},
+]
+namespace kmem
+{
+allocator<alloc_heap, 8> kpool;
+
+void *kmalloc(size_t sz) { return kpool.alloc(sz); }
+
+void kfree(void *ptr) 
+{
+  if (ptr == nullptr) 
+    return;
+  kpool.dealloc((byte_t *)ptr);
+}
+} // namespace kmem
+
+namespace heap
+{
+allocator<alloc_heap, 8> pool;
+
+void *malloc(size_t sz)
+{
+  byte_t *ptr = pool.alloc(sz);
+  /* insert chunk to the current process' allocated list */
+  return ptr;
+}
+
+void free(void *ptr)
+{
+  if (ptr == nullptr)
+    return;
+  /* remove chunk from process' allocated list */
+  pool.dealloc((byte_t *)ptr);
+}
+
+// called at process teardown
+void cleanup(chunk_t *hd)
+{
+  while (hd->next != nullptr) {
+    auto ptr = (byte_t *)hd->next + sizeof(chunk_t);
+    /* remove hd->next from the list */
+    pool.dealloc(ptr);
+  }
+}
+} // namespace heap
+\end{lstlisting}

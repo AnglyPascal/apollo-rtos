@@ -2,4 +2,81 @@
 \renewcommand{\thesection}{\Alph{section}}
 \renewcommand{\thesubsection}{\thesection.\Roman{subsection}}
 
+\renewcommand\codestyle{\linespread{1}\ttfamily\codefontsize}
+
 \input{chaps/codebase}
+
+
+\section{Data Structures}
+
+\subsection{Linked List}
+
+\lstinputlisting[
+    style=myagc,
+    caption={Static linked list: \file{include/utility/list.h}},
+    label={ds:list},
+    emph={[6]_node_t, static_list_t, iterator, pointer, reference, value_type },
+    emphstyle={[6]\typestyle},
+]{code/list.h}
+
+
+\subsection{Allocator}
+
+\lstinputlisting[
+    style=myagc,
+    caption={Memory Allocator: \file{include/utility/allocator.h}},
+    label={ds:allocator},
+    emph={[6] alloc_func, init_list },
+    emphstyle={[6]\stdlibstyle},
+]{code/allocator.h}
+
+
+\subsection{Bitset}
+
+\lstinputlisting[
+    style=myagc,
+    caption={Bitset: \file{include/utility/bitset.h}},
+    label={ds:bitset},
+    emph={[6] byte_and_msk, set_all },
+    emphstyle={[6]\stdlibstyle},
+]{code/bitset.h}
+
+
+\subsection{Stack}
+
+\lstinputlisting[
+    style=myagc,
+    caption={Stack: \file{include/utility/stack.h}},
+    label={ds:stack},
+    emph={[6]},
+    emphstyle={[6]\stdlibstyle},
+]{code/stack.h}
+
+\subsection{Shell Command Arguments}
+
+\lstinputlisting[
+    style=myagc,
+    caption={Arguments to Shell Sommands: \file{include/utility/args.h}},
+    label={ds:args},
+    emph={[6]},
+    emphstyle={[6]\stdlibstyle},
+]{code/args.h}
+
+
+\section{Details on Implementation}
+
+\input{chaps/malloc_impl}
+\input{chaps/fs_details}
+\input{chaps/i2c_async}
+% \input{chaps/shell}
+
+\section{Tests}
+
+\lstinputlisting[
+    style=mytty,
+    caption={Available tests to Apollo RTOS, all passing},
+    label={sec:avail_tests},
+    emph={[6]args_parser, bitset, circular_buffer, stack, static_list, allocator,
+    malloc, memlib, file_system, scheduler},
+    emphstyle={[6]\stdlibstyle},
+]{code/tests.sh}

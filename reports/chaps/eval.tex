@@ -1,38 +1,34 @@
 \section{Evaluation and Testing}
 \label{sec:testing}
 
-Our goal was to write an automated testing framework that'll allow one to write unit,
-subsystem and bevioural tests that are run in isolation of each other. Several factors
-made this endeavor quite involved:
+Apollo-RTOS includes a fully automated testing framework for unit and subsystem tests.
+Developing for an embedded microcontroller introduced several unique challenges in the
+framework's design.
+
 \begin{itemize}
-    \item The monolithic design of the operating system makes it difficult to verify
-        and test each module in isolation. As a result, mistakes in one module can (and
-        it did) manifest in seemingly irrelevant places, making it very difficult to
-        track down the bugs.
-    \item The tests need to be run on the actual microcontroller instead of an
-        emulator. The problem with that is that copying a binary to the device is a
-        rather slow process. So to write an automated testing system, all the tests
-        need to be shipped together and copied to the device in a singular binary. So
-        it is upto the testing framework to run the tests in isolation.
-    \item Unit tests that verify core functionality like \lstinline[style=myagc]|malloc| or
-        \lstinline[style=myagc]|file|s need to be run independently of the scheduler.
-        So these tests must be run before the scheduler is initialized.
+    \item The monolithic design of the OS complicated module-level testing, as faults
+        in one module could manifest in unrelated areas, making bug tracking difficult.
 
-        Tests for the scheduler and other behavioral tests that verify collaboration
-        between different modules need to be run with the scheduler initialized.
+    \item Tests needed to run on the physical device rather than an emulator. Since
+        copying binaries to the device is time-consuming, all tests were compiled into
+        a single binary. The framework ensures strict isolation between tests at
+        runtime.
 
-        Furthermore, each individual test must be run in full isolation, so that
-        misbehavior in one module might not effect the behaviour of another.
+    \item Core functionality tests (e.g., \lstinline[style=myagc]|malloc|,
+        \lstinline[style=myagc]|file|) must run before scheduler initialization, while
+        behavioral tests (e.g., scheduler cooperation) require an active scheduler.
+        Full isolation between tests was necessary to prevent cascading failures across
+        modules.
 \end{itemize}
 
-With these constraints in mind, we designed a testing framework. The design is slightly
-inpired by the Boost.Test library \citep{boost_test}, with macros that automatically
-register tests. We first give a brief overview of the testing framework before
-discussing the tests currently available for the OS.
+The testing framework provides a \texttt{Boost.Test}-like interface \citep{boost_test},
+using macros to register tests automatically. We first present a brief overview of the
+framework before discussing the tests currently available for Apollo-RTOS.
+
 
 \subsection{Testing Framework}
 
-Each ``test'' is described by a test descriptor of the format:
+Each test is described by a descriptor of the form:
 \begin{lstlisting}[style=myagc]
 struct test_t {
   const char *name;     // name of the test
@@ -41,84 +37,178 @@ struct test_t {
 };
 \end{lstlisting}
 
-There are two sections in the binary file to store test descriptors:
-\lstinline[style=myagc]|.unit_tests| and \lstinline[style=myagc]|.sys_tests|. Unit
-tests meant to be run before the scheduler is initialized are placed in the former
-section, and tests to be run with the scheduler are placed in the latter.
+Two dedicated sections in the binary, \lstinline[style=myagc]|.unit_tests| and
+\lstinline[style=myagc]|.sys_tests|, store the test descriptors. Unit tests that must
+run before scheduler initialization are placed in the former, and tests that require
+the scheduler are placed in the latter.
 
-There are two macros available in the \lstinline[style=myagc]|include/core/test.h|
-header file:
+Tests are registered via two macros in \lstinline[style=myagc]|include/core/test.h|:
 \begin{lstlisting}[style=myagc]
-#define TEST(name) ... 
-#define SYS_TEST(name) ...
+#define TEST(name) ...      // registers in .unit_tests
+#define SYS_TEST(name) ...  // registers in .sys_tests
 \end{lstlisting}
-which are used as follows:
+Grouped tests can be declared using:
 \begin{lstlisting}[style=myagc]
-namespace TEST_SUITE(test_suite) {
-TEST(test_name) {
-  ...
-  return true;
-}
-}
+#define BEGIN_SUITE(name) ...
+#define END_SUITE(name) ...
 \end{lstlisting}
-The macro \lstinline[style=myagc]|TEST| defines a test descriptor for the test, places
-it in the \lstinline[style=myagc]|.unit_tests| section. Similarly for
-\lstinline[style=myagc]|SYS_TEST| macro.
+Suites can be selectively compiled and run, e.g.,
+\begin{lstlisting}[style=mybash]
+cmake -DTEST_SUITES="malloc;sched_basic;ifstream" .; make tests
+\end{lstlisting}
+runs only the selected suites, while
+\begin{lstlisting}[style=mybash]
+cmake -DTEST_SUITES="" .; make tests
+\end{lstlisting}
+runs all tests.
 
-
-During startup, before the scheduler is initialized, the tests are run. The algorithm
-is as follows:
+At startup, before the scheduler initializes, \lstinline[style=myagc]|tests::run()| is
+called (\autoref{code:startup}:22):
 \begin{itemize}
-    \item During startup and before scheduler initialization,
-        \lstinline[style=myagc]|test::run()| method is called.
-    \item If the boot stage is not \lstinline[style=myagc]|RESET| (defined in
-    \autoref{sec:boot_stages}), \lstinline[style=myagc]|test::run()| initializes the
-    two sections \lstinline[style=myagc]|.unit_tests, .sys_tests|.
-    \item It then starts running the tests in the \lstinline[style=myagc]|.unit_tests|
-    section. For each test in this section, 
-        \begin{itemize}
-            \item It calls the test function, storing the result in address stored in
-                \lstinline[style=myagc]|passed|. 
-            \item The memory pointed to by \lstinline[style=myagc]|passed| is in the
-                \lstinline[style=myagc]|.recovery| section which is not erased during
-                soft resets.
-            \item \lstinline[style=myagc]|test::run()| then triggers a soft-reset,
-                causing the whole system to restart. The system then follows this same
-                path here, and carries on to the next test.
-        \end{itemize}
-    \item After running all the \lstinline[style=myagc]|.unit_tests|,
-        \lstinline[style=myagc]|test::run()| then schedules a process that runs the
-        tests in \lstinline[style=myagc]|.sys_tests| similarly to above. 
-    \item It then hands control back to the startup method, which initializes the
-        scheduler, and conitnues to running the system tests.
-    \item To run one system tests, the whole system is restarted, a process is
-        scheduled, then when that process is run, it runs the system test, stores the
-        result, and triggers a software reset, moving to the next system test.
+    \item \lstinline[style=myagc]|tests::run()| initializes the test sections and runs
+        the unit tests. Each unit test:
+    \begin{itemize}
+        \item Calls its test function and stores the result in
+            \lstinline[style=myagc]|test_t::passed|, placed in the
+            \lstinline[style=myagc]|.recovery| section (retained across soft resets).
+        \item Triggers a soft reset after completion to clear any residual error state.
+    \end{itemize}
+    \item After unit tests, \lstinline[style=myagc]|tests::run()| schedules a process
+        to run system tests similarly.
+    \begin{itemize}
+        \item Once scheduled, the system initializes the scheduler, and system tests
+            begin.
+        \item Each system test is followed by a soft reset to ensure clean isolation.
+    \end{itemize}
 \end{itemize}
 
-This reset mechanism before running each test ensures that an error state left by an
-earlier test does not effect subsequent tests, and also that each test is run in
-isolation. One caveat is that true isolation is not fully achieved, because if there's
-an issue with the recovery mechanism that leaves erroneous states uncleared, it will
-effect further testing. 
+This reset-based approach ensures that each test runs in isolation, minimizing
+cross-test contamination. However, complete isolation cannot be guaranteed if errors in
+the recovery mechanism leave inconsistent states across resets.
 
-\subsection{Evaluation of Apollo-RTOS}
 
-With the time constraints in mind, only the most cruicial aspects of the system have
-been tested. Below is a brief summary of unit and subsystem tests:
+\subsection{Testing}
 
-\begin{description}[left=0pt]
-    \item[Memory allocator] 
+Given the time constraints, only the most crucial aspects of the system have been
+tested. Below is a summary of unit and subsystem tests:
+
+\begin{itemize}
+    \item Data structure tests: These validate core data structures by checking edge
+        cases.
         \begin{itemize}
-            \item The allocator
+            \item \lstinline[style=myagc]|circular_buffer|: fixed-width queue used
+                throughout the system.
+            \item \lstinline[style=myagc]|static_list_t|: statically allocated list
+            used by \lstinline[style=myagc]|allocator|.
+            \item \lstinline[style=myagc]|stack|: fixed-width stack implementation.
+            \item \lstinline[style=myagc]|bitset|: bitmap implementation used by the
+                file system to track free blocks.
+            \item \lstinline[style=myagc]|args_parser_t|: used by
+                \lstinline[style=myagc]|shell| to parse command-line arguments.
         \end{itemize}
-    \item[Scheduler] 
+
+    \item Memory management tests:
         \begin{itemize}
-            \item hello 1
-                \item hello 2
+            \item \lstinline[style=myagc]|allocator|: allocation, freelist correctness,
+                and allocation order tested.
+            \item \lstinline[style=myagc]|malloc|: process-specific memory management
+                and cleanup validated with scheduler enabled.
+            \item Standard functions like \lstinline[style=myagc]|memcpy| and
+                \lstinline[style=myagc]|strcmp| tested for correctness.
         \end{itemize}
-\end{description}
+
+    \item File system tests:
+        \begin{itemize}
+            \item Basic file operations (open, store) validated.
+            \item Mutual exclusion on file descriptors tested.
+            \item Streaming and output redirection to files tested.
+        \end{itemize}
+
+    \item Scheduler tests:
+        \begin{itemize}
+            \item Priority-based scheduling tested for fairness and correct behavior
+                across sleep/wakeup cycles.
+            \item Waitlist execution timing validated.
+            \item Process concurrency through channels and mutexes tested.
+            \item Correct execution of the testing framework itself demonstrates
+                robustness of mutual exclusion mechanisms. In particular, tests
+                involving multiple processes require synchronization through a minimal
+                \lstinline[style=myagc]|barrier| built using
+                \lstinline[style=myagc]|mutex|; their reliable completion without
+                deadlocks affirms concurrency correctness.
+        \end{itemize}
+\end{itemize}
+
+A complete list of available tests is provided in \autoref{sec:avail_tests}.
+
+\paragraph*{Testing Recovery} Testing the recovery mechanism could not be fully
+automated with the main testing framework, as its reset-before-each-test design
+interferes with the recovery table. Instead, dedicated binaries are compiled for
+recovery tests, each containing a single test case and its required processes.
+Currently, the following recovery test is available:
+\begin{itemize}
+    \item \lstinline[style=myagc]|tests/recover/overflow|: Tests recovery after errors
+        caused by excessive process registration. On boot, it starts 4 low-, 4 mid-,
+        and 4 high-priority processes, with mid- and high-priority processes setting up
+        recovery table entries. Mid-priority processes attempt to register additional
+        low-priority processes, causing overflow. Upon restart, the test verifies that
+        mid- and high-priority processes are correctly recovered with intact data and
+        continue operating seamlessly.
+\end{itemize}
 
 
+\subsection{Evaluation}
+\label{sec:evaluation}
 
+Apollo-RTOS successfully demonstrates the feasibility of adapting historical embedded
+system concepts, such as cooperative scheduling and fault-tolerant recovery, to modern
+microcontrollers. The scheduler achieves predictable and deterministic process
+management with minimal overhead and a simple implementation, and the recovery
+mechanism ensures resilience against both software and hardware faults. The addition of
+a shell, file systems, and a testing framework provides a significant increase in
+usability and maintainability compared to early embedded systems.
+
+The automated testing framework, combined with a reset-based isolation model, has
+proven highly effective in identifying subtle bugs during development. Core
+modules—including memory allocation, file system operations, process scheduling, and
+concurrency primitives—have been validated through extensive unit and subsystem tests.
+The successful recovery from simulated failures further supports the robustness of the
+recovery mechanism.
+
+However, there are a number of limitations and areas for future improvement:
+\begin{itemize}
+    \item Although concurrency primitives like mutexes have been tested, more extensive
+        stress testing under high-load, real-world scenarios would provide stronger
+        confidence in system robustness.
+
+    \item Many hardware features have not been tested under adverse conditions. In
+        particular, the I2C master device is a significant bottleneck, as all file
+        operations on the FRAM pass through it. While our tests have covered contention
+        scenarios on the I2C bus, testing under heavy, sustained load remains an open
+        task.
+
+    \item While shared memory IPC offers high performance, it increases the potential
+        for race conditions if not carefully managed. Adding more robust
+        synchronization primitives would improve safety and ease of programming.
+
+    \item The file system currently supports only fixed-size files and lacks runtime
+        file resizing. Files are also vulnerable to corruption, as there are no
+        built-in sanity checks on file contents; it is up to user processes to detect
+        and handle such corruption.
+
+        Error detection around file operations is still at an early stage. For example,
+        corruption in the file used by the recovery mechanism is not handled robustly
+        during startup. More work is needed to improve safety around critical file
+        operations.
+
+        Furthermore, startup currently lacks comprehensive file system integrity
+        checks. If corruption is present, the system requires a manual reformatting by
+        recompiling with specific flags. Implementing automatic file system recovery
+        would significantly improve usability and resilience.
+\end{itemize}
+
+Overall, Apollo-RTOS successfully achieves its primary objectives of exploring the
+AGC's design principles in a modern context, while highlighting practical
+considerations for building reliable, lightweight RTOSs on resource-constrained
+hardware.
 

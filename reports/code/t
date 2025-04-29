@@ -1,0 +1,136 @@
+    include
+    +-- core
+    |   +-- boot.h              # boot type definitions and access methods
+    |   +-- recover.h           # recovery table setup functions
+    |   |
+    |   +-- memory.h            # dynamic memory management interfaces
+    |   +-- sched.h             # process creation, scheduling, and modification
+    |   +-- waitlist.h          # waitlist task registration functions
+    |   |
+    |   +-- sync.h              # synchronization primitives (mutexes, barriers)
+    |   +-- signal.h            # low-overhead preemptive IPC (signals)
+    |   |
+    |   +-- hardware.h          # hardware-specific definitions
+    |   +-- types.h             # common types and constants
+    |   +-- type_traits.h       # useful C++ concepts and type utilities
+    |   +-- irq.h               # interrupt vector and handler definitions
+    |   |
+    |   +-- test.h              # testing framework macros
+    | 
+    +-- drivers
+    |   +-- accel.h             # accelerometer driver interface
+    |   +-- display.h           # display control driver interface
+    |   +-- gpio.h              # GPIO control interface
+    |   +-- i2c.h               # synchronous and asynchronous I2C communication
+    |   +-- serial.h            # UART driver interface
+    |   +-- timer.h             # timer interrupt handling interface
+    |
+    +-- fs                      # file system core (split into modular headers)
+    |   +-- fs.h                # file system instantiation
+    |   +-- fs_bck.h            # backend: block device and inode management
+    |   +-- fs_impl.h           # frontend: main file system API
+    |   +-- fs_desc.h           # device descriptor definitions
+    |   |
+    |   +-- ifstream.h          # input file stream abstraction
+    |   +-- ofstream.h          # output file stream abstraction
+    |
+    +-- utility                 
+    |   +-- allocator.h         
+    |   +-- args.h              # argument parsing utilities
+    |   +-- bitset.h            
+    |   +-- circular_buffer.h   
+    |   +-- list.h              # static linked list implementation
+    |   +-- stack.h             
+    |   |
+    |   +-- profile.h           # experimental profiling utilities
+    |   |
+    |   +-- format.h            # formatted output declarations (do_printf)
+    |   +-- format_impl.h       # formatted output implementation
+    |   +-- debug.h             # debug/assert macros and utilities
+    |   |
+    |   +-- iostream.h          # fprintf and printf interface implementations
+
+    src
+    +-- core
+    |   +-- boot.cpp            # boot state detection implementation
+    |   +-- recover.cpp         # recovery mechanism and restart table management
+    |   |
+    |   +-- memory.cpp          # heap allocator, memcpy, and memory utilities
+    |   |
+    |   +-- procs.h             # process descriptor and process table definitions
+    |   +-- stack_allocator.h   # stack context and stack allocation utilities
+    |   +-- sched.cpp           # process scheduling and context switching
+    |   +-- waitlist.cpp        # waitlist task management
+    |   |
+    |   +-- shell.cpp           # shell interface and command listener
+    |   +-- test.cpp            # unit testing framework implementation
+    |   |
+    |   +-- hardfault.cpp       # hardfault handler and debug dump
+    |   +-- irq.cpp
+    |
+    +-- drivers
+    |   +-- accel.cpp           # accelerometer driver implementation
+    |   +-- display.cpp         # display driver implementation
+    |   |
+    |   +-- flash.cpp           # flash memory driver
+    |   +-- fram.cpp            # FRAM memory driver
+    |   |
+    |   +-- i2c.cpp             # I2C driver implementation (sync and async modes)
+    |   +-- i2c_async.h         # asynchronous I2C helper
+    |   +-- i2c_sync.h          # synchronous I2C helper
+    |   |
+    |   +-- serial.cpp          # UART communication driver
+    |   +-- timer.cpp           # timer interrupt handler implementation
+    |
+    +-- utility
+    |   +-- profile.cpp         # profiling tools implementation
+    | 
+    +-- linker.ld.in            # linker script template 
+    |                           # (pre-processed into linker.ld)
+    | 
+    +-- mpx.s                   # context switch assembly implementation
+    +-- startup.cpp
+    +-- vector_table.c
+
+    apollo                      # Apollo-RTOS main binaries (applications)
+    +-- accel.cpp               # accelerometer test/utility application
+    +-- alph.cpp                # shell command implementations
+    +-- calc.cpp                # calculator application
+    +-- echo.cpp                # echo server/client
+    +-- fs.cpp                  # file system utilities
+    +-- heart.cpp               # heart rate monitoring app
+    +-- htop.cpp                # process monitoring interface
+
+    tests                       # Test binaries
+    |
+    +-- recovery                # recovery system tests
+    |   |
+    |   +-- overflow
+    |       +-- procs.cpp       # process table overflow test
+    |
+    +-- unit_tests              # unit tests organized by subsystem
+        +-- fs
+        |   +-- fs_test.cpp     
+        |   +-- ifstream.cpp    
+        |   +-- ofstream.cpp    
+        |
+        +-- lib
+        |   +-- args_parser.cpp 
+        |   +-- bitset.cpp      
+        |   +-- circular_buffer.cpp
+        |   +-- list.cpp       
+        |   +-- stack.cpp      
+        |
+        +-- mem
+        |   +-- allocator_tests.cpp
+        |   +-- malloc.cpp     
+        |   +-- memlib.cpp    
+        |
+        +-- sched
+        |   +-- concurrency.cpp 
+        |   +-- fairness.cpp    
+        |   +-- header.h        
+        |   +-- sched.cpp       
+        |   +-- waitlist.cpp    
+        |
+        +-- tests.cpp           

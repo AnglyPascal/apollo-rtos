@@ -6,8 +6,6 @@
 \usepackage[square,numbers]{natbib}
 \bibliographystyle{plainnat}
 
-\newcommand{\todo}[1]{}
-
 \title{% 
     \huge \bfseries %
     Apollo-RTOS: An AGC-Inspired Real-Time Operating System for Embedded Systems
@@ -33,10 +31,11 @@
 } %
 \renewcommand{\maketitlehookc}{
     \vspace{1cm} %
-}
+} 
+\newcommand\wordcount{\input{wordcount}} %
 \renewcommand{\maketitlehookd}{%
     \vspace{1cm}%
-    {\ttfamily \input{wordcount}} words \\
+    {\ttfamily \wordcount} words \\
     (using \small \texttt{texcount -inc -nobib -sum=1,1,0,1,0,0,0}) %
 }
 
@@ -89,6 +88,7 @@
 }
 
 \newcommand{\references} {
+    \newpage
     \fancyhf{}
     \fancyhf[loh,reh]{References}
     \fancyhf[leh,roh]{}
@@ -106,6 +106,7 @@
 \renewcommand{\labelitemiii}{$\circ$}
 \renewcommand{\labelitemiv}{$\bigcdot$}
 
+\renewcommand\codefontsize\footnotesize
 
 \lstdefinestyle{myagc}{
     language=C++,
@@ -117,28 +118,43 @@
         forward, move, requires,
     },
     emph={[1]
-        reg_proc, incr_priority, decr_priority, cpu, change_proc, cxt_switch, 
-        sleep, wakeup, notify, wait, 
+        reg_proc, incr_priority, decr_priority, change_proc, cxt_switch, 
+        sleep, wakeup, notify, wait, notify_all, yield, 
         reg, run, 
         alloc, dealloc, malloc, kmalloc, free, kfree, new, delete, knew, cleanup,
         format, mount, open, remove, read, write, xfer, load, store, umount,
-        debug, assert, kprintf, printf, getc, busy_putc, intr_putc, putc,
+        debug, assert, 
+        do_printf, kprintf, printf, fprintf,
+        getc, busy_putc, intr_putc, putc,
         _memcpy, _memset, 
-        recover, init, __reset, __stack, __vectors, 
+        init, __reset, __stack, __vectors, 
         __run, setup_services,
         get_msp, set_msp, 
-        push, pop, enqueue, dequeue, send,
         lock, unlock, 
-        run_tests
+        run_tests, roundup, 
+        curr_proc, hi_proc, cpu, 
+        acquire, release, 
+        push_back, push_front, front, back, empty, 
+        push, pop, enqueue, dequeue, send,
+        begin, end, 
+        insert, contains, erase, next, size,
+        mmap, unmap, append,
     },
     emphstyle={[1]\stdlibstyle},
     emph={[2]
         % std, 
+        pair, 
         vector, unordered_map, unordered_set, priority_queue, deque,
+        stack, args_parser_t,
         shared_ptr, unique_ptr, weak_ptr, thread,
         tuple, integral_constant, is_same, derived_from, conditional,
         enable_if, true_type, false_type, wait, notify, notify_all, 
-        same_as, bitset, circular_buffer,
+        same_as, bitset, circular_buffer, static_list_t,
+        remove_ref_cv_t,
+        is_constructible_v, is_default_constructible_v, stdout,
+        memset, memcpy, memcmp, strcmp, strlen,
+        hardfault_handler,
+        send, handle_signals, reset, swap,
     },
     emphstyle={[2]\stdlibstyle},
     emph={[3]nullptr, NULL},
@@ -149,24 +165,60 @@
         int8_t, int16_t, int32_t, int64_t, 
         int, float, unsigned, double, char, void,
         % 
-        pid_t, priority_t, proc_def_t, runnable_t, time_t, fn_t, 
+        pid_t, priority_t, priority_lev_t, proc_def_t, runnable_t, time_t, fn_t, 
         proc_t, waitlist_t,
-        intr_guard, lock_guard, mutex, chan_t, chunk_t, allocator,
+        intr_guard, lock_guard, mutex, barrier_t, chan_t, chunk_t, allocator,
         addr_t, blk_addr_t, nblks_t, file_type_t, fs_desc_t, 
         inode_t, fd_t, file_t, fs_hd_t, fs_t, desc_t,
         boot_lev_t, debug_t, lev_t, guard_proc, guard_task,
         listener_guard, listener_t, stage_t, image_t,
         args_buffer_t, 
+        chunk_list_t, allocator_t, chunk_t, node_t,
+        ofstream, ostream, ifstream,
+        test_t, 
+        __extern_C__,
+        signal_handler_t, signal_t, signals_t,
     },
     emphstyle={[4]\typestyle},
     emph={[5]
-        TEST, TEST_SUITE, SYS_TEST, PROC, APP, STARTUP_PROC, SERVICE,
-        SEC_INIT, REG_PROC,
+        TEST, SYS_TEST, BEGIN_SUITE, END_SUITE, 
+        PROC, APP, STARTUP_PROC, SERVICE,
+        SEC_INIT, REG_PROC, H_RESET, S_RESET, TERM,
+        FATAL, ERROR, WARN, INFO, TRACE, DEBUG,
+        NONE, RESET, POWER_OFF,
+        SEC_START, SEC_END, SEC_LOAD, SEC_ZERO,
+        SIGTERM, SIGKILL, SIGMSSG, SIGDUMP,
     },
     emphstyle={[5]\stdlibstyle},
     literate=,
+    % morecomment=[l]{|},
+    % morecomment=[l]{+---},
+}
+
+\lstdefinestyle{myagcs}{
+    style=myagc,
     morecomment=[l]{|},
-    morecomment=[l]{+---},
+    morecomment=[l]{+--},
+}
+
+\renewcommand\lstlistingname{Listing}
+\AtBeginDocument{\counterwithin{lstlisting}{section}}
+
+ 
+\lstdefinestyle{mytty}{
+    language=bash,
+    style=fonts,
+    style=colors,
+    morekeywords={sudo, echo, ls, grep, more, less, accel, clear, calc, pkill, htop,
+    heart, rm, prof, touch, shell, display, accel_bg, idle, show,},
+    emph={[2]},
+    emphstyle={[2]\keywordstyle},
+    emph={[3]Syu, conf}, 
+    emphstyle={[3]\color{RealGreen}},
+    literate=
+        {->}{{\textcolor{SlateGray}{->}}}{1}
+        {>}{{\textcolor{SlateGray}{>}}}{1}
+        {/}{{\textcolor{SlateGray!60!LightGray}{/}}}{1},
 }
 
 \def\file#1{\texttt{\small #1}}
@@ -183,3 +235,4 @@
 \renewcommand\@memmain@floats{%
   \counterwithin{figure}{section}
 }
+

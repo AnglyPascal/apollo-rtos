@@ -2,6 +2,7 @@
     \Large \bfseries Abstract
 \end{center}
 
+\ifextraC
 Embedded systems have advanced significantly, but many of the fundamental challenges
 encountered by early computing platforms remain relevant today. The Apollo Guidance
 Computer (AGC), operating with just a 2~MHz CPU, 4~KB of RAM, and 72~KB of ROM,
@@ -22,3 +23,28 @@ framework for unit and subsystem tests. Through this work, the project demonstra
 historical embedded computing principles can be combined with modern programming
 paradigms to build resilient and efficient RTOS platforms for resource-constrained
 environments.
+\fi     
+
+
+\ifextraC
+Embedded systems continue to face constraints reminiscent of early computing pioneers like the Apollo Guidance Computer (AGC), which navigated the Moon landing with only 4 KB of RAM. This project bridges historical ingenuity with modern software engineering by introducing Apollo-RTOS, a real-time operating system for the micro:bit v1, inspired by the AGC’s hybrid scheduling and fault tolerance. Apollo-RTOS combines the AGC’s deterministic cooperative-preemptive scheduler with contemporary features such as dynamic memory management, dual flash/FRAM file systems, and a Unix-like shell. Designed for resilience, it supports 16 concurrent processes, integrates automated testing with reset-based isolation, and recovers gracefully from errors using AGC-style restart groups. Implemented in modern C++20 with RAII and template-driven type safety, Apollo-RTOS demonstrates that resource efficiency and robustness need not compromise developer usability. By reviving the AGC’s principles—tested under life-critical conditions during Apollo 11’s 1201/1202 alarms—this work offers a blueprint for building reliable embedded systems in resource-constrained, mission-critical environments.
+\fi     
+
+Despite half a century of advances, many challenges faced by early embedded computers
+like the Apollo Guidance Computer (AGC) remain highly relevant today. With only a 2MHz
+CPU and 4KB RAM, the AGC pioneered techniques in hybrid scheduling, fault-tolerant
+operation, and system recovery — capabilities dramatically demonstrated during Apollo
+11's near-mission-abort alarms.
+
+This project presents \textbf{Apollo-RTOS}, a real-time operating system for the BBC
+\texttt{micro:bit v1}, reimagining the AGC’s resilient architecture in a modern
+context. Implemented entirely in C++20 and inspired by the AGC’s radical ``restart to
+recover" philosophy, Apollo-RTOS combines hybrid cooperative-preemptive scheduling,
+dynamic memory allocation, persistent file systems across Flash and FRAM, and a
+Unix-like shell interface. It supports up to 16 concurrent processes within a minimal
+monolithic kernel, with integrated error recovery and automated testing.
+
+Apollo-RTOS demonstrates how historical system design principles, when revisited
+through the lens of modern embedded development, can create robust, extensible, and
+highly reliable systems under severe resource constraints.
+

@@ -1,78 +1,119 @@
-\section{Inspiration behind Apollo-RTOS}
+\section{Design of Apollo-RTOS}
 
-The real-time operating system developed in this project, Apollo-RTOS, draws
-inspiration from both the Apollo Guidance Computer (AGC) operating system and the
-modern Linux OS. While the scheduler and error handling concepts are derived from the
-AGC, the naming conventions, user interface, and implementation are influenced by
-Linux.
+\subsection{Inspiration}
 
-The AGC OS was designed to meet specific mission requirements, allowing for a
-simplified and optimized design. In contrast, Linux is a general-purpose OS, designed
-to support applications with vastly different needs, making its architecture more
-complex.
+Apollo-RTOS draws inspiration from both the Apollo Guidance Computer (AGC) operating
+system and the modern Linux OS. The AGC OS was designed to meet specific mission
+requirements, allowing for a simplified and optimized design. In contrast, Linux is a
+general-purpose OS built to support diverse applications, resulting in a much more
+complex architecture.
 
-The AGC operated within a well-defined hardware and software environment, where all
-components could be trusted. As a result, isolating the hardware, OS, and application
-code was unnecessary. Additionally, the AGC lacked memory protection features, making
-kernel/user space isolation, a fundamental aspect of general-purpose operating systems
-like Linux, impossible.
+The AGC operated in a tightly controlled hardware and software environment where all
+components could be trusted. Thus, isolating the hardware, OS, and application code
+was unnecessary. Additionally, the AGC lacked memory protection features, making
+kernel/user space isolation---a fundamental aspect of general-purpose OSs like
+Linux---impossible.
 
-In Apollo-RTOS, we adopted the same high-level design principles as the AGC. Our goal
-was to implement its key innovations in a modern context while ensuring the OS could
-function efficiently in a resource-constrained environment. To achieve this, we made
-the following design choices:
+Apollo-RTOS adopts the same high-level design philosophy as the AGC: implement core
+concepts effectively in a resource-constrained environment, while applying
+contemporary engineering where beneficial. Key design decisions include:
 
+\begin{description}[leftmargin=15pt, labelindent=0pt]
+    \item [Hardware Selection] The \texttt{micro:bit} v1 was chosen as the primary
+        target platform. Its Cortex-M0 CPU is among the smallest in the ARM family and
+        closely resembles the AGC hardware. 
+        \ifextraC
+            It also includes integrated peripherals, providing practical examples to
+            demonstrate OS functionality.
+        \fi
+
+    \item [Monolithic Kernel Design] Following Linux's model, Apollo-RTOS adopts a
+        monolithic kernel for simplicity and efficient execution in a constrained
+        environment, at the cost of more challenging verification and testing.
+
+    \item [No Kernel/User Space Isolation] In microcontroller programming, the entire
+        program---kernel and applications---is compiled into a single binary. Strict
+        isolation would add unnecessary complexity.
+
+    \item [Library Calls Instead of System Calls] Since Apollo-RTOS does not enforce
+        user/kernel space separation, direct library calls are used rather than
+        system calls, simplifying the interface and reducing overhead.
+
+    \item [Shared Memory IPC] Although shared memory risks race conditions, it offers
+        the fastest and simplest form of IPC and is thus adopted as the primary
+        mechanism.
+
+    \item [Memory Usage Philosophy] While the \texttt{micro:bit} has limited memory,
+        it offers far more than the AGC. Prioritizing maintainability over aggressive
+        optimization, we follow Knuth’s maxim that ``premature optimization is the root
+        of all evil.''
+\end{description}
+
+We also drew inspiration from the \texttt{microbian} OS for the \texttt{micro:bit},
+developed by \citet{microbian}, particularly for hardware headers, startup code, and
+interrupt handler structures.
+
+\ifextraA
+For the language and development ecosystem, we chose modern C++ over C, due to:
 \begin{itemize}
-    \item \textbf{Hardware Selection:} The \texttt{micro:bit} v1 was chosen as the
-        primary target platform. Its Cortex-M0 CPU is one of the smallest in the ARM
-        family and closely resembles the AGC hardware. Additionally, it includes
-        pre-installed peripheral devices, which serve as useful test cases for OS
-        functionality.
-
-    \item \textbf{Monolithic Kernel Design:} Inspired by Linux, Apollo-RTOS follows a
-        monolithic kernel architecture due to its simpler implementation and better
-        execution efficiency in a constrained environment. However, there's a
-        significant trade-off: with a monolithic kernel, verifying and testing the OS
-        is more difficult.
-
-    \item \textbf{No Kernel/User Space Isolation:} In microcontroller programming, the
-        entire application is compiled into a single binary, meaning the kernel and
-        user space are inherently combined. Since the entire codebase has full access
-        to the kernel internals, enforcing strict isolation would add unnecessary
-        complexity.
-
-    \item \textbf{Library Calls Instead of System Calls:} Traditional system calls are
-        beneficial only when user and kernel space are strictly separated. Since
-        Apollo-RTOS does not enforce such isolation, we opted for direct library
-        function calls, significantly simplifying implementation.
-
-    \item \textbf{Shared Memory for Inter-Process Communication (IPC):} While shared
-        memory introduces risks like race conditions and synchronization issues, it
-        remains the fastest and simplest IPC method, making it the preferred choice for
-        Apollo-RTOS.
-
-    \item \textbf{Liberty to Use Memory Liberally}: While the \texttt{micro:bit} has
-        limited memory, it still offers significantly more than the AGC. As Donald
-        Knuth famously said, ``premature optimization is the root of all evil," our
-        priority is a functional and maintainable implementation rather than
-        aggressively minimizing memory usage.
+    \item Concise syntax (classes, templates, RAII) that reduces boilerplate.
+    \item Greater optimization opportunities through templates, \texttt{constexpr},
+        and references.
+    \item Clean, expressive abstractions via type deduction, improving maintainability.
 \end{itemize}
+\fi
 
-Additionally, we drew inspiration from the \texttt{microbian} OS for the
-\texttt{micro:bit}, as developed by \citet{microbian}. Specifically, we referenced its
-hardware description headers, startup code, and interrupt handler implementations in
-certain parts of our design.
+\subsection{Implementation Architecture}
 
-% \subsection{Language and Development Ecosystem}
+In this section, we briefly overview Apollo-RTOS's core modules and their
+interconnections:
 
-For our language and development ecosystem, we chose to work with C++ for several
-reasons:
-\begin{itemize}
-    \item C++ reduces boilerplate code compared to C with its concise syntax for object
-        creation, templates, and RAII paradigm.
-    \item The C++ compiler provides extensive optimizations through templates,
-        \texttt{constexpr} variables and functions, and references.
-    \item C++ templates and type deduction allow for cleaner, more expressive code,
-        improving development experience.
-    \item And finally, a personal preference: \textit{I just wanted to learn more C++.}
-\end{itemize}
+\begin{description}[leftmargin=2em, labelindent=0pt]
+    \item [Scheduler] The centerpiece of the OS, managing:
+        \begin{itemize}[left=0pt]
+            \item Process execution and context switching.
+            \item Library functions for process creation, priority management, and
+                synchronization.
+        \end{itemize}
+
+    \item[Waitlist] Implements a deadline-driven preemptive scheduler (similar to cron
+        jobs), executing time-sensitive tasks at precise intervals.
+
+    \item[Signals, Mutexes, and Barriers] Enable low-overhead inter-process
+        communication (IPC) and synchronization among processes.
+
+    \item[Memory Allocator] Handles all dynamic memory management. Allocators maintain
+        freelists of memory chunks and serve both runtime heap and stack allocations.
+
+    \item[File System] Provides persistent storage through:
+        \begin{itemize}[left=0pt]
+            \item A FRAM-based file system over I2C.
+            \item An optional flash memory file system.
+            \item Support for both memory-mapped and character-stream file access.
+        \end{itemize}
+
+    \item[Error Handling] Provides diagnostic logging and error detection, including
+        runtime assertions and fault recovery.
+
+    \item[Recovery] Supports wrapping critical sections and processes with automatic
+        recovery against different types of resets.
+
+    \item[Drivers] Interface with hardware components:
+        \begin{itemize}[left=0pt]
+            \item \textbf{Timer}: Two 16-bit timers are configured for system clocking
+                and profiling (\lstinline[style=myagc]|TIMER1| and
+                \lstinline[style=myagc]|TIMER2|).
+            \item \textbf{Serial}: Manages UART-based serial communication.
+            \item \textbf{I2C}: Manages I2C master communication.
+            \item \textbf{Display}: Controls the \(5 \times 5\) LED matrix.
+        \end{itemize}
+
+    \item[Shell] Provides a Unix-like command-line interface for user interaction and
+        process management.
+
+    \item[Testing Framework] Allows registering and running unit and subsystem tests in
+        isolation during system startup.
+
+    \item[``Standard" Library] Offers utility data structures and functions, with
+        interfaces inspired by the C++ Standard Library.
+\end{description}
