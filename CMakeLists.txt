@@ -18,7 +18,7 @@ find_package(Python3 COMPONENTS Interpreter)
 set(PYTHON_EXECUTABLE "python3")
 
 set(ARCH "-mcpu=cortex-m0 -mthumb")
-set(OPT "-O2 -g -Wall")
+set(OPT "-Os -g -Wall")
 set(STACK_USAGE "-fstack-usage")
 set(EMBED "-ffreestanding -nostartfiles")
 set(EMBED_CXX "-fno-exceptions -fno-unwind-tables -fno-rtti -std=c++20 -fno-use-cxa-atexit")
@@ -31,7 +31,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ALL_FLAGS} ${EMBED} ${DEAD_CODE}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ALL_FLAGS} ${EMBED} ${EMBED_CXX} ${DEAD_CODE}")
 SET(CMAKE_ASM_FLAGS "${CFLAGS} ${ARCH}")
 
-file(GLOB LINKSCRIPT "src/device.ld")
+file(GLOB LINKSCRIPT "src/linker.ld")
 set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKSCRIPT} -lgcc -lm -Wl,--gc-sections")
 
 file(GLOB_RECURSE CXX_SRC "src/*.cpp")
@@ -42,20 +42,20 @@ include_directories(include)
 set(KERNEL_SRC ${CXX_SRC} ${CXX_SUB_SRC} ${C_SRC} ${ASM_SRC})
 
 
-set(TEST_NAMES "" CACHE STRING "List of tests to include in the build")
+set(TEST_SUITES "" CACHE STRING "List of tests to include in the build")
 
 # Replace spaces with comma or semicolon if needed
-separate_arguments(TEST_NAMES)
+separate_arguments(TEST_SUITES)
 
 # Generate a header file with the test names
 set(GENERATED_TEST_HEADER "src/core/enabled_test_suites.h")
 
 file(WRITE ${GENERATED_TEST_HEADER} "#pragma once\n\n")
 file(APPEND ${GENERATED_TEST_HEADER} "inline const char* test_suites[] = {\n")
-foreach(test ${TEST_NAMES})
+foreach(test ${TEST_SUITES})
     file(APPEND ${GENERATED_TEST_HEADER} "    \"${test}\",\n")
 endforeach()
-file(APPEND ${GENERATED_TEST_HEADER} "    nullptr\n};\n")
+file(APPEND ${GENERATED_TEST_HEADER} "    };\n")
 
  
 option(COPY_HEX "Copy" OFF)
@@ -74,7 +74,7 @@ function(add_custom_executable target_name target_dir)
   add_custom_command(
     TARGET ${target_name}
     PRE_BUILD
-    COMMAND cpp -P src/device.ld.in -o "${LINKSCRIPT}"
+    COMMAND cpp -P ${LINKSCRIPT}.in -o ${LINKSCRIPT}
   )
 
   add_custom_command(
@@ -112,9 +112,8 @@ endfunction()
 
 set(TARGETS
   apollo apollo
-  recover tests/recover
-  lib_tests tests/lib_tests
-  tests tests/tests
+  tests tests/unit_tests
+  overflow tests/recovery/overflow
 )
 list(LENGTH TARGETS num_targets)
 math(EXPR num_targets "${num_targets} / 2 - 1")

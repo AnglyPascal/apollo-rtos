@@ -1,5 +1,6 @@
 #include "core/sched.h"
 
+#include "core/boot.h"
 #include "core/irq.h"
 #include "core/recover.h"
 #include "core/test.h"
@@ -27,7 +28,7 @@ namespace sched
 
 namespace
 {
-procs_t<N_PROCS> procs;
+procs_t procs;
 stack_allocator_t stack_allocator;
 
 volatile struct {
@@ -35,14 +36,14 @@ volatile struct {
   proc_t *curr_proc = nullptr;
   bool set_up = false;
 } cpu = {};
-} // namespace
 
-// manuall initialize all the linked-lists
-void init_lists()
+// manually initialize all the linked-lists
+INIT_FUNC()
 {
   procs.init_lists();
-  return stack_allocator.init_list();
+  stack_allocator.init_list();
 }
+} // namespace
 
 volatile time_t last_checked = 0;
 
@@ -51,7 +52,7 @@ void exit()
   auto proc = cpu.curr_proc;
 
   if (proc->bar != nullptr)
-    proc->bar->release();
+    proc->bar->release(procs.pid(proc));
 
   kmem::kfree(proc->param);
   heap::cleanup();
@@ -77,7 +78,6 @@ pid_t _reg_proc_impl(const proc_def_t *def, void *param)
 
   auto pid = procs.pid(proc);
 
-  proc->name = name;
   proc->param = param;
   proc->def = def;
 
@@ -121,7 +121,7 @@ __extern_C__ void *cxt_switch(void *stk_ptr)
   intr_guard guard;
 
   auto proc = (proc_t *)cpu.curr_proc;
-  if (proc->priority == 0) {
+  if (proc->priority.empty()) {
     stack_allocator.release(proc);
     procs.dealloc(proc);
   } else {
@@ -190,7 +190,7 @@ void __weak__ setup_services(void)
     reg_proc(proc, nullptr);
 }
 
-void __weak__ setup_procs(void)
+void __weak__ setup_startups(void)
 {
   for (SEC_ITER(startups, proc_def_t, proc))
     reg_proc(proc, nullptr);
@@ -199,8 +199,9 @@ void __weak__ setup_procs(void)
 /* enter idle_task with specified stack (see mpx.s) */
 __extern_C__ void __run(runnable_t task, byte_t **stk_ptr);
 
-/* assign idle_task to the main process, sets up all the other processes, then
- * enter the idle_task in thread mode */
+/* assign idle_task to the main process,
+ * sets up service processes,
+ * then enters the idle_task */
 void init()
 {
   intr_disable();
@@ -209,20 +210,24 @@ void init()
   cpu.curr_proc = procs[IDLE_PID];
 
   setup_services();
-  recover::setup();
+
+  if (boot::is_boot())
+    sched::setup_startups();
+  else
+    recover::setup();
 
   timer::init();
   last_checked = timer::now();
 
   cpu.set_up = true;
-  cpu.curr_proc->stk_ptr = cpu.curr_proc->stack + cpu.curr_proc->stk_sz - 16;
+  cpu.curr_proc->stk_ptr = cpu.curr_proc->stack + cpu.curr_proc->stk_sz;
   __run(PROC_FUNC(idle), &cpu.curr_proc->stk_ptr);
 }
 
 void trace(bool stk_info)
 {
   debug<INFO>(BOLD "curr_proc: " YELLOW "%s" DEFAULT "\r\n",
-              cpu.curr_proc->name.str);
+              cpu.curr_proc->name());
   procs.trace(curr_proc::pid(), stk_info);
 }
 
@@ -244,7 +249,7 @@ bool sleep(time_t period)
 
   if (period > 0) {
     auto p = new pair<proc_t *, bool>{proc, false};
-    waitlist::reg(proc->name, period, default_alarm, (void *)p);
+    waitlist::reg(proc->name(), period, default_alarm, (void *)p);
 
     decr_priority(-proc->priority.lev);
 
@@ -269,7 +274,7 @@ void assert_stack()
   auto curr_stk = (void *)get_msp();
 
   assert(stack <= curr_stk && curr_stk <= stack_end, H_RESET,
-         "\r\n%s, %x, %x, %x\r\n", cpu.curr_proc->name.str, stack, curr_stk,
+         "\r\n%s, %x, %x, %x\r\n", cpu.curr_proc->name(), stack, curr_stk,
          stack_end);
 }
 
@@ -281,7 +286,7 @@ using namespace sched;
 
 namespace curr_proc
 {
-string name() { return cpu.curr_proc->name; }
+const char *name() { return cpu.curr_proc->name(); }
 const proc_def_t *def() { return cpu.curr_proc->def; }
 bool term_req() { return cpu.curr_proc->term_req; }
 bool set_up() { return cpu.set_up; }
@@ -319,7 +324,7 @@ signal_handler_t swap_handler(signal_t sig, signal_handler_t new_handler)
 
 void send_signal(pid_t pid, signal_t sig)
 {
-  assert(pid <= N_PROCS, H_RESET);
+  assert(pid < N_PROCS, H_RESET);
   procs[pid]->signals.send(sig);
 }
 
@@ -328,7 +333,7 @@ void trigger_term(const char *file, uint32_t line)
   if (curr_proc::set_up()) {
     debug<ERROR>("terminating " YELLOW "%s" RED " from " YELLOW
                  "%s:%d\r\n" DEFAULT,
-                 curr_proc::name().str, file, line);
+                 curr_proc::name(), file, line);
     return send_signal(curr_proc::pid(), SIGKILL);
   }
   return trigger_reset();
@@ -341,16 +346,17 @@ APP(pkill, HIGHEST, 128, param)
   auto args = (args_t *)param;
 
   auto kill = args->get_option() == '9';
-  pid_t pid = args->get_uint<pid_t>();
-  if (pid == MAX<pid_t>) {
-    auto name = args->get_str();
+  pid_t pid = args->get_uint<pid_t>().value_or(null_pid);
+
+  if (pid == null_pid) {
+    auto name = args->get_word();
     for (pid = 0; pid < N_PROCS; pid++) {
-      if (procs[pid]->name == string{name})
+      if (strcmp(procs[pid]->name(), name) == 0)
         break;
     }
   }
 
-  if (pid >= N_PROCS || procs[pid]->priority == EMPTY)
+  if (pid >= N_PROCS || procs[pid]->priority.empty())
     return debug<ERROR>(DEFAULT "Process " RED "%d" DEFAULT " not found\r\n",
                         pid);
 

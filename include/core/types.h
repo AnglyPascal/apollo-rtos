@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <type_traits>
 #include <utility>
 
@@ -47,6 +48,7 @@ using time_t = uint32_t;
 
 using pid_t = uint8_t;
 inline constexpr pid_t null_pid = MAX<pid_t>;
+inline constexpr pid_t N_PROCS = 16;
 
 enum priority_lev_t : int8_t {
   EMPTY = 0,
@@ -73,6 +75,11 @@ enum priority_lev_t : int8_t {
   URGENT3,
 
   HIGHEST = MAX<int8_t>,
+};
+
+enum : bool {
+  SYNC = true,
+  ASYNC = false,
 };
 
 enum {
@@ -102,33 +109,9 @@ enum : fn_t {
   stdin = MAX<fn_t> - 2,
 };
 
+using std::nullopt;
+using std::optional;
 using std::pair;
-
-struct string {
-  const char *str;
-
-  constexpr string() : str{nullptr} {}
-  constexpr string(const string &other) : str(other.str) {}
-  constexpr string(const char *_str) : str{_str} {}
-
-  bool operator==(const string &other) const
-  {
-    auto lhs = str, rhs = other.str;
-
-    if (!lhs && !rhs)
-      return true;
-
-    if (!lhs || !rhs)
-      return false;
-
-    while (*lhs != '\0' && *rhs != '\0' && *lhs == *rhs) {
-      lhs++;
-      rhs++;
-    }
-
-    return *lhs == '\0' && *rhs == '\0';
-  }
-};
 
 template <typename T>
 constexpr size_t strlen(const T *str)
@@ -158,8 +141,6 @@ constexpr T min(T t, S s)
 }
 
 constexpr auto abs(auto t) { return t > 0 ? t : -t; }
-
-inline void *operator new(size_t, void *where) { return where; }
 
 inline constexpr size_t pg_sz = 1024;
 
@@ -205,3 +186,12 @@ constexpr size_t roundup(size_t sz, size_t align)
 #define __FILENAME__                                                           \
   (__builtin_strrchr(__FILE__, '/') ? __builtin_strrchr(__FILE__, '/') + 1     \
                                     : __FILE__)
+
+using init_func_t = void (*)(void);
+
+#define INIT_FUNC()                                                            \
+  void __init__func();                                                         \
+  static init_func_t __static__init__func                                      \
+      __attribute__((used, section(".init_funcs"))) = __init__func;            \
+  void __init__func()
+

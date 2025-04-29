@@ -7,17 +7,18 @@ inline constexpr uint32_t HARDFAULT_MAGIC = 0xDEADDAAD;
 
 enum debug_t {
   FATAL = 0,
-  H_RESET = FATAL,
-
   ERROR = 1,
-  S_RESET = ERROR,
-
   WARN = 2,
-  TERM = WARN,
 
   INFO = 3,
   DEBUG = 4,
   TRACE = 5,
+};
+
+enum reset_lev_t {
+  H_RESET = FATAL,
+  S_RESET = ERROR,
+  TERM = WARN,
 };
 
 #ifndef NDEBUG
@@ -44,8 +45,7 @@ void debug(const char *fmt, Args... args)
 
 void trigger_term(const char *file, uint32_t line);
 
-template <debug_t lev, typename... Args>
-  requires(lev <= WARN)
+template <reset_lev_t lev, typename... Args>
 void __assert(bool ex, const char *file, uint32_t line, Args &&...args)
 {
   if (ex)
@@ -53,7 +53,7 @@ void __assert(bool ex, const char *file, uint32_t line, Args &&...args)
 
   if constexpr (lev == H_RESET) {
     if constexpr (sizeof...(args) != 0)
-      debug<ERROR>(std::forward<Args>(args)...);
+      debug<FATAL>(std::forward<Args>(args)...);
 
     asm volatile("mov r0, %[input_file]\n"
                  "mov r1, %[input_line]\n"
@@ -66,8 +66,11 @@ void __assert(bool ex, const char *file, uint32_t line, Args &&...args)
     return trigger_hardfault();
   }
 
-  if constexpr (lev == S_RESET)
+  if constexpr (lev == S_RESET) {
+    debug<ERROR>("soft reset at " BOLD YELLOW "%s:%d" DEFAULT "\r\n\r\n", file,
+                 line);
     return trigger_reset();
+  }
 
   if constexpr (lev == TERM)
     return trigger_term(file, line);

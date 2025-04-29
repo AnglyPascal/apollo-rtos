@@ -3,12 +3,10 @@
 #include "core/memory.h"
 #include "core/types.h"
 
-#include "sched_sync.h"
-
-inline constexpr size_t N_PROCS = 16;
+#include "sync.h"
 
 struct proc_def_t {
-  const string name;
+  const char *const name;
   const priority_lev_t priority;
   const size_t stk_sz;
   const runnable_t func;
@@ -20,7 +18,7 @@ struct proc_def_t {
 namespace curr_proc
 {
 pid_t pid();
-string name();
+const char *name();
 bool term_req();
 bool set_up();
 } // namespace curr_proc
@@ -53,8 +51,6 @@ void yield();
 
 inline constexpr time_t invoke_interval = 2048;
 extern volatile time_t last_checked;
-
-bool needs_swap();
 } // namespace sched
 
 #define PROC_DEF(name) __##name##_def

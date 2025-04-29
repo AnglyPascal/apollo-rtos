@@ -11,15 +11,18 @@ OUTPUT_FORMAT ("elf32-littlearm")
 /* Setting the entry address helps GDB to find the stack bottom */
 ENTRY(__reset)
 
-#define SECT(name) .name
+#define SEC(name) .name
+#define SEC_START(name) __##name##_start
+#define SEC_END(name) __##name##_end
+#define SEC_LOAD(name) __##name##_load
 
 #define DEFINE_SECTION(name, prev)                                          \
-    __##name##_load = __##prev##_load + __##prev##_end - __##prev##_start;  \
-    SECT(name) : AT(__##name##_load) {                                      \
-        __##name##_start = .;                                               \
-        KEEP(*(SECT(name)))                                                 \
+    SEC_LOAD(name) = SEC_LOAD(prev) + SEC_END(prev) - SEC_START(prev);      \
+    SEC(name) : AT(SEC_LOAD(name)) {                                        \
+        SEC_START(name) = .;                                                \
+        KEEP(*(SEC(name)))                                                  \
         . = ALIGN(4);                                                       \
-        __##name##_end = .;                                                 \
+        SEC_END(name) = .;                                                  \
     } > RAM
 
 SECTIONS {
@@ -27,29 +30,27 @@ SECTIONS {
         KEEP(*(.vectors))
         *(.text*)
         *(.rodata*)
-        KEEP(*(.init_array))
+
+        SEC_START(init_funcs) = .;
+        KEEP(*(SEC(init_funcs)))
+        SEC_END(init_funcs) = .;
 
         . = ALIGN(4);
-        __data_load = .;
+        SEC_LOAD(data) = .;
     } > FLASH
 
-    .data : AT (__data_load) {
-        __data_start = .;
-
+    .data : AT (SEC_LOAD(data)) {
+        SEC_START(data) = .;
         *(.data*)
-
         . = ALIGN(4);
-        __data_end = .;
+        SEC_END(data) = .;
     } > RAM
 
     .bss : {
-        __bss_start = .;
-
+        SEC_START(bss) = .;
         *(.bss*)
-        *(COMMON)
-
         . = ALIGN(4);
-        __bss_end = .;
+        SEC_END(bss) = .;
     } > RAM
 
     DEFINE_SECTION(recover, data)

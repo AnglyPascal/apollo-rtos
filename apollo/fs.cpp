@@ -15,8 +15,8 @@ APP(rm, MID4, 128, param)
   if (*args->s == '\0')
     return debug<ERROR>("requires a file name\r\n");
 
-  auto fn = args->get_uint<fn_t>();
-  if (fn == MAX<fn_t>)
+  auto fn = args->get_uint<fn_t>().value_or(null_fn);
+  if (fn == null_fn)
     return debug<ERROR>("invalid file name\r\n");
 
   fram::remove(fn, forced);
@@ -31,8 +31,8 @@ APP(touch, MID4, 128, param)
   if (*args->s == '\0')
     return debug<ERROR>("requires a file name\r\n");
 
-  auto fn = args->get_uint<fn_t>();
-  if (fn == MAX<fn_t>)
+  auto fn = args->get_uint<fn_t>().value_or(null_fn);
+  if (fn == null_fn)
     return debug<ERROR>(DEFAULT "invalid file name: %d\r\n", fn);
 
   auto file = fram::open(fn, O_CREATE | O_CHAR_FILE | (perm ? O_PERM : 0));
@@ -43,8 +43,8 @@ APP(touch, MID4, 128, param)
 APP(ls, MID4, 128, param)
 {
   auto args = (args_t *)param;
-  auto fn = args->get_uint<fn_t>();
-  fs::trace(fn == MAX<fn_t> ? null_fn : fn);
+  auto fn = args->get_uint<fn_t>().value_or(null_fn);
+  fs::trace(fn);
 }
 
 APP(cat, MID4, 128, param)
@@ -53,6 +53,10 @@ APP(cat, MID4, 128, param)
   auto str = buf->str;
 
   fn_t fn = (*str == '\0') ? 10 : atoi(str);
+
+  if (!fram::exists(fn))
+    return debug<ERROR>("file %d doesn't exist\r\n", fn);
+
   ifstream it{fn};
 
   // FIXME: buffer it

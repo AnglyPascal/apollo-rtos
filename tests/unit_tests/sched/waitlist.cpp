@@ -21,7 +21,7 @@ PROC(proc0, HIGH1, 8, param)
   end_proc = false;
 }
 
-SYS_TEST(sched_waitlist)
+SYS_TEST(waitlist_basic)
 {
   start = 0;
   end = 0;
@@ -34,14 +34,14 @@ SYS_TEST(sched_waitlist)
   while (interval <= rounded) {
     auto p0 = REG_PROC(proc0, interval);
     sched::wait(p0);
-    result &= check_waitlist_itnerval(start, end, interval);
+    result &= check_waitlist_interval(start, end, interval);
     interval++;
   }
 
   return result;
 }
 
-PROC(proc1, HIGH1, 8, param)
+PROC(proc1, HIGH1, 128, param)
 {
   start = timer::now();
 
@@ -64,26 +64,24 @@ PROC(proc1, HIGH1, 8, param)
   end_proc = false;
 }
 
-SYS_TEST(sched_waitlist_fs_op)
+SYS_TEST(waitlist_fs_op)
 {
   start = 0;
   end = 0;
   end_proc = false;
 
   uint32_t interval = 1;
-  // const uint32_t rounded = roundup(interval, waitlist::update_interval);
   bool result = true;
 
   auto p0 = REG_PROC(proc1, interval);
   sched::wait(p0);
-  result &= check_waitlist_itnerval(start, end, interval);
+  result &= check_waitlist_interval(start, end, interval);
   interval++;
 
   auto file = fram::open(test_fn, O_READ);
   auto arr = (uint32_t *)file.mmap(file_len);
   for (uint32_t i = 0; i < 4; i++)
     result &= (*arr++ == i);
-  file.store();
   file.close();
 
   fram::remove(test_fn);

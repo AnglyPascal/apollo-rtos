@@ -4,9 +4,9 @@
 #include "fs/fs_bck.h"
 
 #include "core/memory.h"
+#include "core/sync.h"
 #include "utility/allocator.h"
 #include "utility/debug.h"
-#include "utility/mutex.h"
 
 using fd_mtx_t = mutex<8>;
 
@@ -212,49 +212,70 @@ public:
     auto mfsz() const { return fd->inode->max_sz(); }
     auto fend() const { return fd->inode->end; }
 
+    template <bool sync = ASYNC>
     bool load()
     {
       auto &tmu = target_mu();
       assert(tmu.buf != nullptr, TERM, "%d\r\n", fd->fn);
+
+      if constexpr (sync == SYNC)
+        return fs.template load<SYNC>(fd->inode, tmu.buf, tmu.sz);
+
       lock_guard guard{fd->mtx};
-      return fs.load(fd->inode, tmu.buf, tmu.sz);
+      return fs.template load<ASYNC>(fd->inode, tmu.buf, tmu.sz);
     }
 
+    template <bool sync = ASYNC>
     size_t store() const
     {
+      assert(w_en, TERM);
+
       auto &tmu = target_mu();
       assert(tmu.buf != nullptr, TERM);
+
+      if constexpr (sync == SYNC)
+        return fs.template store<SYNC>(fd->inode, tmu.buf, tmu.sz);
+
       lock_guard guard{fd->mtx};
-      return fs.store(fd->inode, tmu.buf, tmu.sz);
+      return fs.template store<ASYNC>(fd->inode, tmu.buf, tmu.sz);
     }
 
-    size_t store(size_t off, size_t sz) const
-    {
-      auto &tmu = target_mu();
-      assert(tmu.buf != nullptr && off >= 0 && off + sz <= tmu.sz, TERM);
-      lock_guard guard{fd->mtx};
-      return fs.store(fd->inode, off, ((uint8_t *)tmu.buf) + off, sz);
-    }
-
+    template <bool sync = ASYNC>
     size_t write(const void *buf, size_t sz, size_t off = 0)
     {
+      assert(w_en, TERM);
       assert(ft() == CHAR, TERM);
+
+      if constexpr (sync == SYNC)
+        return fs.template store<SYNC>(fd->inode, buf, sz, off);
+
       lock_guard guard{fd->mtx};
-      return fs.store(fd->inode, buf, sz, off);
+      return fs.template store<ASYNC>(fd->inode, buf, sz, off);
     }
 
+    template <bool sync = ASYNC>
     size_t append(const void *buf, size_t sz)
     {
+      assert(w_en, TERM);
       assert(ft() == CHAR, TERM);
+
+      if constexpr (sync == SYNC)
+        return fs.template store<SYNC>(fd->inode, buf, sz, fend());
+
       lock_guard guard{fd->mtx};
-      return fs.store(fd->inode, buf, sz, fend());
+      return fs.template store<ASYNC>(fd->inode, buf, sz, fend());
     }
 
+    template <bool sync = ASYNC>
     size_t read(uint8_t *buf, size_t len, size_t off = 0) const
     {
       assert(ft() == CHAR, TERM);
+
+      if constexpr (sync == SYNC)
+        return fs.template load<SYNC>(fd->inode, buf, len, off);
+
       lock_guard guard{fd->mtx};
-      return fs.load(fd->inode, buf, len, off);
+      return fs.template load<ASYNC>(fd->inode, buf, len, off);
     }
   };
 
@@ -350,7 +371,5 @@ public:
         dump(fn);
       }
     }
-
-    kprintf("\r\n");
   }
 };

@@ -18,7 +18,7 @@ using allocator_t = byte_t *(*)(size_t);
 template <allocator_t alloc_func, size_t alignment>
 class allocator
 {
-  chunk_list_t freelist{}; // singly list
+  chunk_list_t freelist{}; // doubly linked list
 
 public:
   void init_list() { return freelist.init(); }

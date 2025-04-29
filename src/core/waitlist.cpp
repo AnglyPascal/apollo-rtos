@@ -11,7 +11,7 @@ namespace waitlist
 namespace
 {
 struct waitlist_t {
-  string name;
+  const char *name;
   time_t remaining = 0;
   runnable_t func = nullptr;
   void *param = nullptr;
@@ -48,7 +48,7 @@ inline void dealloc(waitlist_t *ptr)
 }
 } // namespace
 
-void reg(string name, time_t interval, runnable_t func, void *param)
+void reg(const char *name, time_t interval, runnable_t func, void *param)
 {
   intr_guard guard{TIMER1_IRQ};
 
@@ -78,12 +78,21 @@ void reg(string name, time_t interval, runnable_t func, void *param)
 
 time_t last = 0;
 
-void run()
+// return if a waitlist task is ready to run
+bool increment(time_t millis)
 {
+  if (millis % update_interval != 0)
+    return false;
+
   auto head = &waitlist_hd;
   if (head->next != nullptr)
     head->next->remaining -= update_interval;
+  return head->next != nullptr && head->next->remaining == 0;
+}
 
+void run()
+{
+  auto head = &waitlist_hd;
   while (head->next != nullptr && head->next->remaining == 0) {
     auto task = head->next;
     head->next = task->next;
@@ -104,7 +113,7 @@ void trace()
   for (auto head = &waitlist_hd; head->next != nullptr; head = head->next) {
     debug<INFO>("  |  " BOLD CYAN "%s" DEFAULT //
                 " : (" BLUE "%u" DEFAULT ")\r\n",
-                head->next->name.str, head->next->remaining);
+                head->next->name, head->next->remaining);
   }
 }
 

@@ -10,7 +10,7 @@
 
 inline constexpr fn_t test_fn = 3;
 
-inline bool check_waitlist_itnerval(time_t start, time_t end, time_t interval)
+inline bool check_waitlist_interval(time_t start, time_t end, time_t interval)
 {
   auto rounded_future = roundup(start + interval, waitlist::update_interval);
   interval = roundup(rounded_future - start, waitlist::update_interval);

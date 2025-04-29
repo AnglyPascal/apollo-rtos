@@ -67,11 +67,10 @@ __run:
     mov r9, r5 
     mov r8, r4
     pop {r4-r7}
-    pop {r4}
 
     bl handle_signals
 
-    bx r4
+    pop {pc}
     .endm
 
 @@@ handler for PendSV interupt (context switch)

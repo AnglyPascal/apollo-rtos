@@ -27,7 +27,6 @@ __always_inline__ inline void do_trace(bool stk_info = false)
   waitlist::trace();
   fs::trace();
   heap::trace();
-  kprintf("\r\n");
 }
 
 APP(htop, MID4, 128, param)

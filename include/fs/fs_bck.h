@@ -245,34 +245,45 @@ private:
 
     uint8_t i = fst_blk;
 
+    size_t sent_sz;
+
     auto rem = buf_sz;
-    func(paddr(inode->blks[i++]) + blk_offset, buf, fst_blk_sz);
+    sent_sz = func(paddr(inode->blks[i++]) + blk_offset, buf, fst_blk_sz);
+    if (sent_sz < fst_blk_sz)
+      return sent_sz;
+
     buf += fst_blk_sz;
     rem -= fst_blk_sz;
 
     while (rem > 0 && i < nblks) {
       auto blk_sz = min(rem, BLK_SZ);
-      func(paddr(inode->blks[i++]), buf, blk_sz);
+
+      sent_sz = func(paddr(inode->blks[i++]), buf, blk_sz);
+      if (sent_sz < blk_sz)
+        return buf_sz - (rem - sent_sz);
 
       buf += blk_sz;
       rem -= blk_sz;
     }
 
-    // FIXME: return the actual number of written bytes
-    return buf_sz - rem;
+    return buf_sz;
   }
 
 public:
+  template <bool sync = ASYNC>
   static size_t load(const inode_t *inode, void *buf, size_t buf_sz,
                      size_t off = 0)
   {
-    return xfer<desc.read>(inode, (uint8_t *)buf, buf_sz, off);
+    constexpr auto read = sync ? desc.read_sync : desc.read;
+    return xfer<read>(inode, (uint8_t *)buf, buf_sz, off);
   }
 
+  template <bool sync = ASYNC>
   static size_t store(const inode_t *inode, const void *buf, size_t buf_sz,
                       size_t off = 0)
   {
-    auto nbytes = xfer<desc.write>(inode, (uint8_t *)buf, buf_sz, off);
+    constexpr auto write = sync ? desc.write_sync : desc.write;
+    auto nbytes = xfer<write>(inode, (uint8_t *)buf, buf_sz, off);
 
     bool prev_invalid = inode->end == 0;
     inode->end = max(inode->end, off + nbytes);

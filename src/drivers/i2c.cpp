@@ -13,14 +13,18 @@
 namespace i2c
 {
 
+enum : bool {
+  READ = true,
+  WRITE = false,
+};
+
 int read_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
-               size_t n)
+               size_t n, bool sync)
 {
   PROFILE_THIS(0);
-  if (curr_proc::set_up())
-    return async::xfer<true>(addr, cmd, cmd_sz, buf, n);
-  else
-    return sync::xfer<true>(addr, cmd, cmd_sz, buf, n);
+  if (sync || !curr_proc::set_up())
+    return sync::xfer<READ>(addr, cmd, cmd_sz, buf, n);
+  return async::xfer<READ>(addr, cmd, cmd_sz, buf, n);
 }
 
 uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz)
@@ -31,13 +35,12 @@ uint8_t read_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz)
 }
 
 int write_bytes(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t *buf,
-                size_t n)
+                size_t n, bool sync)
 {
   PROFILE_THIS(1);
-  if (curr_proc::set_up())
-    return async::xfer<false>(addr, cmd, cmd_sz, buf, n);
-  else
-    return sync::xfer<false>(addr, cmd, cmd_sz, buf, n);
+  if (sync || !curr_proc::set_up())
+    return sync::xfer<WRITE>(addr, cmd, cmd_sz, buf, n);
+  return async::xfer<WRITE>(addr, cmd, cmd_sz, buf, n);
 }
 
 void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val)
@@ -48,7 +51,7 @@ void write_reg(uint8_t addr, uint8_t *cmd, size_t cmd_sz, uint8_t val)
 int probe(uint8_t addr)
 {
   uint8_t buf = 0;
-  return sync::xfer<false>(addr, &buf, 1, nullptr, 0);
+  return sync::xfer<WRITE>(addr, &buf, 1, nullptr, 0);
 }
 
 void init()

@@ -39,12 +39,10 @@ namespace waitlist
 void trace();
 }
 
-__extern_C__ void hardfault_handler_body(void *fault_stack)
+__extern_C__ void hardfault_handler_body(context_t *stk)
 {
   serial::os.__putc = serial::busy_putc;
   intr_guard guard{UART_IRQ};
-
-  auto stk = (context_t *)fault_stack;
 
   if (stk->r2 == HARDFAULT_MAGIC) {
     debug<FATAL>("\r\nassertion failure at " //

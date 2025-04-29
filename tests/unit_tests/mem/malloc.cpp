@@ -20,7 +20,7 @@ PROC(malloc_free_basic, MID1, 8, param)
   result &= (a == c) && (a != b);
 }
 
-SYS_TEST(test_basic_malloc_free)
+SYS_TEST(basic_malloc_free)
 {
   result = true;
   auto p = REG_PROC(malloc_free_basic, nullptr);
@@ -36,7 +36,7 @@ PROC(proc_cleanup_test, MID2, 8, param)
   // Intentionally don't free 'a' and 'b'
 }
 
-SYS_TEST(test_cleanup_after_process)
+SYS_TEST(cleanup_after_process)
 {
   auto p = REG_PROC(proc_cleanup_test, nullptr);
   sched::wait(p);
@@ -56,7 +56,7 @@ PROC(null_handling_test, MID3, 8, param)
   result &= (zero_alloc == nullptr);
 }
 
-SYS_TEST(test_null_and_zero_handling)
+SYS_TEST(null_and_zero_handling)
 {
   result = true;
   auto p = REG_PROC(null_handling_test, nullptr);
@@ -77,7 +77,7 @@ PROC(proc2_alloc, MID3, 8, param)
   sched::sleep(5);
 }
 
-SYS_TEST(test_process_isolation)
+SYS_TEST(process_isolation)
 {
   auto p1 = REG_PROC(proc1_alloc, nullptr);
   auto p2 = REG_PROC(proc2_alloc, nullptr);
@@ -101,7 +101,7 @@ PROC(complex_alloc_pattern, MID3, 8, param)
   result &= (chunks[0] == chunks[2]) && (chunks[1] != chunks[3]);
 }
 
-SYS_TEST(test_complex_pattern_with_cleanup)
+SYS_TEST(complex_pattern_with_cleanup)
 {
   result = true;
   auto p = REG_PROC(complex_alloc_pattern, nullptr);

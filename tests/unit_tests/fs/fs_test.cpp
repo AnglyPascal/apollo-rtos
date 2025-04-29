@@ -101,7 +101,7 @@ constexpr size_t file_len = 16;
 
 BEGIN_SUITE(fs_mapping)
 
-PROC(proc0, HIGH1, 8, param)
+PROC(proc0, HIGH1, 128, param)
 {
   auto file = fram::open(test_fn, file_len, O_CREATE | O_WRITE);
   auto arr = (uint32_t *)file.mmap(16);
@@ -142,10 +142,8 @@ PROC(proc0, MID4, 128, param)
 {
   auto str = *(const char **)param;
   auto file = fram::open(test_fn, O_APPEND);
-  for (size_t i = 0; i < n; i++) {
-    // kputc(str[0]);
+  for (size_t i = 0; i < n; i++)     
     file.append(str, N);
-  }
 }
 
 char s0[N + 1], s1[N + 1], s2[N + 1], s3[N + 1];
@@ -156,8 +154,6 @@ SYS_TEST(write_contention)
 
   auto file = fram::open(test_fn, len, O_CREATE | O_CHAR_FILE | O_APPEND);
   file.append("S", 1);
-
-  // fs::trace(test_fn);
 
   for (size_t i = 0; i < N; i++) {
     s0[i] = '0';
@@ -181,8 +177,6 @@ SYS_TEST(write_contention)
 
   constexpr auto exp = (N * n * 4) + 1;
   auto res = exp == strlen(str);
-
-  kprintf("\r\n");
 
   file.close();
   fram::remove(test_fn);

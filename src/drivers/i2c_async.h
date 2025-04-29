@@ -3,9 +3,9 @@
 #include "core/hardware.h"
 #include "core/irq.h"
 #include "core/sched.h"
+#include "core/sync.h"
 #include "drivers/i2c.h"
 #include "utility/debug.h"
-#include "utility/mutex.h"
 
 namespace i2c
 {

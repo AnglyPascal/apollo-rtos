@@ -17,14 +17,18 @@ size_t i_sys __recover_section__ = 0;
 size_t n_unit_tests __recover_section__ = 0;
 size_t n_sys_tests __recover_section__ = 0;
 
+constexpr size_t n_suites = sizeof(test_suites) / sizeof(test_suites[0]);
+
 inline bool suite_enabled(const char *suite)
 {
-  int i = 0;
-  for (; test_suites[i] != nullptr; ++i) {
+  // enable all tests by default
+  if (n_suites == 0)
+    return true;
+
+  for (size_t i = 0; i < n_suites; ++i)
     if (strcmp(suite, test_suites[i]) == 0)
       return true;
-  }
-  return i == 0; // enable all tests by default
+  return false;
 }
 
 inline void report()
@@ -87,7 +91,7 @@ inline void run_tests(test_t *tests, size_t &idx, size_t n_tests)
     clear_line();
     debug<ERROR>(DEFAULT "running %s.%s: ", suite, name);
     *passed = func();
-    debug<ERROR>("%s\r\n" DEFAULT, *passed ? GREEN "passed" : RED "FAILED");
+    debug<ERROR>("%s\n\r" DEFAULT, *passed ? GREEN "passed" : RED "FAILED");
     trigger_reset();
   }
 }
@@ -110,14 +114,13 @@ void run()
     SEC_INIT(unit_tests);
     SEC_INIT(sys_tests);
 
-    if (test_suites[0] == nullptr)
-      debug<INFO>("running " BLUE "all" DEFAULT " suites\r\n");
+    if (n_suites == 0)
+      debug<INFO>("running " BLUE "all" DEFAULT " suites\r\n\r\n");
     else {
       debug<INFO>("running suites: ");
-      int i = 0;
-      for (; test_suites[i + 1] != nullptr; i++)
+      for (size_t i = 0; i < n_suites - 1; i++)
         debug<INFO>(YELLOW "%s" DEFAULT ", ", test_suites[i]);
-      debug<INFO>(YELLOW "%s" DEFAULT "\r\n\r\n", test_suites[i]);
+      debug<INFO>(YELLOW "%s" DEFAULT "\r\n\r\n", test_suites[n_suites - 1]);
     }
   }
 

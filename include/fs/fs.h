@@ -12,8 +12,8 @@ using addr_t = uint32_t;
 using fn_t = uint8_t;
 using blk_addr_t = uint8_t;
 
-void write(addr_t addr, uint8_t *buf, size_t buf_sz);
-void read(addr_t addr, uint8_t *buf, size_t buf_sz);
+size_t write(addr_t addr, uint8_t *buf, size_t buf_sz);
+size_t read(addr_t addr, uint8_t *buf, size_t buf_sz);
 
 static constexpr size_t BLK_SZ = 1 << 10;
 static constexpr addr_t FLASH_END = 256 * BLK_SZ;
@@ -25,6 +25,9 @@ static constexpr size_t N_FS_BLKS = 1;
 inline constexpr desc_t desc = {
     .write = write,
     .read = read,
+
+    .write_sync = write,
+    .read_sync = read,
 
     .start = FLASH_END - N_BLKS * BLK_SZ,
     .end = FLASH_END,
@@ -65,8 +68,11 @@ using addr_t = uint16_t;
 using fn_t = uint8_t;
 using blk_addr_t = uint8_t;
 
-void write(addr_t addr, uint8_t *buf, size_t buf_sz);
-void read(addr_t addr, uint8_t *buf, size_t buf_sz);
+size_t write(addr_t addr, uint8_t *buf, size_t buf_sz);
+size_t read(addr_t addr, uint8_t *buf, size_t buf_sz);
+
+size_t write_sync(addr_t addr, uint8_t *buf, size_t buf_sz);
+size_t read_sync(addr_t addr, uint8_t *buf, size_t buf_sz);
 
 static constexpr addr_t FRAM_END = 1 << 15;
 static constexpr size_t BLK_SZ = 1 << 7;
@@ -78,6 +84,9 @@ static constexpr size_t N_FS_BLKS = 8;
 inline constexpr desc_t desc = {
     .write = write,
     .read = read,
+
+    .write_sync = write_sync,
+    .read_sync = read_sync,
 
     .start = 0x0,
     .end = FRAM_END,
@@ -102,6 +111,7 @@ using fram = fs_impl_t<_fram::desc>;
 
 using ifstream = _ifstream<_fram::desc>;
 using ofstream = _ofstream<_fram::desc>;
+
 
 namespace fs
 {

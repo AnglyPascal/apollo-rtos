@@ -40,17 +40,23 @@ byte_t *alloc_stack(size_t nbytes)
 
 extern "C" void *memcpy(void *dest, const void *src, uint32_t n)
 {
-  auto p = (uint32_t *)dest;
-  auto q = (const uint32_t *)src;
-  while (n >= sizeof(uint32_t)) {
-    *p++ = *q++;
-    n -= sizeof(uint32_t);
+  auto *d = (uint8_t *)dest;
+  auto *s = (const uint8_t *)src;
+
+  // copy word-aligned when possible
+  if ((((size_t)d | (size_t)s) & (sizeof(uint32_t) - 1)) == 0) {
+    auto *dw = (uint32_t *)d;
+    auto *sw = (const uint32_t *)(s);
+    while (n >= sizeof(uint32_t)) {
+      *dw++ = *sw++;
+      n -= sizeof(uint32_t);
+    }
+    d = (uint8_t *)dw;
+    s = (const uint8_t *)sw;
   }
 
-  auto pb = (uint8_t *)p;
-  auto qb = (uint8_t *)q;
-  while (n-- > 0) {
-    *pb++ = *qb++;
+  while (n--) {
+    *d++ = *s++;
   }
 
   return dest;
@@ -84,10 +90,20 @@ extern "C" void strcpy(char *dest, const char *src)
 
 extern "C" int strcmp(const char *lhs, const char *rhs)
 {
+  if (lhs == nullptr && rhs == nullptr)
+    return 0;
+
+  if (lhs == nullptr)
+    return -1;
+
+  if (rhs == nullptr)
+    return 1;
+
   while (*rhs != '\0' && *lhs != '\0' && *lhs == *rhs) {
     lhs++;
     rhs++;
   }
+
   if (*lhs < *rhs)
     return -1;
   if (*lhs > *rhs)
@@ -175,13 +191,12 @@ namespace sched
 void init_lists();
 }
 
-namespace mem
+namespace
 {
-void init()
+INIT_FUNC()
 {
   heap::pool.init_list();
   kmem::kpool.init_list();
-  sched::init_lists();
 }
-} // namespace mem
+} // namespace
 

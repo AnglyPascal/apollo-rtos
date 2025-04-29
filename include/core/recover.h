@@ -5,15 +5,15 @@
 #define __recover_section__                                                    \
   __attribute__((section(".recover"))) __attribute__((__used__))
 
-inline constexpr size_t N_REC_DATA = 20;
+inline constexpr size_t N_REC_DATA = 18;
 
 using rec_id_t = uint8_t;
 inline constexpr rec_id_t null_rec_id = MAX<rec_id_t>;
 
-enum lev_t : uint8_t {
-  NONE = 0,
-  RESET = 1,
-  POWER_OFF = 2,
+enum lev_t : uint32_t {
+  NONE = 0xDEADDEAD,
+  RESET = 0x11111111,
+  POWER_OFF = 0x22222222,
 };
 
 namespace recover

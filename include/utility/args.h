@@ -59,33 +59,35 @@ struct args_t {
     return c;
   }
 
-  int32_t get_int() const
+  template <typename T = int32_t>
+    requires std::is_signed_v<T>
+  optional<T> get_int() const
   {
-    int mult = 1;
+    int32_t mult = 1;
     if (*s == '-') {
       mult = -1;
       s++;
     }
 
     if (!isdigit(*s))
-      return MAX<int32_t>;
+      return nullopt;
 
     const char *end = nullptr;
-    auto n = atou(s, &end);
+    int32_t n = atou(s, &end);
 
     while (*end == ' ')
       end++;
     s = (char *)end;
 
-    return n * mult;
+    return static_cast<T>(n * mult);
   }
 
   template <typename T = uint32_t>
     requires std::is_unsigned_v<T>
-  T get_uint() const
+  optional<T> get_uint() const
   {
     if (!isdigit(*s))
-      return MAX<T>;
+      return nullopt;
 
     const char *end = nullptr;
     auto n = atou(s, &end);
@@ -97,13 +99,13 @@ struct args_t {
       end++;
     s = (char *)end;
 
-    return (T)n;
+    return static_cast<T>(n);
   }
 
-  const char *get_str() const
+  const char *get_word() const
   {
     auto t = s;
-    while (*s != ' ' || *s != '\0')
+    while (*s != ' ' && *s != '\0')
       s++;
 
     *s = '\0';

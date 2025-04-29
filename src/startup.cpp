@@ -16,6 +16,8 @@ SEC_ADDR(services);
 SEC_ADDR(startups);
 SEC_ADDR(apps);
 
+SEC_ADDR(init_funcs);
+
 namespace
 {
 static const char *welcome_mssg =                              //
@@ -27,6 +29,13 @@ static const char *welcome_mssg =                              //
     "       |_|                                          \r\n" //
     DEFAULT "\r\n"                                             //
     YELLOW " Welcome to Apollo RTOS!\r\n\r\n" DEFAULT;
+}
+
+inline void call_constructors()
+{
+  for (SEC_ITER(init_funcs, init_func_t, p)) {
+    (*p)();
+  }
 }
 
 __extern_C__ void __reset(void)
@@ -47,7 +56,8 @@ __extern_C__ void __reset(void)
   SEC_INIT(startups);
   SEC_INIT(apps);
 
-  mem::init();
+  call_constructors();
+
   led::init();
   serial::init();
 

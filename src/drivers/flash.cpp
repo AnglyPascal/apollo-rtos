@@ -23,7 +23,7 @@ void erase(addr_t pg_addr)
   wait();
 }
 
-void write(addr_t addr, uint8_t *buf, size_t sz)
+size_t write(addr_t addr, uint8_t *buf, size_t sz)
 {
   erase(addr);
 
@@ -40,9 +40,11 @@ void write(addr_t addr, uint8_t *buf, size_t sz)
 
   NVMC.CONFIG = NVMC_CONFIG_REN;
   wait();
+
+  return sz;
 }
 
-void read(addr_t addr, uint8_t *buf, size_t sz)
+size_t read(addr_t addr, uint8_t *buf, size_t sz)
 {
   auto pg_addr = (word_t *)addr;
   auto rt_addr = (word_t *)buf;
@@ -51,6 +53,8 @@ void read(addr_t addr, uint8_t *buf, size_t sz)
     rt_addr[i] = pg_addr[i];
     wait();
   }
+
+  return sz;
 }
 
 } // namespace _flash

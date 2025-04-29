@@ -2,6 +2,7 @@
 #include "core/hardware.h"
 #include "core/irq.h"
 #include "utility/circular_buffer.h"
+#include "utility/stack.h"
 
 namespace serial
 {
@@ -17,6 +18,7 @@ static volatile int txidle; /* Whether UART is idle */
 static constexpr size_t NBUF = 64; /* Buffer size */
 circular_buffer<char, NBUF> buf;
 
+stack<listener_t, 16> listeners;
 } // namespace
 
 /* init -- set up UART connection to host */
@@ -43,43 +45,18 @@ void init(void)
   txidle = 1;
 }
 
-namespace
-{
-// FIXME use a stack 
-class
-{
-  listener_t stack[16] = {nullptr};
-  size_t idx = 0;
-
-public:
-  void push(listener_t listener) { stack[idx++] = listener; }
-
-  void pop()
-  {
-    assert(idx > 0, TERM);
-    idx--;
-  }
-
-  void operator()(char c)
-  {
-    auto i = idx;
-    while (i > 0) {
-      if (stack[--i](c))
-        break;
-    }
-  }
-} listeners;
-} // namespace
-
 void register_listener(listener_t listener) { listeners.push(listener); }
-
 void unregister_listener() { listeners.pop(); }
 
 __extern_C__ void uart_handler(void)
 {
   if (UART.RXDRDY) {
-    char ch = UART.RXD;
-    listeners(ch);
+    char c = UART.RXD;
+
+    for (auto listener : listeners)
+      if (listener(c))
+        break;
+
     UART.RXDRDY = 0;
   }
 
@@ -108,7 +85,8 @@ void intr_putc(char ch)
   }
 }
 
-void flush() {
+void flush()
+{
   while (buf.size() != 0)
     pause();
 }

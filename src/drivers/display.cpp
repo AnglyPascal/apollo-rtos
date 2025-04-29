@@ -47,10 +47,7 @@ void image_set(int x, int y, image_t img)
 }
 
 /* switch on a single pixel in the displayed image */
-void image_set(int x, int y)
-{
-  image_set(x, y, image);
-}
+void image_set(int x, int y) { image_set(x, y, image); }
 
 void show(const image_t img) { memcpy(image, img, sizeof(image_t)); }
 
@@ -73,5 +70,5 @@ SERVICE(display, LOW2, 128, param)
   }
 }
 } // namespace
-  
+
 } // namespace display

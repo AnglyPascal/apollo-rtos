@@ -38,7 +38,7 @@ __always_inline__ inline void proc_trace()
     rational_t perc{(int32_t)proc->ticks, total_ticks};
     debug<INFO>("  |  " CYAN "%s" DEFAULT ": "
                 "(" YELLOW "%f%" DEFAULT ")\r\n",
-                proc->name.str, perc);
+                proc->name, perc);
   };
 
   for (SEC_ITER(services, proc_def_t, proc))

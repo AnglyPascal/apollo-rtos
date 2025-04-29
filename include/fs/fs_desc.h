@@ -3,7 +3,7 @@
 #include "core/types.h"
 
 template <typename addr_t>
-using fs_xfer_t = void (*)(addr_t addr, uint8_t *buf, size_t buf_sz);
+using fs_xfer_t = size_t (*)(addr_t addr, uint8_t *buf, size_t buf_sz);
 
 template <typename _fn_t, typename _blk_addr_t, typename _addr_t,
           size_t _blk_sz>
@@ -14,6 +14,9 @@ struct fs_desc_t {
 
   fs_xfer_t<addr_t> write;
   fs_xfer_t<addr_t> read;
+
+  fs_xfer_t<addr_t> write_sync;
+  fs_xfer_t<addr_t> read_sync;
 
   static constexpr size_t blk_sz = _blk_sz;
 
@@ -29,3 +32,4 @@ struct fs_desc_t {
   size_t n_open_files;
   bool is_ram;
 };
+

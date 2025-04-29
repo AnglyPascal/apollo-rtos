@@ -11,7 +11,14 @@ namespace sched
 {
 void assert_stack();
 void tick();
+bool needs_swap();
 } // namespace sched
+
+namespace waitlist
+{
+bool increment(time_t millis);
+void run();
+} // namespace waitlist
 
 namespace timer
 {
@@ -60,7 +67,7 @@ __always_inline__ inline void sched_invoke()
 {
   if (MILLIS - sched::last_checked > sched::invoke_interval) {
     debug<FATAL>(DEFAULT "scheduler invoked. proc: " BOLD RED "%s\r\n" DEFAULT,
-                 curr_proc::name().str);
+                 curr_proc::name());
     sched::last_checked = MILLIS;
     if (sched::needs_swap())
       pendsv_handler();
@@ -76,7 +83,7 @@ __extern_C__ void timer1_handler(void)
 
   sched::assert_stack();
 
-  if ((MILLIS & (waitlist::update_interval - 1)) == 0) {
+  if (waitlist::increment(MILLIS)) {
     intr_guard guard;
 
     auto prev_stk = (uint8_t *)get_msp();

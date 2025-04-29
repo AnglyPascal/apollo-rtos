@@ -3,7 +3,6 @@ TODO
 
 ## hardware setup
 
-- setup a different timer for independent time keeping
 - gpio namespace, setup buttons
 - setup magnetometer
 - radio
@@ -13,9 +12,6 @@ TODO
 
 - trace unification, and dump signal
 - message pass signals
-
-- char files
-    - cat, output to file
 
 
 ## Testing
@@ -31,16 +27,13 @@ TODO
 
 ## Report:
 
-- make the agc chapter more concise
 - Move the codebase structure section to the appendix
 - make listings font slightly smaller
 - the file system implementation is too verbose
 - modify the codebase appendex
 - write about the new hardfault handler and error handling
 
-- write about the difference in my waitlist implementation vs AGC's
-- write about fairness improvement
-- write about linked list in memory
+- talk about fragmentation issue
 
 - conveniences: cmake, linker script, process creation and testing macros
 - testing framework

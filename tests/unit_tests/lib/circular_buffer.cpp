@@ -38,7 +38,7 @@ TEST(basic_operations)
   return result;
 }
 
-TEST(capacity_and_overwrite_behavior)
+TEST(capacity_and_overwrite)
 {
   bool result = true;
 
@@ -105,7 +105,7 @@ TEST(wrap_around_and_iteration)
   return result;
 }
 
-TEST(edge_cases_and_special_operations)
+TEST(edge_cases)
 {
   bool result = true;
 

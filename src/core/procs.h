@@ -23,15 +23,16 @@ const char *priority_levels[] = {
 } // namespace
 
 struct priority_t {
-  priority_lev_t lev;
+  priority_lev_t lev = EMPTY;
   uint8_t weight = 0;
 
+  priority_t() {}
   priority_t(priority_lev_t lev) : lev{lev}, weight{0} {}
   priority_t(int lev) : lev{(priority_lev_t)lev}, weight{0} {}
 
-  priority_t &operator=(int32_t lev)
+  priority_t &operator=(priority_lev_t lev)
   {
-    this->lev = (priority_lev_t)lev;
+    this->lev = lev;
     this->weight = 0;
     return *this;
   }
@@ -43,36 +44,21 @@ struct priority_t {
     return (rhs.weight) <=> lhs.weight;
   }
 
-  friend auto operator==(const priority_t &lhs, int32_t rhs)
-  {
-    return lhs.lev == rhs;
-  }
-
-  friend auto operator!=(const priority_t &lhs, int32_t rhs)
-  {
-    return lhs.lev != rhs;
-  }
-
-  friend auto operator==(int32_t lhs, const priority_t &rhs)
-  {
-    return rhs == lhs;
-  }
-
-  friend auto operator!=(int32_t lhs, const priority_t &rhs)
-  {
-    return rhs != lhs;
-  }
-
   bool asleep() const { return lev < 0; }
   bool awake() const { return lev > 0; }
+
+  static_assert(EMPTY == 0);
+  bool empty() const { return lev == EMPTY; }
 };
 
 struct proc_def_t;
 class barrier_t;
 
 struct proc_t {
-  string name = {};
   priority_t priority{EMPTY};
+
+  fn_t out_fn = stdout;
+  bool term_req = false;
 
   byte_t *stk_ptr = nullptr;
   byte_t *stack = nullptr;
@@ -82,8 +68,6 @@ struct proc_t {
   void *param = nullptr;
   chunk_list_t used_list = {};
 
-  fn_t out_fn = stdout;
-  bool term_req = false;
   barrier_t *bar = nullptr;
   signals_t signals = {};
 
@@ -97,6 +81,8 @@ struct proc_t {
 
     signals.reset();
   }
+
+  const char *name() const { return def == nullptr ? nullptr : def->name; }
 
   void trace(pid_t pid, bool curr, bool stk_info) const
   {
@@ -126,7 +112,7 @@ struct proc_t {
     debug<INFO>("  |  "                       //
                 BOLD YELLOW "%d" DEFAULT ". " //
                 BOLD CYAN "%s" DEFAULT " : (%s), %s",
-                pid, name.str, priority_levels[prio_lev], states[state]);
+                pid, name(), priority_levels[prio_lev], states[state]);
 
     (stk_info) ? debug<INFO>("\t"                           //
                              "stk: " BLUE "%p" DEFAULT ", " //
@@ -141,19 +127,18 @@ struct proc_t {
   }
 };
 
-template <uint8_t _N_PROCS>
 class procs_t
 {
-  proc_t procs[_N_PROCS] = {};
+  proc_t procs[N_PROCS] = {};
 
 public:
   inline proc_t *alloc()
   {
     uint8_t pid = 0;
-    while (pid < _N_PROCS && procs[pid].priority != EMPTY)
+    while (pid < N_PROCS && !procs[pid].priority.empty())
       pid++;
 
-    if (pid == _N_PROCS)
+    if (pid == N_PROCS)
       return nullptr;
 
     return &procs[pid];
@@ -168,7 +153,7 @@ public:
     proc_t *max_proc = nullptr;
     priority_t max_priority{0};
 
-    for (pid_t pid = 0; pid < _N_PROCS; pid++) {
+    for (pid_t pid = 0; pid < N_PROCS; pid++) {
       auto &proc = procs[pid];
 
       if (max_priority >= proc.priority)
@@ -183,9 +168,9 @@ public:
 
   void trace(pid_t curr, bool stk_info) const
   {
-    for (auto pid = 0; pid < _N_PROCS; pid++) {
+    for (auto pid = 0; pid < N_PROCS; pid++) {
       auto &proc = procs[pid];
-      if (proc.priority != EMPTY)
+      if (!proc.priority.empty())
         proc.trace(pid, pid == curr, stk_info);
     }
   }
@@ -198,7 +183,7 @@ public:
 
   inline proc_t *operator[](pid_t pid)
   {
-    assert(pid < _N_PROCS, S_RESET);
+    assert(pid < N_PROCS, S_RESET);
     return &procs[pid];
   }
 

@@ -15,10 +15,10 @@ namespace
 {
 SEC_ADDR(apps);
 
-__always_inline__ inline proc_def_t *match_cmd(string cmd_str)
+__always_inline__ inline proc_def_t *match_cmd(const char *cmd_str)
 {
   for (SEC_ITER(apps, proc_def_t, proc)) {
-    if (proc->name == cmd_str)
+    if (strcmp(proc->name, cmd_str) == 0)
       return proc;
   }
   return nullptr;
@@ -27,7 +27,7 @@ __always_inline__ inline proc_def_t *match_cmd(string cmd_str)
 chan_t<1> chan;
 args_buffer_t buf;
 
-static const char *header = BOLD CYAN ">> " DEFAULT;
+static const char *header = BOLD CYAN "\r\n>> " DEFAULT;
 
 bool listener(char c)
 {
@@ -107,8 +107,10 @@ SERVICE(shell, HIGH1, 256, param)
 
     auto p = parser.args;
     auto q = param->str;
-    while (*p != '\0')
-      *q++ = *p++;
+    if (p != nullptr) {
+      while (*p != '\0')
+        *q++ = *p++;
+    }
     *q = '\0';
 
     auto pid = sched::reg_proc(cmd_def, (void *)param);
@@ -130,7 +132,7 @@ APP(help, MID4, 128, param)
 {
   int n = 6;
   for (SEC_ITER(apps, proc_def_t, proc)) {
-    kprintf("%s\t", proc->name.str);
+    kprintf("%s\t", proc->name);
     if (--n == 0) {
       kprintf("\r\n");
       n = 6;

@@ -13,7 +13,6 @@ protected:
 
 private:
   struct iterator {
-    using difference_type = size_t;
     using value_type = T;
     using pointer = value_type *;
     using reference = value_type &;
@@ -112,8 +111,11 @@ public:
   }
 
   bool empty() const { return sz == 0; }
+
   size_t size() const { return sz; }
-  size_t capacity() const { return N; }
+  constexpr size_t capacity() const { return N; }
+
+  bool is_full() const { return size() == capacity(); }
 
   iterator begin() { return iterator{(T *)store, _start, sz}; }
   iterator end() { return iterator{(T *)store, _end, 0}; }
