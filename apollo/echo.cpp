@@ -10,7 +10,8 @@ namespace
 APP(echo, MID4, 128, param)
 {
   auto buf = (args_t *)param;
-  printf("%s\r\n", buf->str);
+  printf("%s", buf->str);
+  fprintf(stdout, "\r\n");
 }
 
 APP(clear, MID4, 24, param)
