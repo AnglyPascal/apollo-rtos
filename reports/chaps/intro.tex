@@ -30,7 +30,7 @@ facilities provided by the C++ Standard Library. The goal is to reimagine the AG
 philosophies for a modern embedded context: combining historical pragmatism with
 contemporary programming paradigms.
 
-\subsection{Project Summary}
+\subsection{Contribution}
 
 This work presents \textbf{Apollo-RTOS}: a fully-featured, real-time operating system
 for the \texttt{micro:bit} v1, deeply inspired by the AGC and informed by the design
@@ -80,9 +80,68 @@ The complete source code for Apollo-RTOS is available at:
 \lstinputlisting[style=mytty, caption={Landing screen of Apollo-RTOS on
 \texttt{minicom}}]{code/ex1.sh}
 
-% \begin{minipage}{.5\linewidth}
-%     \includegraphics[width=.9\linewidth]{ex1}
-% \end{minipage}\hfill%
-% \begin{minipage}{.5\linewidth}
-%     \includegraphics[width=.9\linewidth]{ex2}
-% \end{minipage}
+\vspace{1em}%
+The Apollo-RTOS codebase spans over 85 source files and nearly 10,000 lines of code,
+covering components such as the scheduler, memory manager, file system, shell, drivers,
+and testing framework. A breakdown by language is shown below:
+
+\vspace{-1.7em}
+\begin{center}
+\begin{minipage}{.95\linewidth}
+\begin{lstlisting}[
+    style=mytxt,
+    linebackgroundcolor={\line{10}},
+    caption={Scale of the Apollo-RTOS codebase}
+]
+===========================================================================
+ Language        Files        Lines         Code     Comments       Blanks
+===========================================================================
+ Assembly            1           89           49           28           12
+ Autoconf            1          131          109            5           17
+ C                   1          114           83           11           20
+ C Header           41         4904         3804          131          969
+ C++                42         4713         3703           90          920
+===========================================================================
+ Total              86         9951         7748          265         1938
+===========================================================================
+\end{lstlisting}
+\end{minipage}
+\end{center}
+
+\newpage
+\subsection{Report Structure}
+
+The remainder of this report is structured as follows:
+
+\begin{itemize}
+    \item \textbf{Section~\ref{sec:agc}} explores the architecture and design
+        principles of the Apollo Guidance Computer, which served as the historical
+        foundation for this project.
+    \item \textbf{Section~\ref{sec:design}} outlines the design goals and high-level
+        architecture of Apollo-RTOS, and discusses how concepts from the AGC and
+        Unix-like systems were adapted.
+    \item \textbf{Section~\ref{sec:sched}} presents the scheduler, including the
+        hybrid cooperative-preemptive model and mechanisms for context switching and
+        synchronization.
+    \item \textbf{Section~\ref{sec:memory}} details the memory management system and
+        the file system architecture, including support for flash and FRAM devices.
+    \item \textbf{Section~\ref{sec:rec}} describes the error handling model and
+        restart-based recovery mechanism, allowing processes to recover gracefully
+        after resets.
+    \item \textbf{Section~\ref{sec:startup}} discusses the startup sequence and system
+        initialization steps.
+    \item \textbf{Section~\ref{sec:drivers}} explains the hardware drivers implemented
+        for the \texttt{micro:bit} platform, including timers, serial I/O, I2C, and LED
+        display control.
+    \item \textbf{Section~\ref{sec:shell}} introduces the interactive shell and user
+        command interface.
+    \item \textbf{Section~\ref{sec:testing}} evaluates Apollo-RTOS in terms of
+        functionality, reliability, and test coverage.
+    \item \textbf{Section~\ref{sec:conclusion}} concludes the report with a reflection
+        on the work, its limitations, and future directions.
+\end{itemize}
+
+Additional implementation details, data structures, and source listings are included in
+the appendices.
+
+

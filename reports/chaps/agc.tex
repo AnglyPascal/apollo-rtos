@@ -1,4 +1,5 @@
 \section{The Apollo Guidance Computer}
+\label{sec:agc}
 
 The \textbf{Apollo Guidance Computer} (AGC) was an early digital computer developed in
 the 1960s to provide real-time navigation and control for the Apollo spacecraft.
@@ -104,7 +105,7 @@ negating its priority, allowing the next eligible process to run.
 
 When the awaited event occurred, another process could wake it using \texttt{JOBWAKE},
 which reversed the priority negation. \texttt{JOBWAKE} also checked \texttt{NEWJOB} to
-determine whether the woken process is highest priority.
+determine whether the woken process has highest priority.
 
 Processes could also delay themselves for a fixed duration using \texttt{DELAYJOB},
 which scheduled an ``alarm" via the \textbf{waitlist} mechanism.
@@ -162,7 +163,10 @@ To minimize overhead, recovery information was stored in a compressed format wit
 
 These mechanisms enabled the AGC to gracefully recover from a wide range of faults—an
 essential requirement for spacecraft systems where failure tolerance was critical to
-mission success.
+mission success. This was made possible in part by the use of magnetic core memory,
+which retained its contents even after power loss, allowing the system to resume
+operation without reinitializing its entire state.
+
 
 \subsubsection{The 1201 and 1202 Alarms During Apollo 11's Lunar Descent}
 

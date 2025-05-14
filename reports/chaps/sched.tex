@@ -501,13 +501,13 @@ struct waitlist_t {
 
 \begin{emptythm}
     If a task \(t_0\) is scheduled to run in \(n_0\) ticks, it is placed between tasks
-    \(t_1\) and \(t_2\) with deadlines \(n_1\) and \(n_2\) such that \(n_1 \leq n_0 \leq n_2\).
-    We then set
+    \(t_1\) and \(t_2\) with deadlines \(n_1\) and \(n_2\) such that \(n_1 \leq n_0
+    \leq n_2\). We then set
     \[
         t_0.\texttt{remaining} = n_0 - n_1
     \]
-    Thus, the time until \(t_0\) executes is the sum of the \texttt{remaining} values of
-    all preceding tasks.
+    Thus, the time until \(t_0\) executes is the sum of the \texttt{remaining} values
+    of preceding tasks.
 \end{emptythm}
 
 Tasks are registered to the waitlist via:
@@ -643,22 +643,19 @@ is inserted after restoring registers in \autoref{code:mpx}:
     style=myarm,
     caption={\file{src/mpx.s}},
     morekeywords={cxt_switch, pendsv_handler, handle_signals},
-    linebackgroundcolor={\line{11} \line{13} \line{15}}
+    linebackgroundcolor={\line{11} \line{12} \line{9}}
 ]
 @@@ PendSV handler for context switching
 pendsv_handler:
-  @ Save current process state
-  ...
+  @@ Save current process state
 
   @ Select new process
   bl cxt_switch        
 
-  @ Restore new process state
-  ...
+  @@ Restore new process state
   pop {r4-r7}
 
   bl handle_signals    @ handle signals before jumping into the new process
-
   pop {pc}             @ Pop lr into pc, jumping to the new process
 \end{lstlisting}
 
@@ -670,8 +667,7 @@ the corresponding handlers:
     style=myagc,
     caption={\file{src/core/sched.cpp}}
 ]
-__extern_C__ void handle_signals(void)
-{
+__extern_C__ void handle_signals(void) {
   cpu.curr_proc->signals.handle_signals();
 }
 \end{lstlisting}
@@ -687,8 +683,7 @@ the process descriptor:
     caption={\file{src/core/sched.cpp}}
 ]
 template <>
-void default_handler<SIGTERM>(void)
-{
+void default_handler<SIGTERM>(void) {
   cpu.curr_proc->term_req = true;
 }
 \end{lstlisting}

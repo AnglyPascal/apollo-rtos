@@ -3,6 +3,15 @@
 % \usepackage[backend=biber,style=numeric,citestyle=numeric]{biblatex} 
 % \addbibresource{references.bib} 
 
+\newif\ifsubmission\submissionfalse
+\newcommand{\authorname}{
+    \ifsubmission 
+        Candidate No: 1061322
+    \else 
+        M Ahsan Al Mahir
+    \fi
+}
+
 \usepackage[square,numbers]{natbib}
 \bibliographystyle{plainnat}
 
@@ -11,14 +20,14 @@
     Apollo-RTOS: An AGC-Inspired Real-Time Operating System for Embedded Systems
 } %
 \author{ %
-    \Large \textbf{M. Ahsan Al Mahir} \\[1em] 
+    \Large \textbf{\authorname} \\[1em] 
     Department of Computer Science\\ 
     University of Oxford
 } %
 \date{%
     \Large \textbf{Supervisor: Prof. Alex Rogers} \\[1cm] 
-    \normalsize A project report submitted for the degree of Master of Mathematics and
-    Computer Science \\[1em]
+    \large A project report submitted for the degree of \\
+    \emph{Master of Mathematics and Computer Science} \\[1em]
     \textbf{Trinity 2025} %
 }
 
@@ -36,7 +45,7 @@
 \renewcommand{\maketitlehookd}{%
     \vspace{1cm}%
     {\ttfamily \wordcount} words \\
-    (using \small \texttt{texcount -inc -nobib -sum=1,1,0,1,0,0,0}) %
+    (using \small \texttt{texcount -inc -nobib -sum=1,1,0,1,0,1,1}) %
 }
 
 % % Formatting title spacing
@@ -54,14 +63,19 @@
 
 \AtBeginDocument{\addtocontents{toc}{\protect\thispagestyle{empty}}} 
 
-\newif\ifdouble\doublefalse
+\setlrmarginsandblock{3cm}{3cm}{*}
+\setulmarginsandblock{3.5cm}{3.2cm}{*}
+\checkandfixthelayout
 
 \newcommand{\preamble}{ %
+    % \ifsubmission
+    % \fi
+
     \maketitle %
     \thispagestyle{empty} %
     \newpage %
 
-    \ifdouble
+    \ifsubmission
         \doublespacing
         \renewcommand\codestyle{\linespread{1.3}\ttfamily\codefontsize}
         \captionsetup[figure]{font={stretch=1.3}}
@@ -71,13 +85,26 @@
     \input{chaps/abstract} %
     \newpage %
 
-    \ifdouble \setstretch{1.5} \fi
+    \ifsubmission \setstretch{1.5} \fi
     \mainmatter %
-    \tableofcontents %
-    \ifdouble \doublespacing \fi
-
     \pagestyle{fancy}
+
+    \fancyhf[loh,reh]{Contents}
+    \fancyhf[leh,roh]{}
+
+    \begin{KeepFromToc}
+      \tableofcontents
+    \end{KeepFromToc}
+    \ifsubmission \doublespacing \fi
+
+    \ifsubmission 
+        \setlength{\padding}{1em}
+    \fi
+
     \newpage 
+    \fancyhf[loh,reh]{\leftmark}
+    \fancyhf[leh,roh]{\rightmark}
+
 }
 
 \renewcommand{\@memb@bchap}{%
@@ -235,4 +262,5 @@
 \renewcommand\@memmain@floats{%
   \counterwithin{figure}{section}
 }
+
 

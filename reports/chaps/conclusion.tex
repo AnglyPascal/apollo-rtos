@@ -1,4 +1,5 @@
 \section{Conclusion}
+\label{sec:conclusion}
 
 Apollo-RTOS set out to explore whether the principles behind the Apollo Guidance
 Computer's operating system could be effectively adapted to a modern embedded platform.
@@ -40,6 +41,31 @@ dramatically accelerated development.
 Overall, this project has deepened my appreciation for rigorous engineering practices
 like early testing, detailed debugging, and defensive programming, all of which are
 critical for building reliable systems even on constrained hardware.
+
+
+\subsection{Future Work}
+
+While Apollo-RTOS achieves its primary goals, several directions remain for future
+exploration and development:
+
+\begin{itemize}
+    \item \textbf{Porting to micro:bit v2.} The micro:bit v2 introduces hardware
+        support for memory protection, which would allow user and kernel space
+        isolation. This opens the possibility of replacing the current library-call
+        interface with proper system calls, leading to better process isolation,
+        safety, and realism in multitasking environments.
+    \item \textbf{Application-driven demonstration.} A concrete application could help
+        showcase the system’s strengths in context. One example is a solar-powered
+        autonomous robot performing data collection in the field. With Apollo-RTOS’s
+        lightweight scheduler, persistent file system, and recovery mechanism, the
+        robot could suspend operation during a power loss or failure and resume
+        seamlessly once recovered.
+    \item \textbf{Lightweight networking via radio.} The onboard 2.4GHz radio on the
+        micro:bit could support a minimal networking stack, enabling coordination
+        between multiple devices. This would create opportunities to demonstrate the
+        OS's recovery mechanism in distributed scenarios where nodes must recover and
+        rejoin group tasks after faults or resets.
+\end{itemize}
 
 
 \ifextraC
