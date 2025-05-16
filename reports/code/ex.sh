@@ -32,11 +32,6 @@
     |  4. accel : (high), [runnable]
     |  5. htop : (medium), [running]
   waitlist: NONE
-  fram fs:
-    |  free_blks: 245, free: 31360, in use: 1408
-    open files:
-    |  0: size = 1024, type = char, blks: 0, 1, 2, 3, 4, 5, 6, 7
-    |  5: size = 36, type = bin,  blks: 9
 
   >> rm 10
 
@@ -56,4 +51,5 @@
     |  htop: (5.75%)
     |  idle: (31.567%)
 
+  >> 
 

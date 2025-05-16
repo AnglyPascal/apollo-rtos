@@ -19,102 +19,89 @@ Apollo-RTOS adopts the same high-level design philosophy as the AGC: implement c
 concepts effectively in a resource-constrained environment, while applying
 contemporary engineering where beneficial. Key design decisions include:
 
-\begin{description}[leftmargin=15pt, labelindent=0pt]
-    \item [Hardware Selection] The \texttt{micro:bit} v1 was chosen as the primary
-        target platform. Its Cortex-M0 CPU is among the smallest in the ARM family and
-        closely resembles the AGC hardware. 
-        \ifextraC
-            It also includes integrated peripherals, providing practical examples to
-            demonstrate OS functionality.
-        \fi
+\begin{itemize}[left=0pt]
+    \item \textbf{Hardware Selection} The \texttt{micro:bit v1} was chosen as the
+        primary target platform. Its Cortex-M0 CPU is among the smallest in the ARM
+        family and closely resembles the AGC hardware. 
 
-    \item [Monolithic Kernel Design] Following Linux's model, Apollo-RTOS adopts a
+    \item \textbf{Monolithic Kernel Design} Following Linux's model, Apollo-RTOS adopts a
         monolithic kernel for simplicity and efficient execution in a constrained
         environment, at the cost of more challenging verification and testing.
 
-    \item [No Kernel/User Space Isolation] In microcontroller programming, the entire
+    \item \textbf{No Kernel/User Space Isolation} In microcontroller programming, the entire
         program---kernel and applications---is compiled into a single binary. Strict
         isolation would add unnecessary complexity.
 
-    \item [Library Calls Instead of System Calls] Since Apollo-RTOS does not enforce
+    \item \textbf{Library Calls Instead of System Calls} Since Apollo-RTOS does not enforce
         user/kernel space separation, direct library calls are used rather than
         system calls, simplifying the interface and reducing overhead.
 
-    \item [Shared Memory IPC] Although shared memory risks race conditions, it offers
+    \item \textbf{Shared Memory IPC} Although shared memory risks race conditions, it offers
         the fastest and simplest form of IPC and is thus adopted as the primary
         mechanism.
 
-    \item [Memory Usage Philosophy] While the \texttt{micro:bit} has limited memory,
-        it offers far more than the AGC. Prioritizing maintainability over aggressive
-        optimization, we follow Knuth’s maxim that ``premature optimization is the root
-        of all evil.''
-\end{description}
-
-We also drew inspiration from the \texttt{microbian} OS for the \texttt{micro:bit},
-developed by \citet{microbian}, particularly for hardware headers, startup code, and
-interrupt handler structures.
-
-\ifextraA
-For the language and development ecosystem, we chose modern C++ over C, due to:
-\begin{itemize}
-    \item Concise syntax (classes, templates, RAII) that reduces boilerplate.
-    \item Greater optimization opportunities through templates, \texttt{constexpr},
-        and references.
-    \item Clean, expressive abstractions via type deduction, improving maintainability.
+    \item \textbf{Memory Usage Philosophy} While the \texttt{micro:bit v1} has limited
+        memory, it offers far more than the AGC. Prioritizing maintainability over
+        aggressive optimization, we follow a more liberal approach with runtime memory. 
 \end{itemize}
-\fi
+
+
+We also drew inspiration from the \texttt{microbian} OS for the \texttt{micro:bit v1},
+developed by \citet{microbian}, particularly for hardware headers and interrupt
+handling primitives.
 
 \subsection{Implementation Architecture}
 
-In this section, we briefly overview Apollo-RTOS's core modules and their
-interconnections:
+We now briefly overview Apollo-RTOS's core modules and their interconnections:
 
-\begin{description}[leftmargin=2em, labelindent=0pt]
-    \item [Scheduler] The centerpiece of the OS, managing:
+\begin{itemize}[left=0em]
+    \item \textbf{Scheduler:} The centerpiece of the OS, managing:
         \begin{itemize}[left=0pt]
             \item Process execution and context switching.
             \item Library functions for process creation, priority management, and
                 synchronization.
         \end{itemize}
 
-    \item[Waitlist] Implements a deadline-driven preemptive scheduler (similar to cron
+    \item \textbf{Waitlist:} Implements a deadline-driven preemptive scheduler (similar to cron
         jobs), executing time-sensitive tasks at precise intervals.
 
-    \item[Signals, Mutexes, and Barriers] Enable low-overhead inter-process
-        communication (IPC) and synchronization among processes.
+    \item \textbf{Signals, Mutexes, and Barriers:} Enable low-overhead communication
+        and synchronization among processes.
 
-    \item[Memory Allocator] Handles all dynamic memory management. Allocators maintain
+    \item \textbf{Memory Allocator:} Handles all dynamic memory management. Allocators maintain
         freelists of memory chunks and serve both runtime heap and stack allocations.
 
-    \item[File System] Provides persistent storage through:
+    \item \textbf{File System:} Provides persistent storage through:
         \begin{itemize}[left=0pt]
             \item A FRAM-based file system over I2C.
             \item An optional flash memory file system.
             \item Support for both memory-mapped and character-stream file access.
         \end{itemize}
 
-    \item[Error Handling] Provides diagnostic logging and error detection, including
+    \item \textbf{Error Handling:} Provides diagnostic logging and error detection, including
         runtime assertions and fault recovery.
 
-    \item[Recovery] Supports wrapping critical sections and processes with automatic
+    \item \textbf{Recovery:} Supports wrapping critical sections and processes with automatic
         recovery against different types of resets.
 
-    \item[Drivers] Interface with hardware components:
+    \item \textbf{Drivers:} Interface with hardware components:
         \begin{itemize}[left=0pt]
             \item \textbf{Timer}: Two 16-bit timers are configured for system clocking
-                and profiling (\lstinline[style=myagc]|TIMER1| and
-                \lstinline[style=myagc]|TIMER2|).
+                and profiling.
             \item \textbf{Serial}: Manages UART-based serial communication.
             \item \textbf{I2C}: Manages I2C master communication.
             \item \textbf{Display}: Controls the \(5 \times 5\) LED matrix.
         \end{itemize}
 
-    \item[Shell] Provides a Unix-like command-line interface for user interaction and
+    \item \textbf{Shell:} Provides a Unix-like command-line interface for user interaction and
         process management.
 
-    \item[Testing Framework] Allows registering and running unit and subsystem tests in
+    \item \textbf{Testing Framework:} Allows registering and running unit and subsystem tests in
         isolation during system startup.
 
-    \item[``Standard" Library] Offers utility data structures and functions, with
-        interfaces inspired by the C++ Standard Library.
-\end{description}
+    \item \textbf{``Standard"\footnotemark\ Library:} Offers utility data structures and
+        functions, with interfaces inspired by the C++ Standard Library.
+\end{itemize}
+
+\footnotetext{In quotation because not much of the standard library is present at the
+moment.}

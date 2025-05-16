@@ -59,10 +59,9 @@ the actual implementation can be found at \autoref{impl:malloc}.
 \label{sec:fs}
 
 Apollo-RTOS implements a dual-storage architecture that leverages both the
-\texttt{micro:bit}'s onboard flash and an external FRAM chip, each serving distinct
-roles based on their respective characteristics. This design carefully balances
-performance, endurance, and access patterns to provide an efficient and reliable
-storage solution.
+\texttt{micro:bit v1}'s onboard flash and an external FRAM chip, each serving distinct
+roles based on their respective characteristics. This dual-storage design balances
+performance and endurance, enabling efficient, reliable data access.
 
 \paragraph*{Flash Memory} The 256KB onboard flash serves as the primary storage medium,
 with approximately 90KB occupied by the Apollo-RTOS binary. Flash memory offers direct
@@ -81,6 +80,29 @@ throughput compared to flash—it provides near-instantaneous write operations w
 the need for erase cycles. Being an external device, FRAM introduces I2C bus overhead
 and contention, which must be managed carefully at the system level.
 
+\begin{table}[h]
+    \ifsubmission \def\arraystretch{2}
+    \else
+        \def\arraystretch{1.2}
+    \fi
+    \centering \caption{Comparison of \textit{micro:bit v1} Flash Memory and Fujitsu
+    MB85RC256V FRAM}
+    \begin{tabular}{@{} l p{4.3cm} p{5.5cm} @{}} 
+        \toprule \textbf{Feature} & \textbf{\texttt{micro:bit v1} Flash} & \textbf{Fujitsu
+        MB85RC256V FRAM} \\
+        \midrule \textbf{Memory Type} & NOR Flash & Ferroelectric RAM (FRAM) \\
+        \textbf{Capacity} & 256 KB & 32 KB (256 Kbit) \\
+        \textbf{Read/Write Speed} & Fast read, slower write & Fast read/write \\
+        \textbf{Write Endurance} & Limited ($\sim$10,000 cycles) & High
+        (>10\textsuperscript{12} cycles) \\
+        \textbf{Data Retention} & \(\sim\)10 years & 10 years at +85$^{\circ}$C; up to
+        95 years at lower temperatures \\
+        \textbf{Interface} & Integrated & I2C \\
+        \textbf{Operating Voltage} & 1.8V to 3.6V & 2.7V to 5.5V \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
 \paragraph*{Unified File System Design} Rather than maintaining separate file systems,
 Apollo-RTOS introduces an abstract block device layer that unifies access across
 storage media. Each storage device is described by a \lstinline[style=myagc]|fs_desc_t|
@@ -88,10 +110,9 @@ structure (\autoref{fs:desc}) capturing device-specific parameters (e.g., block 
 capacity) and read/write operations. A template-based approach enables compile-time
 optimization of storage access while maintaining a clean, extensible interface.
 
-The file system is implemented entirely in headers under \texttt{include/fs/}, and uses
-a two-level table structure with comprehensive metadata tracking. This design enables
-efficient file management across heterogeneous storage devices, abstracting away
-differences in performance and endurance at the application level.
+The file system is implemented entirely in headers under \texttt{include/fs/}. This
+design enables efficient file management across heterogeneous storage devices,
+abstracting away differences in performance and endurance at the application level.
 
 
 \subsubsection{File System Backend}
@@ -112,18 +133,20 @@ Each file is physically represented as follows:
 template <typename desc_t, desc_t desc>
 struct inode_t {
   using addr_t = typename desc_t::addr_t;
-  using blk_addr_t = uint8_t; 
-    // in either flash or FRAM, blocks are addressed with 8-bit integers
+    // the length a physical address depends on the device,
+    // for flash it's uint16_t, for FRAM it's uint8_t
 
-  blk_addr_t blks[desc.max_num_blks]; // non-contiguous block ownership
-  mutable addr_t end;   // logical end of file
+  uint8_t blks[desc.max_num_blks]; // blocks owned by the file
   const uint8_t nblks;  // number of blocks assigned
+
+  mutable addr_t end;   // end of the file
   mutable uint8_t flag; // file status encoded as a byte
 };
 \end{lstlisting}
 
-Files are referenced system-wide using their inode number, defined as \lstinline[style=myagc]|fn_t = uint8_t|.  
-The backend exposes the following public interface:
+Files are referenced system-wide using their inode number, defined as
+\lstinline[style=myagc]|fn_t = uint8_t|. The backend exposes the following public
+interface:
 
 \begin{lstlisting}[
     style=myagc,
@@ -139,17 +162,18 @@ public:
   void umount() const; // stores header back to device
 
   // Open a file using Linux-like flags (O_CREATE, O_WRITE, O_SHARED, etc.)
+  // returns the inode, and whether the file was newly created
   pair<const inode_t *, bool> open(fn_t fn, size_t sz, uint32_t flags);
 
   void remove(fn_t fn, bool forced = false);
 
   // Load contents into a buffer
   template <bool sync = ASYNC>
-  size_t load(const inode_t *inode, void *buf, size_t buf_sz, size_t off);
+  size_t load(const inode_t *inode, void *buf, size_t sz, size_t off);
 
   // Store buffer contents into a file
   template <bool sync = ASYNC>
-  size_t store(const inode_t *inode, const void *buf, size_t buf_sz, size_t off);
+  size_t store(const inode_t *inode, const void *buf, size_t sz, size_t off);
 };
 \end{lstlisting}
 
@@ -166,12 +190,48 @@ At its core lies the \textbf{file descriptor table}, maintaining state for all o
     \item Locking mechanisms for thread safety.
 \end{itemize}
 
-Descriptors are wrapped by \lstinline[style=myagc]|file_t| handlers, which:
+The front user interacts with the file system through a wrapper class
+\lstinline[style=myagc]|file_t| that holds a file descriptor internally, and redirects
+file operation requests to the backend. This wrapper
 \begin{itemize}
-    \item Enforce access permissions.
-    \item Synchronize concurrent accesses.
-    \item Automatically release resources upon closure.
+    \item Enforces access permissions.
+    \item Synchronizes concurrent accesses.
+    \item Automatically releases resources upon closure.
 \end{itemize}
+
+This \lstinline[style=myagc]|file_t| class provides a rich set of operations for file
+management:
+
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{include/fs/fs\_impl.h}},
+    linebackgroundcolor={}
+]
+class file_t {
+  fd_t *fd = nullptr;
+  /* memory mapping information */
+
+public:
+  file_t(fn_t fn, size_t sz, uint32_t flags);
+  ~file_t();
+
+  // manage a runtime memory mapping of the file
+  void *mmap(size_t sz);
+  void unmap();
+
+  /* all the following operations can be 
+   * - synchronous: file operations are done atomically
+   * - asynchronous: file operations may be interleaved with other operations
+   */
+  template <bool sync> bool load();
+  template <bool sync> size_t store() const;
+  template <bool sync> size_t write(const void *buf, size_t sz, size_t off);
+  template <bool sync> size_t append(const void *buf, size_t sz);
+  template <bool sync> size_t read(uint8_t *buf, size_t sz, size_t off) const;
+};
+\end{lstlisting}
+
+
 
 \paragraph*{Memory Mapping Subsystem} Apollo-RTOS supports runtime memory mapping of
 file contents, enabling two modes:
@@ -190,66 +250,6 @@ enable buffered sequential access:
         strings and individual characters efficiently.
 \end{itemize}
 
-\paragraph*{Unified I/O Model} Following Unix philosophy, Apollo-RTOS unifies file and
-output streams. The function \lstinline[style=myagc]|do_printf| outputs formatted
-strings to any stream:
-
-\begin{lstlisting}[
-    style=myagc,
-    caption={\file{include/utility/format.h}},
-    linebackgroundcolor={},
-    label={code:ostream}
-]
-template <typename ostream>
-  requires requires(ostream &os, char c) { { os.putc(c) }; }
-__noinline__ void do_printf(ostream &os, const char *fmt, ...);
-\end{lstlisting}
-
-\paragraph*{File Handler Interface} The \lstinline[style=myagc]|file_t| class provides
-a rich set of operations for file management:
-
-\begin{lstlisting}[
-    style=myagc,
-    caption={\file{include/fs/fs\_impl.h}},
-    linebackgroundcolor={}
-]
-class file_t {
-  fd_t *fd = nullptr;
-  /* memory mapping information */
-
-public:
-  file_t(fn_t fn, size_t sz, uint32_t flags);
-  ~file_t();
-
-  void *mmap(size_t sz);
-
-  template <typename T, typename... Args>
-    requires std::constructible_from<T, Args...>
-  T *mmap(Args &&...args);
-
-  template <typename T>
-  void mmap(T &obj);
-
-  void unmap();
-
-  template <bool sync = ASYNC>
-  bool load();
-
-  template <bool sync = ASYNC>
-  size_t store() const;
-
-  template <bool sync = ASYNC>
-  size_t write(const void *buf, size_t sz, size_t off = 0);
-
-  template <bool sync = ASYNC>
-  size_t append(const void *buf, size_t sz);
-
-  template <bool sync = ASYNC>
-  size_t read(uint8_t *buf, size_t len, size_t off = 0) const;
-};
-\end{lstlisting}
-
-\subsubsection{File System Usage Example}
 
 Finally, file system operations can be utilized as follows:
 
@@ -274,13 +274,12 @@ void file_rw_test()
     *t = '\0';
 
     file.store(); 
-    // file is closed automatically by destructor
-  }
+  } // file is closed automatically by destructor
 
   {
     ofstream os{fn, O_CHAR_FILE};
     // string the formatted string to the file
-    os.printf("and this is %c %s string", 'a', "formatted");
+    fprintf(os, "and this is %c %s string", 'a', "formatted");
   } // file closed automatically
 
   {

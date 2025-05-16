@@ -2,7 +2,7 @@
 \label{sec:rec_init}
 \label{sec:startup}
 
-When the \texttt{micro:bit} device starts, it reads the initial stack pointer from
+When the \texttt{micro:bit v1} device starts, it reads the initial stack pointer from
 address \lstinline[style=myagc]|0x0| into the \lstinline[style=myagc]|sp| register. It
 then begins executing the code at the instruction address stored at
 \lstinline[style=myagc]|0x4|. The \lstinline[style=myagc]|__stack| and
@@ -39,7 +39,7 @@ the scheduler.
 __extern_C__ void __reset(void)
 {
   /* Activate the crystal clock */
-  /* Set up memory protection for the first half of FLASH */
+  /* Set up write-back protection for the first half of FLASH */
 
   SEC_INIT(data);         
   SEC_ZERO(bss);          +-------------------------------+
@@ -47,17 +47,17 @@ __extern_C__ void __reset(void)
   SEC_INIT(startups);     +-------------------------------+
   SEC_INIT(apps);
 
-  call_constructors();    // Manually call necessary constructors
+  call_constructors();    // Manually call necessary global constructors
 
   led::init();            +-------------------------------+
-  serial::init();         | Set up hardware and drivers    |
+  serial::init();         | Set up hardware and drivers   |
   i2c::init();            +-------------------------------+
   fs::init();             
 
   boot::init();           // Identify the type of boot
 
   recover::init();        +-------------------------------+
-  tests::run();           | Run tests and start processes  |
+  tests::run();           | Run tests and start processes |
   sched::init();          +-------------------------------+
 
   // Should never get here
@@ -69,41 +69,35 @@ __extern_C__ void __reset(void)
 
 During linking, the linker places all static and global data structures into specific
 sections in FLASH. These must be copied to RAM at startup at pre-determined addresses.
-Thus, the first task of \lstinline[style=myagc]|__reset| is to initialize these sections.
-
-The macro \lstinline[style=myagc]|SEC_INIT| copies data from FLASH to RAM, while
-\lstinline[style=myagc]|SEC_ZERO| zero-initializes a section:
-\begin{lstlisting}[style=myagc]
-#define SEC_INIT(name) \
-  memcpy(SEC_START(name), SEC_LOAD(name), SEC_END(name) - SEC_START(name))
-
-#define SEC_ZERO(name) \
-  memset(SEC_START(name), 0, SEC_END(name) - SEC_START(name))
-\end{lstlisting}
+Thus, the first task of \lstinline[style=myagc]|__reset| is to initialize these
+sections. The macro \lstinline[style=myagc]|SEC_INIT| copies data from FLASH to RAM,
+while \lstinline[style=myagc]|SEC_ZERO| zero-initializes it.
 
 Besides the default \lstinline[style=myagc]|.bss| and \lstinline[style=myagc]|.data|
 sections, we define additional custom sections:
 \begin{itemize}
-    \item \lstinline[style=myagc]|.recover|: Is retained across soft resets.
+    \item \lstinline[style=myagc]|.recover|: Objects in this section are retained
+        across soft resets.
     \item \lstinline[style=myagc]|.services|: Stores definitions for service processes
-        (e.g., \lstinline[style=myagc]|display|, see \autoref{proc:display}) started at
-        every boot.
+        (e.g., \lstinline[style=myagc]|display|, see \autoref{proc:display}) which are
+        started at every boot.
     \item \lstinline[style=myagc]|.startups|: Contains processes only launched after a
-        hardware reset, not during recoveries.
+        hardware reset, but not during recoveries.
     \item \lstinline[style=myagc]|.apps|: Contains processes launchable via the shell
         (\autoref{sec:shell}).
 \end{itemize}
 
 The testing framework also defines \lstinline[style=myagc]|.unit_tests| and
-\lstinline[style=myagc]|.sys_tests| sections for test objects (\autoref{sec:testing}).
+\lstinline[style=myagc]|.sys_tests| sections for storing test objects
+(\autoref{sec:testing}).
 
 \paragraph*{Dynamic Global Object Construction} 
 
 In embedded settings, global object constructors are usually disabled for performance.
-However, some constructors (e.g., for \lstinline[style=myagc]|static_list_t|,
-\autoref{ds:list}) must run at startup. To support this, we manually define
-initializers in a special FLASH section \lstinline[style=myagc]|.init_funcs|, and call
-them explicitly via \lstinline[style=myagc,
+However, some non-trivial constructors must be run at startup. To support this, we
+manually define initializers in a special FLASH section
+\lstinline[style=myagc]|.init_funcs|, and call them explicitly via
+\lstinline[style=myagc,
 basicstyle=\bfseries\codestyle\codefontsize]|call_constructors|.
 
 \paragraph*{Driver Initialization} 
@@ -164,13 +158,12 @@ Finally, the scheduler is initialized:
 \begin{itemize}
     \item The idle process is registered (\autoref{sec:idle_proc}).
     \item Service processes are registered.
-    \item Startups are launched or recovery routines are executed, depending on the
-        boot type.
+    \item Recovery routines are executed, and startup processes are initialized.
     \item The system timer is started.
     \item Control transfers to the idle process, which immediately yields to the
         highest-priority process.
 \end{itemize}
-This completes the system startup.
+This completes system startup.
 
 \begin{lstlisting}[
     style=myagc,

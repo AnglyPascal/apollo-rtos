@@ -18,7 +18,7 @@ to recover from faults, enabling resilience even under critical mission conditio
 dramatically demonstrated during the Apollo 11 lunar descent when 1201 and 1202 alarms
 threatened to abort the landing.
 
-Today, a device like the \texttt{micro:bit}—costing less than \pounds20—offers
+Today, a device like the \texttt{micro:bit v1}—costing less than \pounds20—offers
 significantly greater raw computing power than the AGC. Yet in embedded systems, the
 fundamental challenges remain: \textit{real-time responsiveness}, \textit{reliability},
 \textit{fault tolerance}, and \textit{resource efficiency} are still paramount,
@@ -33,7 +33,7 @@ contemporary programming paradigms.
 \subsection{Contribution}
 
 This work presents \textbf{Apollo-RTOS}: a fully-featured, real-time operating system
-for the \texttt{micro:bit} v1, deeply inspired by the AGC and informed by the design
+for the \texttt{micro:bit v1}, deeply inspired by the AGC and informed by the design
 philosophies of Linux and C++20. Apollo-RTOS adapts the AGC’s core concepts—most
 notably its hybrid cooperative-preemptive scheduling model and restart-driven recovery
 mechanism—while integrating modern operating system abstractions essential for
@@ -77,33 +77,33 @@ The complete source code for Apollo-RTOS is available at:
    \impeq{\text{\url{https://github.com/AnglyPascal/apollo-rtos}}}
 \]
 
-\lstinputlisting[style=mytty, caption={Landing screen of Apollo-RTOS on
-\texttt{minicom}}]{code/ex1.sh}
+\lstinputlisting[style=mytty, caption={Sample shell session showing Apollo-RTOS landing
+screen}]{code/ex1.sh}
 
 \vspace{1em}%
-The Apollo-RTOS codebase spans over 85 source files and nearly 10,000 lines of code,
-covering components such as the scheduler, memory manager, file system, shell, drivers,
-and testing framework. A breakdown by language is shown below:
 
+The Apollo-RTOS implementation spans over 85 source files and nearly 10,000 lines of
+code, as detailed in \autoref{listing:scale}.
 \vspace{-1.7em}
 \begin{center}
 \begin{minipage}{.95\linewidth}
 \begin{lstlisting}[
     style=mytxt,
     linebackgroundcolor={\line{10}},
-    caption={Scale of the Apollo-RTOS codebase}
+    caption={Breakdown of Apollo-RTOS codebase by language},
+    label={listing:scale},
 ]
-===========================================================================
- Language        Files        Lines         Code     Comments       Blanks
-===========================================================================
- Assembly            1           89           49           28           12
- Autoconf            1          131          109            5           17
- C                   1          114           83           11           20
- C Header           41         4904         3804          131          969
- C++                42         4713         3703           90          920
-===========================================================================
- Total              86         9951         7748          265         1938
-===========================================================================
+============================================================================
+ Language         Files        Lines         Code     Comments       Blanks
+============================================================================
+ Assembly             1           89           49           28           12
+ Autoconf             1          131          109            5           17
+ C                    1          114           83           11           20
+ C Header            41         4904         3804          131          969
+ C++                 42         4713         3703           90          920
+============================================================================
+ Total               86         9951         7748          265         1938
+============================================================================
 \end{lstlisting}
 \end{minipage}
 \end{center}
@@ -120,19 +120,19 @@ The remainder of this report is structured as follows:
     \item \textbf{Section~\ref{sec:design}} outlines the design goals and high-level
         architecture of Apollo-RTOS, and discusses how concepts from the AGC and
         Unix-like systems were adapted.
-    \item \textbf{Section~\ref{sec:sched}} presents the scheduler, including the
-        hybrid cooperative-preemptive model and mechanisms for context switching and
+    \item \textbf{Section~\ref{sec:sched}} presents the scheduler, including the hybrid
+        cooperative-preemptive model and mechanisms for context switching and
         synchronization.
     \item \textbf{Section~\ref{sec:memory}} details the memory management system and
-        the file system architecture, including support for flash and FRAM devices.
+        the file system architecture.
     \item \textbf{Section~\ref{sec:rec}} describes the error handling model and
         restart-based recovery mechanism, allowing processes to recover gracefully
         after resets.
     \item \textbf{Section~\ref{sec:startup}} discusses the startup sequence and system
         initialization steps.
     \item \textbf{Section~\ref{sec:drivers}} explains the hardware drivers implemented
-        for the \texttt{micro:bit} platform, including timers, serial I/O, I2C, and LED
-        display control.
+        for the \texttt{micro:bit v1} platform, including timers, serial I/O, I2C, and
+        LED display control.
     \item \textbf{Section~\ref{sec:shell}} introduces the interactive shell and user
         command interface.
     \item \textbf{Section~\ref{sec:testing}} evaluates Apollo-RTOS in terms of

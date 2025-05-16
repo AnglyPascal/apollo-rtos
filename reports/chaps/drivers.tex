@@ -6,7 +6,7 @@ applications from low-level register operations.
 
 \subsection{Timers}
 
-The Nordic nRF51 on the \texttt{micro:bit} includes one 32-bit timer
+The Nordic nRF51 on the \texttt{micro:bit v1} includes one 32-bit timer
 (\lstinline[style=myagc]|TIMER0|) and two 16-bit timers
 (\lstinline[style=myagc]|TIMER1|, \lstinline[style=myagc]|TIMER2|) \citep{board_trm}.
 Apollo-RTOS configures the 16-bit timers as 1MHz timers, generating interrupts every
@@ -82,9 +82,9 @@ The serial driver manages the UART connection and provides three main functions:
         synchronously, busy-waiting until the transmission completes.
     \item \lstinline[style=myagc]|void intr_putc(char)|: transmits a character
         asynchronously. If a previous transmission is ongoing, the character is queued
-        in a buffer. The \lstinline[style=myagc]|uart_handler|, triggered by a
-        \lstinline[style=myagc]|TXDRDY| interrupt, sends queued characters. This design
-        is inspired by \citet{microbian}.
+        in a buffer. A \lstinline[style=myagc]|TXDRDY| interrupt invokes
+        \lstinline[style=myagc]|uart_handler| which sends queued characters. This
+        design is inspired by \citet{microbian}.
     \item \lstinline[style=myagc]|char getc()|: waits for and receives a character
         synchronously.
 \end{itemize}
@@ -94,8 +94,11 @@ The serial driver manages the UART connection and provides three main functions:
 processes should use \lstinline[style=myagc]|printf|, which prints asynchronously via
 \lstinline[style=myagc]|intr_putc|.
 
-\paragraph*{Aside} Apollo-RTOS allows redirecting process outputs to files via the file
-system’s streaming mechanism. For example:
+
+\subsubsection{Unified Output} 
+
+Apollo-RTOS allows redirecting process outputs to files via
+the file system’s streaming mechanism. For example:
 \begin{lstlisting}[style=mytty]
 >> echo this is a string sent to file 10 > 10
 >> cat 10
@@ -127,18 +130,31 @@ void printf(Args... args)
 }
 \end{lstlisting}
 
+This is in turn achieved by an unified I/O interface through the function
+\lstinline[style=myagc]|do_printf|, that outputs formatted strings to any stream that
+implements the \lstinline[style=myagc]|putc| function:
 
-\subsubsection*{Receiving Inputs from UART}
+\begin{lstlisting}[
+    style=myagc,
+    caption={\file{include/utility/format.h}},
+    linebackgroundcolor={},
+    label={code:ostream}
+]
+template <typename ostream>
+  requires requires(ostream &os, char c) { { os.putc(c) }; }
+__noinline__ void do_printf(ostream &os, const char *fmt, ...);
+\end{lstlisting}
+
+
+\subsubsection{Receiving Inputs}
 
 Apollo-RTOS uses a stack of listeners %
 (\lstinline[style=myagc]|bool (*listener_t)(char)|) to allow processes to
 asynchronously receive UART characters. A process that wishes to receive input pushes a
-listener onto the top of this stack. 
-
-When a UART character is received, it is passed down the listener stack until a
-listener consumes it, at which point propagation stops. The bottom-most listener is
-registered by the \lstinline[style=myagc]|shell| process, so by default all incoming
-characters are handled by the shell.
+listener onto the top of this stack. When a UART character is received, it is passed
+down the listener stack until a listener consumes it, at which point the propagation
+stops. The bottom-most listener is registered by the \lstinline[style=myagc]|shell|
+process, so by default all incoming characters are handled by the shell.
 
 \begin{lstlisting}[
     style=myagc,
@@ -174,9 +190,10 @@ extern "C" void uart_handler(void)
 \subsection{I2C}
 
 The I2C master on the Nordic nRF51 enables communication with devices connected to the
-\texttt{micro:bit} via the I2C bus. It operates at 100KHz or 400KHz; Apollo-RTOS uses
-the 100KHz setting following \citet{microbian}.
+\texttt{micro:bit v1} via the I2C bus. It operates at 100KHz or 400KHz; Apollo-RTOS
+uses the 100KHz setting following \citet{microbian}.
 
+\ifsubmission\newpage\fi
 Apollo-RTOS provides two I2C driver modes:
 \begin{itemize}
     \item \textbf{Synchronous mode:} Busy-waits for each read/write operation. Used
@@ -190,7 +207,7 @@ Apollo-RTOS provides two I2C driver modes:
 
 The I2C communication process is as follows:
 \begin{itemize}[left=0pt]
-    \item The slave device address (\lstinline[style=myagc]|0x03–0x77|) is written to
+    \item The slave device address (\lstinline[style=myagc]|0x03-0x77|) is written to
     \lstinline[style=myagc]|I2C0.ADDRESS|.
     \item Command bytes are sent sequentially, each acknowledged by an interrupt.
     \item After command transmission:
@@ -218,8 +235,10 @@ is more interested, and is managed by a simple state machine with four states:
     \item \lstinline[style=myagc]|RX_DATA|: Receiving data.
     \item \lstinline[style=myagc]|NACK|: Cleanup and finalization.
 \end{itemize}
+
+\ifsubmission\newpage\fi
 Once the transfer is started by the \lstinline[style=myagc]|xfer| function, the calling
-process goes to sleep on a channel, and is woken up by the end of transfer.
+process goes to sleep on a channel, and is woken up at the end of the transfer.
 \begin{lstlisting}[
     style=myagc,
     caption={\file{src/drivers/i2c\_async.h}}
@@ -240,10 +259,10 @@ operation completes. The state machine logic is implemented in the interrupt han
 \subsection{Display}
 \label{proc:display}
 
-The \(5 \times 5\) LED matrix on the \texttt{micro:bit} is arranged into three rows in
-a somewhat complex format. To manage it, Apollo-RTOS uses convenience macros provided
-by \citet{microbian}. The LEDs are controlled via GPIO registers and require constant
-refreshing to maintain smooth animations.
+The \(5 \times 5\) LED matrix on the \texttt{micro:bit v1} is arranged into three rows
+in a somewhat complex format. To manage it, Apollo-RTOS uses convenience macros
+provided by \citet{microbian}. The LEDs are controlled via GPIO registers and require
+constant refreshing to maintain smooth animations.
 
 The \lstinline[style=myagc]|display| driver is implemented as a low-priority service
 process, always started during system initialization (\autoref{sched:init}). It

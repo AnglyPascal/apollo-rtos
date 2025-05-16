@@ -2,19 +2,19 @@ args_parser:
     all_cases                      # tests for argument parsing correctness
 
 bitset:
-    basic_operations               # bitset creation, and basic bitwise operations
+    basic_operations               # bitset creation, and basic operations
     iteration                      # iteration over set bits
 
 circular_buffer:
     basic_operations               # push/pop operations in normal usage
     capacity_and_overwrite         # behavior when buffer capacity is exceeded
-    edge_cases                     # handling full/empty buffers and boundary conditions
-    wrap_around_and_iteration      # correct behavior during wrap-around scenarios
+    edge_cases                     # handling boundary conditions
+    wrap_around_and_iteration      # correct behavior during wrap-around
 
 stack:
     basic_integer_operations       # push/pop with integer data
     edge_cases                     # handling empty stack, overflow prevention
-    order_preservation             # LIFO (Last-In-First-Out) behavior verification
+    order_preservation             # LIFO behavior verification
     struct_operations              # storing and manipulating struct data
     template_specialization        # tests for templated stack specializations
 
@@ -27,7 +27,7 @@ static_list:
 allocator:
     basic_allocation_and_reuse     # basic alloc/free scenarios and reuse
     edge_cases                     # allocating 0 bytes, handling invalid frees
-    freelist_management            # freelist integrity after allocs and deallocs
+    freelist_management            # freelist integrity after alloc/deallocs
     memory_reuse_scenarios         # stress tests for memory reuse patterns
     rounding                       # block size rounding correctness tests
 
@@ -35,8 +35,8 @@ malloc:
     basic_malloc_free              # basic malloc/free cycle validation
     cleanup_after_process          # automatic memory cleanup on process exit
     complex_pattern_with_cleanup   # malloc/free with cleanup validation
-    null_and_zero_handling         # behavior when allocating 0 bytes or NULL freeing
-    process_isolation              # memory isolation between concurrent processes
+    null_and_zero_handling         # allocating 0 bytes or NULL freeing
+    process_isolation              # memory isolation between processes
 
 memlib:
     memcmp_test                    # memory comparison correctness
@@ -49,11 +49,11 @@ file_system:
     fs_basic:
         mmap                       # memory-mapped file I/O tests
         multi_blk_file             # multi-block file allocation and access
-        open_store_close           # file open, store, and close cycle verification
+        open_store_close           # file open, store, and close cycle
     fs_contention:
-        write_contention           # concurrent file writing contention scenarios
+        write_contention           # concurrent file writing contention
     fs_mapping:
-        unshared_mapping           # behavior of private (unshared) file mappings
+        unshared_mapping           # behavior of private file mappings
     ifstream:
         basic_read_write           # sequential read/write correctness
     ofstream:
@@ -75,4 +75,4 @@ scheduler:
         yield_fairness             # fairness during voluntary yielding
     waitlist:
         waitlist_basic             # basic task scheduling using the waitlist
-        waitlist_fs_op             # waitlist usage during file system operations
+        waitlist_fs_op             # timing during file system operations

@@ -9,7 +9,7 @@ adopted a radically simpler approach: perform a clean system restart after any d
 error.
 
 Of course, an unexpected restart during a critical operation could leave the system in
-an undefined state. To mitigate this, the AGC introduced a mechanism allowing processes
+an undefined state. To address this, the AGC introduced a mechanism allowing processes
 to register recovery routines. Similarly, Apollo-RTOS adopts this strategy: critical
 processes can register recovery table entries so that, if an error triggers a restart,
 the system can recover to a safe state.
@@ -27,10 +27,8 @@ entirely in software.
 Apollo-RTOS follows a similar philosophy to the AGC. Error detection is performed
 through extensive software checks: function arguments and critical memory locations are
 validated using assertions. This is carried out via calls to
-\lstinline[style=myagc]|assert|, which verifies conditions and, upon failure, triggers
-appropriate recovery procedures.
-
-An error can have three levels of severity:
+\lstinline[style=myagc]|assert|, which first verifies the condition and, upon failure,
+triggers a recovery procedure based on the severity: 
 \begin{itemize}
     \item \lstinline[style=myagc]|H_RESET|: A hardware reset of the device is required.
     \item \lstinline[style=myagc]|S_RESET|: A system-wide software reset is sufficient.
@@ -51,7 +49,7 @@ template <reset_lev_t lev, typename... Args>
 void __assert(bool ex, const char *file, uint32_t line, Args &&...args)
 {
   if (ex)
-    return;
+    return; // condition verified, nothing else to do
 
   if constexpr (lev == H_RESET) {
     /* if any debug statement is supplied in args, print it */
@@ -67,8 +65,8 @@ void __assert(bool ex, const char *file, uint32_t line, Args &&...args)
   }
 
   if constexpr (lev == TERM) {
-    return trigger_term(file, line);
-        // terminate the faulty process and carry on normally
+    return trigger_term();
+        // terminate and cleanup the faulty process and carry on normally
   }
 }
 
@@ -104,8 +102,7 @@ __extern_C__ void hardfault_handler_body(context_t *fault_stack)
     /* print the source file name and line number */
   }
 
-  /* print the context listing all register values
-   * right before the hardfault */
+  /* print the register values at the point of the hardfault */
 
   while (1) {
     switch (serial::getc()) {
@@ -165,23 +162,23 @@ Recovery entries can be associated with two levels:
 struct guard_proc {
   // setup a recovery table entry at the start of the critical section
   //   to restart the current process 
-  guard_proc(lev_t lev, const uint8_t *data = nullptr, size_t data_sz = 0);
+  guard_proc(lev_t lev, const uint8_t *data, size_t data_sz);
 
-  // remove the entry when exiting from the critical sectino
+  // remove the entry when exiting from the critical section
   ~guard_proc();
 };
 
 struct guard_task {
   // setup a recovery task to be run at startup 
-  guard_task(lev_t lev, runnable_t task, time_t interval = 0,
-             const uint8_t *data = nullptr, size_t data_sz = 0);
+  guard_task(lev_t lev, runnable_t task, time_t interval,
+             const uint8_t *data, size_t data_sz);
 
   ~guard_task();
 };
 \end{lstlisting}
 
 Internally, the recovery mechanism is backed by two tables:
-\begin{itemize}
+\begin{itemize}[left=0pt]
     \item \lstinline[style=myagc]|proc_tbl|: Contains entries for recovering processes.
         Each entry includes:
 \begin{lstlisting}[
@@ -190,9 +187,8 @@ Internally, the recovery mechanism is backed by two tables:
     emphstyle={[6]\typestyle},
 ]
 struct proc_entry_t {
-  uint32_t lev; // Recovery level
-
-  const proc_def_t *proc_def;
+  uint32_t lev; // recovery level
+  const proc_def_t *proc_def; // definition of the process to recover
 
   uint8_t data[N_REC_DATA] = {0xFF};
   uint16_t data_sz;
@@ -207,8 +203,7 @@ struct proc_entry_t {
 ]
 struct task_entry_t {
   uint32_t lev; // Recovery level
-
-  runnable_t task = nullptr;
+  runnable_t task = nullptr; // task to run at recovery
   time_t interval = 0;
 
   uint8_t data[N_REC_DATA] = {0xFF};
@@ -221,59 +216,48 @@ The recovery tables are stored in a file on the FRAM file system, ensuring persi
 even across power failures. When an entry is updated, only that specific entry is
 synchronized with the file system, minimizing the cost of each transaction.
 
-\paragraph*{Recovery} Upon detection of an error that issues a system reset via
-\lstinline[style=myagc]|assert|, or after a power outage, the startup code distinguishes
-whether it is recovering from a software reset or a power failure. It then carries out
-the recovery procedures according to the entries in the recovery tables.
+\textbf{Recovery}: Upon detection of an error that issues a system reset, or after a
+power outage, the startup code distinguishes whether it is recovering from a software
+reset or a power failure. It then carries out the recovery procedures according to the
+recovery table entries.
 
 \begin{lstlisting}[
     style=myagc,
     caption={\file{src/core/recover.cpp}},
     emph={[6]proc_entry_t, task_entry_t},
     emphstyle={[6]\typestyle},
-    emph={[7]recover, enabled, task},
+    emph={[7]recover, enabled, task, recover_proc, recover_task, copy_data},
     emphstyle={[7]\stdlibstyle},
-    linebackgroundcolor={\line{21} \lines{23}{24} \line{35} \line{1} \line{16}},
+    linebackgroundcolor={\line{12} \lines{16}{18} \line{24} \line{1} \line{26}},
     label={code:recover}
 ]
 void recover(lev_t curr_lev) // recovery level: RESET or POWER_OFF
 {
-  for (auto &entry : task_tbl)     
-    recover(curr_lev);
-
-  for (auto &entry : proc_tbl)     
-    recover(curr_lev);
-
+  for (auto &entry : task_tbl)  // first run the recovery tasks
+    recover_task(entry, curr_lev);
+  for (auto &entry : proc_tbl)  // then recover the processes
+    recover_proc(entry, curr_lev);
   /* reset the tables */
 }
 
-struct task_entry_t {
-  ...
-  void recover(lev_t curr_lev)
-  {
-    if (!enabled(curr_lev)) // if entry is not enabled for this level
-      return;
-  
-    auto ptr = copy_data();
-    if (interval == 0)
-      task(ptr); // immediate run the task
-    else
-      waitlist::reg("recover", interval, task, ptr);
-        // or set up a waitlist task to be run later
-  }
-  ...
-};
+void recover_task(auto &entry, lev_t curr_lev)
+{
+  if (!entry.enabled(curr_lev)) // if entry is not enabled for this level
+    return;
 
-struct proc_entry_t {
-  ...
-  void recover(lev_t curr_lev)
-  {
-    if (!enabled(curr_lev))
-      return;
-    sched::reg_proc(proc_def, copy_data()); // schedule the process
-  }
-  ...
-};
+  auto ptr = entry.copy_data();
+  (interval == 0) 
+    ? entry.task(ptr) // immediately run the task
+    : waitlist::reg("recover", entry.interval, entry.task, ptr);
+        // or set up a waitlist task to be run later
+}
+
+void recover_proc(auto &entry, lev_t curr_lev)
+{
+  if (!entry.enabled(curr_lev))
+    return;
+  sched::reg_proc(entry.proc_def, entry.copy_data()); // schedule the process
+}
 \end{lstlisting}
 
 

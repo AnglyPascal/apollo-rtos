@@ -9,26 +9,26 @@ Apollo program’s success.
 The AGC featured a \textit{2.048 MHz} CPU capable of executing approximately
 \textit{40,000 instructions per second}. It used a \textit{16-bit word length}, with 15
 bits for data and 1 parity bit. The memory system combined \textit{2 kilowords} (4KB)
-of erasable magnetic-core RAM with \textit{36 kilowords} (72KB) of fixed core rope ROM
-to store both software and mission data.
+of erasable magnetic-core non-volatile RAM with \textit{36 kilowords} (72KB) of fixed
+core rope ROM to store both software and mission data.
 
-Astronauts interacted with the AGC through the \textbf{Display and Keyboard} (DSKY)
+Astronauts interacted with the AGC through the \textit{Display and Keyboard} (DSKY)
 unit—a 21-digit segmented display coupled with a 19-button keypad—enabling manual
 command input and real-time monitoring. This human-machine interface was critical for
 spacecraft operation, particularly during complex maneuvers.
 
+\vspace{-1em}
 \begin{center} 
-    \begin{minipage}{.6\linewidth} 
+    \begin{minipage}{.8\linewidth} 
         \begin{figure}[H] 
-            \centering 
-            \includegraphics[width=.7\linewidth]{margaret_hamilton} 
+            \centering \includegraphics[width=.6\linewidth]{margaret_hamilton}
             \caption{Margaret Hamilton standing next to listings of the software she
-            and her MIT team produced for the Apollo Project.} 
+            and her team at MIT produced for the Apollo Project.} 
         \end{figure} 
 \end{minipage} 
 \end{center}
 
-Given the severe resource limitations, the AGC operating system, known as \textbf{the
+Given the severe resource limitations, the AGC operating system, known as \emph{the
 Executive}, was engineered for maximum efficiency. It prioritized critical tasks,
 ensured graceful degradation under faults, and maintained system stability even after
 resets or failures.
@@ -41,7 +41,7 @@ Executive, based primarily on \citet{agc_book}.
 
 The \textbf{Executive} was the core component responsible for allocating system
 resources such as CPU time and dynamic memory to processes. It implemented a
-\textbf{priority-based cooperative scheduling} algorithm, summarized as follows:
+\emph{priority-based cooperative scheduling} algorithm, summarized as follows:
 
 \begin{emptythm}
     \begin{itemize}[left=8pt]
@@ -79,7 +79,7 @@ preempt the CPU, even if it had higher priority. A special register, \texttt{NEW
 indicated the ID of the highest-priority runnable process:
 \begin{itemize}
     \item \texttt{NEWJOB == 0} indicated the current process was the highest-priority.
-    \item A nonzero \texttt{d} indicated that the process represented by Core Set
+    \item A nonzero value \texttt{d} indicated that the process represented by Core Set
         \texttt{d} had higher priority.
 \end{itemize}
 Upon new process creation, \texttt{NEWJOB} was updated if the new process had higher
@@ -92,8 +92,9 @@ least every 20 ms to detect higher-priority contenders. Failure to check
 restart.
 
 During a switch, the current process's context was saved in Core Set 0, and the context
-of the new process, identified by \texttt{NEWJOB}, was restored. Execution then resumed
-automatically from the last instruction of the switched-in process.
+of the new process, identified by \texttt{NEWJOB}, was restored by swapping with the
+context of the current process. Execution then resumed automatically from the last
+instruction of the switched-in process.
 
 If a process relinquished execution—either by sleeping or lowering its priority—the
 system scanned the Core Set table to find and schedule the next highest-priority
@@ -108,7 +109,7 @@ which reversed the priority negation. \texttt{JOBWAKE} also checked \texttt{NEWJ
 determine whether the woken process has highest priority.
 
 Processes could also delay themselves for a fixed duration using \texttt{DELAYJOB},
-which scheduled an ``alarm" via the \textbf{waitlist} mechanism.
+which scheduled an ``alarm" via the \emph{waitlist} mechanism.
 
 \paragraph*{The Waitlist} The \textbf{waitlist} introduced preemptive capabilities to
 the otherwise cooperative Executive, allowing tasks to be scheduled with precise
@@ -132,28 +133,32 @@ error detection and recovery; by contrast, the AGC lacked hardware support for
 sophisticated fault management. In particular, the absence of a memory protection unit
 made reliable detection of memory corruption nearly impossible.
 
-Instead, the AGC adopted a radical but effective strategy:
-\begin{quote}
-    \centering Just restart everything.
-\end{quote}
+Instead, the AGC adopted a radical but effective strategy: \vspace{-1em}
+\begin{center}
+    \emph{Just restart everything.}
+\end{center}
+\vspace{-1em} Restarting the system at arbitrary points posed some challenges, as
+critical tasks could be interrupted mid-execution. To address this, the AGC organized
+programs into six \emph{restart groups}, each capable of recovering one process at a
+time. Within each group, programs could define specific restart phases, corresponding
+to unique recovery routines. As a program progressed, it could update its active
+restart phase via the \texttt{PHASCHNG} routine.
 
-Restarting the system at arbitrary points posed challenges, as critical tasks could be
-interrupted mid-execution. To mitigate this, critical processes defined explicit
-recovery behaviors in the event of a restart. Each program was assigned to one of six
-\textbf{restart groups}, with each group capable of recovering one process at a time. A
-group could configure its recovery procedure to one of four modes:
+Each restart group could be configured to use one of four restart behaviors, determined
+by the restart phase number:
 \begin{itemize}
-    \item \textbf{Inhibit group restart:} No processes in the group are restarted.
-    \item \textbf{Restart last display:} Restore and display the last known screen
-        contents.
-    \item \textbf{Execute one restart routine:} Restart the process from the beginning
-        with minimal cleanup.
-    \item \textbf{Execute two restart routines:} Perform cleanup and resume execution
-        from a designated recovery point.
+    \item \textbf{Inhibit group restart (G.0):} Suppresses any recovery; no process in
+        the group is restarted.
+    \item \textbf{Restart last display (G.1):} Restores the most recent DSKY display
+        output, without executing program logic.
+    \item \textbf{Execute one restart routine (G.Odd > 1):} Invokes a single recovery
+        procedure for the group’s program.
+    \item \textbf{Execute two restart routines (G.Even):} Invokes two
+        routines—typically one for cleanup and one for resuming execution.
 \end{itemize}
 
 To minimize overhead, recovery information was stored in a compressed format within the
-\textbf{phase tables}. During a restart:
+\emph{phase tables}. During a restart:
 \begin{itemize}
     \item All active jobs and waitlist tasks were canceled.
     \item Interrupts were disabled, and system tables were cleared and reinitialized.
@@ -173,8 +178,8 @@ operation without reinitializing its entire state.
 The Apollo 11 lunar landing provided a dramatic demonstration of the AGC's resilience.
 During the final descent to the Moon, the Lunar Module's guidance computer triggered
 unexpected alarms—specifically, program alarms 1201 and 1202. These alarms indicated
-\textit{executive overflows}, meaning the system's scheduler was overloaded and unable
-to complete all tasks within real-time constraints.
+\emph{executive overflows}, meaning the system's scheduler was overloaded and unable to
+complete all tasks within real-time constraints.
 
 The root cause was traced to the rendezvous radar being left active during descent,
 introducing spurious data due to a hardware quirk \citep*{witt_2019_apollo}. This
@@ -219,6 +224,7 @@ the current time.
 This consistent, intuitive interface enabled astronauts to monitor spacecraft systems,
 execute computations, and perform maneuvering operations precisely and reliably.
 
+\vspace{1em}
 \begin{figure}[H]
     \centering
     \includegraphics[width=.4\linewidth]{dsky}

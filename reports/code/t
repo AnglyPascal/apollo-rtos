@@ -26,7 +26,7 @@
     |   +-- timer.h             # timer interrupt handling interface
     |
     +-- fs                      # file system core (split into modular headers)
-    |   +-- fs.h                # file system instantiation
+    |   +-- $\text{fs}$.h                # file system instantiation
     |   +-- fs_bck.h            # backend: block device and inode management
     |   +-- fs_impl.h           # frontend: main file system API
     |   +-- fs_desc.h           # device descriptor definitions
@@ -53,11 +53,11 @@
     src
     +-- core
     |   +-- boot.cpp            # boot state detection implementation
-    |   +-- recover.cpp         # recovery mechanism and restart table management
+    |   +-- recover.cpp         # recovery mechanism and restart table setup
     |   |
     |   +-- memory.cpp          # heap allocator, memcpy, and memory utilities
     |   |
-    |   +-- procs.h             # process descriptor and process table definitions
+    |   +-- procs.h             # process descriptor and process table defns
     |   +-- stack_allocator.h   # stack context and stack allocation utilities
     |   +-- sched.cpp           # process scheduling and context switching
     |   +-- waitlist.cpp        # waitlist task management
@@ -75,7 +75,7 @@
     |   +-- flash.cpp           # flash memory driver
     |   +-- fram.cpp            # FRAM memory driver
     |   |
-    |   +-- i2c.cpp             # I2C driver implementation (sync and async modes)
+    |   +-- i2c.cpp             # I2C driver implementation (sync/async modes)
     |   +-- i2c_async.h         # asynchronous I2C helper
     |   +-- i2c_sync.h          # synchronous I2C helper
     |   |
@@ -97,7 +97,7 @@
     +-- alph.cpp                # shell command implementations
     +-- calc.cpp                # calculator application
     +-- echo.cpp                # echo server/client
-    +-- fs.cpp                  # file system utilities
+    +-- $\text{fs}$.cpp                  # file system utilities
     +-- heart.cpp               # heart rate monitoring app
     +-- htop.cpp                # process monitoring interface
 
@@ -126,11 +126,11 @@
         |   +-- malloc.cpp     
         |   +-- memlib.cpp    
         |
-        +-- sched
+        +-- $\text{\bfseries \texttt{sched}}$
         |   +-- concurrency.cpp 
         |   +-- fairness.cpp    
         |   +-- header.h        
         |   +-- sched.cpp       
         |   +-- waitlist.cpp    
         |
-        +-- tests.cpp           
+        +-- $\text{tests}$.cpp           

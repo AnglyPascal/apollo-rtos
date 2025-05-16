@@ -4,19 +4,25 @@
 Apollo-RTOS set out to explore whether the principles behind the Apollo Guidance
 Computer's operating system could be effectively adapted to a modern embedded platform.
 Through the design and implementation of a real-time operating system for the
-\texttt{micro:bit} v1, this project has shown that simple, well-structured scheduling
-and fault-tolerant techniques remain highly relevant, even on contemporary hardware.
+\texttt{micro:bit v1}, this project demonstrates that simple, well-structured
+scheduling and fault-tolerant techniques remain highly relevant—even on contemporary
+hardware.
 
-The resulting system offers deterministic scheduling, robust error recovery, file
-system support, and a Unix-like shell interface, all implemented within the limited
-resources of the \texttt{micro:bit}. Modern C++ techniques such as RAII, templates, and
-type deduction helped improve both code reliability and developer productivity. 
+The resulting system provides deterministic scheduling, robust error recovery, file
+system support, and a Unix-like shell interface, all within the limited resources of
+the \texttt{micro:bit v1}. Modern C++ features such as RAII, templates, and type
+deduction contributed significantly to code reliability and developer productivity.
 
-While there are still areas for improvement—such as robust file system error detection,
-safer primitives for IPC, and more extensive testing under load—the project
-successfully meets its primary objectives. It demonstrates that careful architectural
-choices can produce lightweight yet powerful operating systems suitable for constrained
-environments.
+While there is still room for improvement—particularly in file system error detection
+and stress testing—the project successfully achieves its core objectives. It shows that
+careful architectural decisions can yield lightweight, reliable operating systems
+suitable for constrained environments.
+
+Ultimately, Apollo-RTOS illustrates that the foundational principles behind the Apollo
+Guidance Computer—simplicity, predictability, and recoverability—are not only of
+historical interest, but remain practically valuable today. By reimagining these ideas
+through the lens of modern tools and constraints, the project bridges past and present,
+demonstrating that good design endures across generations of computing.
 
 
 \subsection{Reflection}
@@ -49,11 +55,11 @@ While Apollo-RTOS achieves its primary goals, several directions remain for futu
 exploration and development:
 
 \begin{itemize}
-    \item \textbf{Porting to micro:bit v2.} The micro:bit v2 introduces hardware
-        support for memory protection, which would allow user and kernel space
-        isolation. This opens the possibility of replacing the current library-call
-        interface with proper system calls, leading to better process isolation,
-        safety, and realism in multitasking environments.
+    \item \textbf{Porting to \texttt{micro:bit v2}.} The \texttt{micro:bit v2}
+        introduces hardware support for memory protection, which would allow user and
+        kernel space isolation. This opens the possibility of replacing the current
+        library-call interface with proper system calls, leading to better process
+        isolation, safety, and realism in multitasking environments.
     \item \textbf{Application-driven demonstration.} A concrete application could help
         showcase the system’s strengths in context. One example is a solar-powered
         autonomous robot performing data collection in the field. With Apollo-RTOS’s
@@ -61,47 +67,9 @@ exploration and development:
         robot could suspend operation during a power loss or failure and resume
         seamlessly once recovered.
     \item \textbf{Lightweight networking via radio.} The onboard 2.4GHz radio on the
-        micro:bit could support a minimal networking stack, enabling coordination
-        between multiple devices. This would create opportunities to demonstrate the
-        OS's recovery mechanism in distributed scenarios where nodes must recover and
-        rejoin group tasks after faults or resets.
+        \texttt{micro:bit v1} could support a minimal networking stack, enabling
+        coordination between multiple devices. This would create opportunities to
+        demonstrate the OS's recovery mechanism in distributed scenarios where nodes
+        must recover and rejoin group tasks after faults or resets.
 \end{itemize}
 
-
-\ifextraC
-\section{Conclusion}
-
-This project aimed to develop an operating system inspired by the Apollo Guidance
-Computer (AGC), focusing on its scheduling and error-handling algorithms. The result,
-Apollo-RTOS, reimagines the core ideas of the AGC with modern concepts, demonstrating
-that the AGC's algorithms were ahead of their time and remain relevant for efficient
-operating system design.
-
-The strength of these algorithms lies in their simplicity, a theme central to
-Apollo-RTOS's implementation. This simplicity makes the system easy to understand,
-explain, and verify compared to more complex designs. Apollo-RTOS shows that even with
-the \texttt{micro:bit}'s limited resources—a 16MHz CPU and 16KB of RAM—careful design
-can achieve significant functionality. The system can concurrently run 16 processes,
-serialize their execution deterministically, and handle errors gracefully, making it a
-strong candidate for real-world applications.
-
-
-Despite these limitations, Apollo-RTOS highlights how historical concepts can still be
-applied in modern contexts. It also demonstrates the feasibility of creating a general
-purpose, lightweight, efficient, and reliable operating system for resource-constrained
-microcontrollers, opening new possibilities for real-world applications.
-
-
-\subsection{Reflection}
-
-
-
-\subsection{Future Work}
-
-In terms of features, Apollo-RTOS does not yet support all hardware components
-available on the \texttt{micro:bit}. Notably, it lacks drivers for the SPI bus,
-watchdog timer, sensors, radio device, and others. Some limitations also stem from the
-hardware constraints of the \texttt{micro:bit} v1. For example, the Cortex M0 processor
-lacks a floating-point unit (FPU), requiring software libraries to handle
-floating-point arithmetic. Integrating such a library remains a task for future work.
-\fi     

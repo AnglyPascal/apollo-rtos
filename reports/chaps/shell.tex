@@ -34,11 +34,12 @@ calc    clear   echo    cat     ls      touch
 rm      heart   
 \end{lstlisting}
 
-Alongside familiar Unix-like commands, Apollo-RTOS provides custom commands to
+Alongside familiar Unix-like commands, Apollo-RTOS provides a few custom commands to
 demonstrate system features:
 
 \paragraph*{\lstinline[style=myagc]|htop|} Displays running processes, waitlist tasks,
 and open files:
+\vspace{1em}
 \begin{lstlisting}[style=mytty]
 >> htop
 boot level: flash
@@ -49,16 +50,12 @@ curr_proc: htop
   |  3. accel_bg : (high), [runnable]
   |  4. htop : (medium), [running]
 waitlist: NONE
-fram fs:
-  |  free_blks: 245, free: 31360, in use: 1408
-  open files:
-  |  0: size = 1024, type = char, blks: 0, 1, 2, 3, 4, 5, 6, 7
-  |  5: size = 36, type = bin,  blks: 9
 \end{lstlisting}
 
 \paragraph*{\lstinline[style=myagc]|accel|} Launches a simple accelerometer-based
 compass on the LED matrix, pointing an arrow toward the ground. It can run in the
 background or foreground:
+\vspace{1em}
 \begin{lstlisting}[style=mytty]
 >> accel &
 started [4] output to stdout
@@ -70,6 +67,7 @@ killed [4]
 x: 1, y: -5, z: 64
 \end{lstlisting}
 
+\vspace{1em}
 
 \begin{figure}[H]
     \centering
@@ -97,5 +95,5 @@ x: 1, y: -5, z: 64
     style=mytty,
     frame=single,
     basicstyle=\linespread{1}\ttfamily\codefontsize,
-    caption={Sample workflow on shell on \texttt{minicom}}
+    caption={Sample workflow on the shell on \texttt{minicom}}
 ]{code/ex.sh}

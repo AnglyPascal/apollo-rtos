@@ -180,8 +180,8 @@
         remove_ref_cv_t,
         is_constructible_v, is_default_constructible_v, stdout,
         memset, memcpy, memcmp, strcmp, strlen,
-        hardfault_handler,
-        send, handle_signals, reset, swap,
+        hardfault_handler, default_handler,
+        swap_handler, send_signal, handle_signals, reset, swap,
     },
     emphstyle={[2]\stdlibstyle},
     emph={[3]nullptr, NULL},
@@ -263,4 +263,10 @@
   \counterwithin{figure}{section}
 }
 
+\newcommand{\cemph}[1]{\text{\cs\bfseries #1}}
+
+\usepackage{float}
+
+\counterwithin{table}{section}
+\captionsetup[table]{skip=10pt}
 
