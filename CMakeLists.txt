@@ -1,8 +1,12 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.5)
 
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR arm)
 set(CMAKE_CROSSCOMPILING TRUE)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -10,7 +14,7 @@ project(bare-metal-arm LANGUAGES C CXX ASM)
 
 set(CMAKE_C_COMPILER "arm-none-eabi-gcc")
 set(CMAKE_CXX_COMPILER "arm-none-eabi-g++")
-set(CMAKE_ASM_COMPILER "arm-none-eabi-as")
+set(CMAKE_ASM_COMPILER "arm-none-eabi-gcc")
 set(CMAKE_OBJCOPY "arm-none-eabi-objcopy")
 set(CMAKE_OBJDUMP "arm-none-eabi-objdump")
 
@@ -31,12 +35,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ALL_FLAGS} ${EMBED} ${DEAD_CODE}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ALL_FLAGS} ${EMBED} ${EMBED_CXX} ${DEAD_CODE}")
 SET(CMAKE_ASM_FLAGS "${CFLAGS} ${ARCH}")
 
-file(GLOB LINKSCRIPT "src/linker.ld")
+set(LINKSCRIPT "${CMAKE_SOURCE_DIR}/src/linker.ld")
 set(CMAKE_EXE_LINKER_FLAGS "-T ${LINKSCRIPT} -lgcc -lm -Wl,--gc-sections")
 
-file(GLOB_RECURSE CXX_SRC "src/*.cpp")
-file(GLOB_RECURSE C_SRC "src/*.c")
-file(GLOB_RECURSE ASM_SRC "src/*.s")
+file(GLOB_RECURSE CXX_SRC "${CMAKE_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE C_SRC "${CMAKE_SOURCE_DIR}/src/*.c")
+file(GLOB_RECURSE ASM_SRC "${CMAKE_SOURCE_DIR}/src/*.s")
 
 include_directories(include)
 set(KERNEL_SRC ${CXX_SRC} ${CXX_SUB_SRC} ${C_SRC} ${ASM_SRC})
@@ -48,7 +52,7 @@ set(TEST_SUITES "" CACHE STRING "List of tests to include in the build")
 separate_arguments(TEST_SUITES)
 
 # Generate a header file with the test names
-set(GENERATED_TEST_HEADER "src/core/enabled_test_suites.h")
+set(GENERATED_TEST_HEADER "${CMAKE_SOURCE_DIR}/src/core/enabled_test_suites.h")
 
 file(WRITE ${GENERATED_TEST_HEADER} "#pragma once\n\n")
 file(APPEND ${GENERATED_TEST_HEADER} "inline const char* test_suites[] = {\n")
@@ -74,7 +78,7 @@ function(add_custom_executable target_name target_dir)
   add_custom_command(
     TARGET ${target_name}
     PRE_BUILD
-    COMMAND cpp -P ${LINKSCRIPT}.in -o ${LINKSCRIPT}
+    COMMAND cpp -P "${LINKSCRIPT}.in" -o "${LINKSCRIPT}"
   )
 
   add_custom_command(
@@ -94,7 +98,7 @@ function(add_custom_executable target_name target_dir)
   add_custom_command(
     TARGET ${target_name}
     POST_BUILD
-    COMMAND ${PYTHON_EXECUTABLE} "scripts/stack_usage_analysis.py" CMakeFiles/${target_name}.dir ${target_name} 
+    COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_SOURCE_DIR}/scripts/stack_usage_analysis.py" CMakeFiles/${target_name}.dir ${target_name} 
     COMMENT "Analyzing stack usage"
     VERBATIM
   )
@@ -103,7 +107,7 @@ function(add_custom_executable target_name target_dir)
     add_custom_command(
       TARGET ${target_name}
       POST_BUILD
-      COMMAND sh scripts/copy_hex.sh ${target_name}
+      COMMAND sh "${CMAKE_SOURCE_DIR}/scripts/copy_hex.sh" ${target_name}
       COMMENT "Copy hex to microbit"
       VERBATIM
     )

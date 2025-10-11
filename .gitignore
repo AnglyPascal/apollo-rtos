@@ -422,3 +422,5 @@ TSWLatexianTemp*
 src/device.ld
 src/linker.ld
 src/core/enabled_test_suites.h
+build/
+compile_commands*

@@ -1,0 +1,17 @@
+CompileFlags:
+  Add: [
+    "-target", "arm-none-eabi",
+    "-mcpu=cortex-m0",
+    "-mthumb",
+    "-nostdlib",
+    "-ffreestanding",
+    "-std=c++20",
+    "-Wall",
+    "-I/home/ahsan/git/apollo-rtos/include",
+    "-I/usr/arm-none-eabi/include/c++/14.2.0",
+    "-I/usr/arm-none-eabi/include/c++/14.2.0/arm-none-eabi",
+    "-I/usr/arm-none-eabi/include/c++/14.2.0/backward",
+    "-I/usr/lib/gcc/arm-none-eabi/14.2.0/include",
+    "-I/usr/lib/gcc/arm-none-eabi/14.2.0/include-fixed",
+    "-I/usr/arm-none-eabi/include"
+  ]
