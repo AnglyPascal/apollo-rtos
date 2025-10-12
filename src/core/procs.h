@@ -5,8 +5,6 @@
 #include "utility/allocator.h"
 #include "utility/debug.h"
 
-#include <compare>
-
 namespace
 {
 const char *states[] = {

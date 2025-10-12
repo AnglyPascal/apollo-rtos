@@ -1,6 +1,5 @@
 #include "core/boot.h"
 #include "core/hardware.h"
-#include "core/memory.h"
 #include "core/sched.h"
 #include "core/test.h"
 #include "drivers/display.h"

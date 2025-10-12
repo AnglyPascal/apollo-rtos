@@ -7,7 +7,7 @@ if [ $# -ne 1 ]; then
 fi
 
 # Set variables
-project_root=$PWD
+project_root=$PWD/build/
 hex_file="$project_root/$1.hex"
 microbit="/run/media/microbit"
 

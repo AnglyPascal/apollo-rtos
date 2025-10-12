@@ -39,8 +39,6 @@ public:
 
   ~_ofstream() { flush(); }
 
-  void seek(size_t off) { offset = off == EOF ? file.fend() : off; }
-
   void putc(char c)
   {
     if (buf_pos == buf_len)

@@ -3,7 +3,6 @@
 #include "core/hardware.h"
 #include "core/irq.h"
 #include "core/sched.h"
-#include "core/waitlist.h"
 #include "utility/debug.h"
 #include "utility/profile.h"
 

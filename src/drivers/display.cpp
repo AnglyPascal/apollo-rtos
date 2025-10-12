@@ -3,8 +3,6 @@
 
 #include "drivers/display.h"
 
-#include "core/memory.h"
-#include "core/recover.h"
 #include "core/sched.h"
 
 namespace display

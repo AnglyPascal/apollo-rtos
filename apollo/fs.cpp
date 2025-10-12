@@ -52,18 +52,27 @@ APP(cat, MID4, 128, param)
   auto buf = (args_t *)param;
   auto str = buf->str;
 
-  fn_t fn = (*str == '\0') ? 10 : atoi(str);
+  fn_t in_fn = (*str == '\0') ? 10 : atoi(str);
 
-  if (!fram::exists(fn))
-    return debug<ERROR>("file %d doesn't exist\r\n", fn);
+  if (!fram::exists(in_fn))
+    return debug<ERROR>("file %d doesn't exist\r\n", in_fn);
 
-  ifstream it{fn};
+  ifstream it{in_fn};
 
-  // FIXME: buffer it
-  while (*it != '\0') {
-    printf("%c", *it);
-    ++it;
+  auto out_fn = curr_proc::out_fn();
+  if (out_fn == stdout) {
+    while (*it != '\0') {
+      serial::intr_putc(*it);
+      ++it;
+    }
+  } else {
+    ofstream os{out_fn, O_CREATE};
+    while (*it != '\0') {
+      os.putc(*it);
+      ++it;
+    }
   }
-  printf("\r\n");
+
+  serial::intr_putc('\r');
 }
 } // namespace

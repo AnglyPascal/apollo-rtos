@@ -1,5 +1,4 @@
 #include "core/boot.h"
-#include "core/memory.h"
 #include "core/recover.h"
 #include "fs/fs.h"
 #include "utility/debug.h"

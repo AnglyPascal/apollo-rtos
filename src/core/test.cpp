@@ -1,6 +1,5 @@
 #include "core/test.h"
 #include "core/boot.h"
-#include "core/memory.h"
 #include "core/recover.h"
 #include "core/sched.h"
 #include "utility/debug.h"
